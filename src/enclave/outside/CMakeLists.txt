@@ -1,4 +1,17 @@
 # --------------------------------------------------------
+# Untrusted WAMR library
+# --------------------------------------------------------
+
+add_library(wamrlib_untrusted STATIC ${PLATFORM_SHARED_SOURCE_UNTRUSTED})
+
+target_compile_options(wamrlib_untrusted PRIVATE
+    -fPIC
+    -ffunction-sections
+    -fdata-sections
+    -Wno-unused-variable
+)
+
+# --------------------------------------------------------
 # Untrusted SGX Compilation Flags
 # --------------------------------------------------------
 
@@ -36,14 +49,13 @@ set(ENCLAVE_UNTRUSTED_HEADERS
 set(ENCLAVE_UNTRUSTED_SRC
     getSgxSupport.cpp
     ocalls.cpp
-    EnclaveInterface.cpp
     system.cpp
+    EnclaveInterface.cpp
 )
 
 add_library(enclave_untrusted STATIC
     ${ENCLAVE_UNTRUSTED_HEADERS}
     ${ENCLAVE_UNTRUSTED_SRC}
-    ${ENCLAVE_UNTRUSTED_ASM_SRC}
 )
 
 target_include_directories(enclave_untrusted PUBLIC ${SGX_SDK_PATH}/include)
@@ -59,6 +71,10 @@ target_link_options(enclave_untrusted PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}/${ENCLAVE_EDL_FILENAME}_u.o
     -Wl,--gc-sections
 )
+
+# --------------------------------------------------------
+# Intel SGX SDK and PSW
+# --------------------------------------------------------
 
 # It is important to link to the SDK lib path _only_ in simulation mode. In
 # HW mode we must link to the system libraries. Note that this only applies to
@@ -76,12 +92,27 @@ else()
     message(FATAL_ERROR "Building SGX code with mode: ${FAASM_SGX_MODE}")
 endif()
 
+# --------------------------------------------------------
+# Remote attestation
+# --------------------------------------------------------
+
+if (FAASM_SGX_MODE STREQUAL "Hardware" OR FAASM_SGX_MODE STREQUAL "Simulation")
+    add_subdirectory(attestation)
+else ()
+    add_library(attestation_dummy INTERFACE)
+    add_library(faasm::attestation ALIAS attestation_dummy)
+endif ()
+
+# --------------------------------------------------------
+# Link everything together and add alias
+# --------------------------------------------------------
+
 target_link_libraries(enclave_untrusted
     faasm::common_deps
     ${SGX_UNTRUSTED_RUNTIME_LIB}
     ${SGX_UAE_SERVICE_LIB}
     ${SGX_CAPABLE_LIB}
-    Threads::Threads
+    faasm::attestation
     wamrlib_untrusted
     wasm
 )

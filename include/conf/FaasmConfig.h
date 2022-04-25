@@ -46,6 +46,8 @@ class FaasmConfig
     std::string s3User;
     std::string s3Password;
 
+    std::string attestationProviderUrl;
+
     FaasmConfig();
 
     void reset();

@@ -1,4 +1,32 @@
 # --------------------------------------------------------
+# WAMR Trusted lib
+# --------------------------------------------------------
+
+faasm_private_lib(wamrlib_trusted "${WAMR_RUNTIME_LIB_SOURCE}")
+
+target_include_directories(wamrlib_trusted PRIVATE
+    ${SGX_SDK_PATH}/include
+    ${SGX_SDK_PATH}/include/tlibc
+    ${SGX_SDK_PATH}/include/libcxx
+)
+
+target_compile_options(wamrlib_trusted PRIVATE
+    -std=gnu99
+    -fPIC
+    -ffunction-sections
+    -fdata-sections
+    -Wall
+    # These are needed to supress warnings when building WAMR
+    -Wno-pointer-sign
+    -Wno-unused-command-line-argument
+    -Wno-unused-parameter
+    -Wno-typedef-redefinition
+    -Wno-pedantic
+    -nostdinc
+    -fvisibility=hidden
+)
+
+# --------------------------------------------------------
 # Trusted SGX Compilation Flags
 # --------------------------------------------------------
 
@@ -18,6 +46,7 @@ set(ENCLAVE_TRUSTED_CXX_FLAGS
     -Wnon-virtual-dtor
     # https://github.com/intel/linux-sgx/issues/545
     -Wno-implicit-exception-spec-mismatch
+    -Wno-typedef-redefinition
     -std=c++11
     -nostdinc++
 )

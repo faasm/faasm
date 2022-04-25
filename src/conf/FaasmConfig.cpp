@@ -42,6 +42,8 @@ void FaasmConfig::initialise()
     s3Port = getEnvVar("S3_PORT", "9000");
     s3User = getEnvVar("S3_USER", "minio");
     s3Password = getEnvVar("S3_PASSWORD", "minio123");
+
+    attestationProviderUrl = getEnvVar("AZ_ATTESTATION_PROVIDER_URL", "");
 }
 
 int FaasmConfig::getIntParam(const char* name, const char* defaultValue)

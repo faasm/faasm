@@ -61,6 +61,45 @@ To run SGX in an Azure kubernetes cluster, see the relevant repositories:
 [experiment-base](https://github.com/faasm/experiment-base) and
 [experiment-sgx](https://github.com/faasm/experiment-sgx).
 
+## Remote Attestation
+
+Attesting an SGX enclave consists of two steps:
+1. Generating a quote for the attested enclave.
+2. Validate the enclave's quote with a remote attestation service.
+
+Faasm's implementation of remote attestation uses Microsoft Azure's attestation
+service.
+
+### Quote Generation
+
+An enclave quote is an enclave's report signed by the platform's Quoting Enclave
+(QE). An enclave report is a measure of the enclave's memory content signed to
+the enclave's identity. The QE is a special-purpose Intel-provisioned singleton
+enclave running in all SGX-enabled and SGX-capable platforms. This means we can
+only generate a quote in hardware mode.
+
+Additionally, quote generation can happen in two modes `in-proc` and
+`out-of-proc`. The latter is the preferred one for performance and memory
+consumption, and it is also the required mode for integration with AKS. To
+generate a quote in `out-of-proc` mode, we need to run a service that wraps the
+QE and signs reports on demand. This service is called AESM, and it listens for
+incoming requests in a UNIX socket. In a development cluster, we deploy this
+service as part of our container mesh. In an AKS cluster this service is
+provided by the AKS runtime.
+
+As an artifact of the quote generation process we have a byte array with the
+enclave's quote. We persist useful information, together with the quote, in a
+helper class: `sgx::EnclaveInfo`.
+
+### Quote Validation
+
+To validate an enclave's quote, we need to send a request to attest an SGX
+enclave to an Azure Attestation Provider,
+[link to the API](https://docs.microsoft.com/en-us/rest/api/attestation/attestation/attest-sgx-enclave).
+If the request goes through (i.e. the enclave's quote passes the policy loaded
+in the attestation provider) we receive a JWT. Before deeming the attestation
+as valid, we check the integrity of the actual JWT.
+
 ## Update SGX SDK and PSW version
 
 We use SGX SDK and PSW version [`2.15.1`](https://github.com/intel/linux-sgx/tree/sgx_2.15.1)
