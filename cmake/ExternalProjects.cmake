@@ -31,6 +31,10 @@ endif()
 conan_cmake_configure(
     REQUIRES
         "catch2/2.13.7@#31c8cd08e3c957a9eac8cb1377cf5863"
+        # These two dependencies are only needed to perform remote attestation
+        # of SGX enclaves using Microsoft Azure's Attestation Service
+        "jwt-cpp/0.6.0@#cd6b5c1318b29f4becaf807b23f7bb44"
+        "picojson/cci.20210117@#2af3ad146959275c97a6957b87b9073f"
     GENERATORS
         cmake_find_package
         cmake_paths
@@ -50,6 +54,8 @@ conan_cmake_install(PATH_OR_REFERENCE .
 include(${CMAKE_CURRENT_BINARY_DIR}/conan_paths.cmake)
 
 find_package(Catch2 REQUIRED)
+find_package(jwt-cpp REQUIRED)
+find_package(picojson REQUIRED)
 
 # 22/12/2021 - WARNING: we don't install AWS through Conan as the recipe proved
 # very unstable and failed frequently.
@@ -78,6 +84,10 @@ ExternalProject_Add(aws_ext
                      -DAUTORUN_UNIT_TESTS=OFF
                      -DENABLE_TESTING=OFF
                      -DCMAKE_BUILD_TYPE=Release
+    LOG_CONFIGURE ON
+    LOG_INSTALL ON
+    LOG_BUILD ON
+    LOG_OUTPUT_ON_FAILURE ON
 )
 
 add_library(aws_ext_core SHARED IMPORTED)

@@ -1,4 +1,5 @@
 #include <enclave/error.h>
+#include <enclave/outside/attestation/attestation.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/getSgxSupport.h>
 #include <enclave/outside/system.h>
@@ -49,17 +50,15 @@ void checkSgxSetup()
         throw std::runtime_error("Could not find enclave file");
     }
 
-    sgx_status_t sgxReturnValue;
-    sgx_launch_token_t sgxEnclaveToken = { 0 };
-    uint32_t sgxEnclaveTokenUpdated = 0;
-
     // Create the enclave
-    sgxReturnValue = sgx_create_enclave(FAASM_ENCLAVE_PATH,
-                                        SGX_DEBUG_FLAG,
-                                        &sgxEnclaveToken,
-                                        (int*)&sgxEnclaveTokenUpdated,
-                                        &globalEnclaveId,
-                                        nullptr);
+    sgx_launch_token_t sgxEnclaveToken = { 0 };
+    int sgxEnclaveTokenUpdated = 0;
+    sgx_status_t sgxReturnValue = sgx_create_enclave(FAASM_ENCLAVE_PATH,
+                                                     SGX_DEBUG_FLAG,
+                                                     &sgxEnclaveToken,
+                                                     &sgxEnclaveTokenUpdated,
+                                                     &globalEnclaveId,
+                                                     nullptr);
     processECallErrors("Unable to create enclave", sgxReturnValue);
     SPDLOG_DEBUG("Created SGX enclave: {}", globalEnclaveId);
 
@@ -68,6 +67,15 @@ void checkSgxSetup()
     processECallErrors(
       "Unable to initialise WAMR inside enclave", sgxReturnValue, returnValue);
     SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", globalEnclaveId);
+
+#ifdef FAASM_SGX_HARDWARE_MODE
+    // Attest enclave only in hardware mode
+    // 06/04/2022 - For the moment, the enclave held data is a dummy placeholder
+    // until we decide if we are going to use it or not.
+    std::vector<uint8_t> enclaveHeldData{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
+    attestEnclave(globalEnclaveId, enclaveHeldData);
+    SPDLOG_DEBUG("Attested SGX enclave: {}", globalEnclaveId);
+#endif
 }
 
 void tearDownEnclave()

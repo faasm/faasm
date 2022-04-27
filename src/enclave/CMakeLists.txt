@@ -60,36 +60,6 @@ set(WAMR_BUILD_LIB_PTHREAD 0)
 # Let WAMR do the including and importing of the sources
 include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
 
-# WAMR Trusted lib
-faasm_private_lib(wamrlib_trusted "${WAMR_RUNTIME_LIB_SOURCE}")
-
-target_include_directories(wamrlib_trusted PRIVATE
-    ${SGX_SDK_PATH}/include
-    ${SGX_SDK_PATH}/include/tlibc
-    ${SGX_SDK_PATH}/include/libcxx
-)
-
-target_compile_options(wamrlib_trusted PRIVATE
-    -std=gnu99
-    -fPIC
-    -ffunction-sections
-    -fdata-sections
-    -Wall
-    -Wno-unused-parameter
-    -Wno-pedantic
-    -nostdinc
-    -fvisibility=hidden
-)
-
-# WAMR untrusted lib
-add_library(wamrlib_untrusted STATIC ${PLATFORM_SHARED_SOURCE_UNTRUSTED})
-
-target_compile_options(wamrlib_untrusted PRIVATE
-    -fPIC
-    -ffunction-sections
-    -fdata-sections
-)
-
 # --------------------------------------------------------
 # Trusted Enclave Library
 # --------------------------------------------------------

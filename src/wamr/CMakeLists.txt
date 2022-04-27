@@ -38,6 +38,12 @@ include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
 remove_definitions("-DWASM_ENABLE_JIT=1")
 faasm_private_lib(wamrlib "${WAMR_RUNTIME_LIB_SOURCE}")
 
+# Disable WAMR warnings
+target_compile_options(wamrlib PRIVATE
+    -Wno-typedef-redefinition
+    -Wno-unused-command-line-argument
+)
+
 # -----------------------------
 # Faasm-specific configuration
 # -----------------------------
