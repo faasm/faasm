@@ -19,8 +19,9 @@ RUN apt-get install -y \
     vim
 
 # Install wabt
-# TODO - pin this to a release
 RUN git clone https://github.com/WebAssembly/wabt/ /tmp/wabt
+WORKDIR /tmp/wabt
+RUN git checkout 1.0.27
 WORKDIR /tmp/wabt/build
 RUN cmake -GNinja -DBUILD_TESTS=OFF -DBUILD_LIBWASM=OFF ..
 RUN ninja install
