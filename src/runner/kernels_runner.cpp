@@ -89,7 +89,7 @@ int doKernelsRun(int argc, char* argv[])
     int nThreads = 4;
 
     std::map<std::string, std::vector<int>> cmdline = {
-        { "dgemm", { 10, 1400, 32 } },
+        { "dgemm", { 1, 2048, 32 } },
         { "nstream", { 10, 50000000, 32 } },
         { "sparse", { 10, 10, 12 } },
         { "p2p", { 10, 10000, 10000 } },
@@ -105,13 +105,20 @@ int doKernelsRun(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+    ::setenv(
+      "FAASM_LOCAL_DIR", "/home/shillaker/code/faasm/dev/faasm-local", 1);
+
     SystemConfig& conf = getSystemConfig();
     conf.boundTimeout = 480000;
     conf.globalMessageTimeout = 480000;
-    conf.noSingleHostOptimisations = 1;
+    conf.noSingleHostOptimisations = 0;
+
+    conf.dirtyTrackingMode = "segfault";
+    conf.diffingMode = "bytewise";
 
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
     faasmConf.chainedCallTimeout = 480000;
+    faasmConf.s3Host = "localhost";
 
     storage::initFaasmS3();
     faabric::transport::initGlobalMessageContext();
