@@ -45,4 +45,10 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test varargs", "[faaslet]")
     auto req = setUpContext("demo", "va_arg");
     execFunction(req);
 }
+
+TEST_CASE_METHOD(FunctionExecTestFixture, "Test simd", "[faaslet]")
+{
+    auto req = setUpContext("demo", "simd_check");
+    execFunction(req);
+}
 }
