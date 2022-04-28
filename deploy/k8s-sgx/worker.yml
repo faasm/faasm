@@ -22,7 +22,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm/worker-sgx:0.8.9
+        - image: faasm/worker-sgx:0.8.10
           # We need to add this resources field to make sure the SGX device is
           # available in the pods:
           # https://docs.microsoft.com/en-us/azure/confidential-computing/confidential-nodes-aks-overview#azure-device-plugin-for-intel-sgx-
