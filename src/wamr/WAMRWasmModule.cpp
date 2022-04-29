@@ -100,6 +100,18 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     moduleInstance = wasm_runtime_instantiate(
       wasmModule, STACK_SIZE_KB, HEAP_SIZE_KB, errorBuffer, ERROR_BUFFER_SIZE);
 
+    // Sense-check the module
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem =
+      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+
+    if (aotMem->num_bytes_per_page != WASM_BYTES_PER_PAGE) {
+        SPDLOG_ERROR("WAMR module bytes per page wrong, {} != {}, overriding",
+                     aotMem->num_bytes_per_page,
+                     WASM_BYTES_PER_PAGE);
+        throw std::runtime_error("WAMR module bytes per page wrong");
+    }
+
     if (moduleInstance == nullptr) {
         std::string errorMsg = std::string(errorBuffer);
         SPDLOG_ERROR("Failed to instantiate WAMR module: \n{}", errorMsg);
@@ -332,7 +344,7 @@ size_t WAMRWasmModule::getMemorySizeBytes()
     auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem =
       ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
-    return aotMem->cur_page_count * aotMem->num_bytes_per_page;
+    return aotMem->cur_page_count * WASM_BYTES_PER_PAGE;
 }
 
 uint8_t* WAMRWasmModule::getMemoryBase()
