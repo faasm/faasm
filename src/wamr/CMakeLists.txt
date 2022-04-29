@@ -18,7 +18,7 @@ set(WAMR_BUILD_LIBC_WASI 1)
 set(WAMR_BUILD_LIB_PTHREAD 0)
 
 # WAMR features
-set(WAMR_BUILD_SIMD 0)
+set(WAMR_BUILD_SIMD 1)
 
 set(WAMR_BUILD_MULTI_MODULE 1)
 # If bulk memory set, WAMR allocates one single page, breaking our brk memory

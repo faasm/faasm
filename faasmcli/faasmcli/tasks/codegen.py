@@ -16,7 +16,8 @@ LIB_FAKE_FILES = [
 WAMR_ALLOWED_FUNCS = [
     # Misc
     ["demo", "chain"],
-    ["ffmpeg", "check"],
+    # 28/04/22 ffmpeg broken by move to LLVM 13
+    # ["ffmpeg", "check"],
     # Environment
     ["demo", "argc_argv_test"],
     ["demo", "exit"],
@@ -107,9 +108,11 @@ def local(ctx):
     """
     Runs codegen on functions used in tests
     """
+    # 28/04/22 ffmpeg broken by move to LLVM 13
+    # _do_codegen_user("ffmpeg")
+
     _do_codegen_user("demo")
     _do_codegen_user("errors")
-    _do_codegen_user("ffmpeg")
     _do_codegen_user("mpi")
     _do_codegen_user("omp")
     _do_codegen_user("python")
