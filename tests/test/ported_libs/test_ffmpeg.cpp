@@ -54,7 +54,7 @@ class FFmpegTestFixture : public ExecutorContextTestFixture
 
 TEST_CASE_METHOD(FFmpegTestFixture,
                  "Test executing FFmpeg checks in WAVM",
-                 "[libs]")
+                 "[.][libs]")
 {
     auto req = setUpContext("ffmpeg", "check");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -63,7 +63,7 @@ TEST_CASE_METHOD(FFmpegTestFixture,
 
 TEST_CASE_METHOD(FFmpegTestFixture,
                  "Test executing FFmpeg checks in WAMR",
-                 "[libs][wamr]")
+                 "[.][libs][wamr]")
 {
     auto req = setUpContext("ffmpeg", "check");
     executeWithWamrPool("ffmpeg", "check");
