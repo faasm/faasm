@@ -22,9 +22,9 @@ From the Faasm CLI, you can compile, upload and invoke the `hello.cpp`
 function with:
 
 ```bash
-inv compile demo hello
-inv upload demo hello
-inv invoke demo hello
+inv func.compile demo hello
+inv func.upload demo hello
+inv func.invoke demo hello
 ```
 
 You should then see the response `Hello faasm!`.
@@ -36,14 +36,14 @@ with:
 
 ```bash
 # Recompile and upload
-inv compile demo hello
-inv upload demo hello
+inv func.compile demo hello
+inv func.upload demo hello
 
 # Flush - this is important to remove any cached versions of your function
-inv flush
+inv func.flush
 
 # Invoke again
-inv invoke demo hello
+inv func.invoke demo hello
 ```
 
 # Writing functions
