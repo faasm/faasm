@@ -754,6 +754,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         std::shared_ptr<faabric::BatchExecuteRequest> req =
           faabric::util::batchExecFactory(call->user(), call->function(), 1);
+        req->set_type(faabric::BatchExecuteRequest::MIGRATION);
 
         faabric::Message& msg = req->mutable_messages()->at(0);
         msg.set_inputdata(inputData.data(), inputData.size());
@@ -773,9 +774,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         sch.getSnapshotClient(hostToMigrateTo).pushSnapshot(snapKey, snap);
 
         // Propagate the app ID and set the _same_ message ID
-        msg.set_id(call->id());
-        msg.set_groupid(call->groupid());
         msg.set_appid(call->appid());
+        msg.set_groupid(call->groupid());
+        msg.set_groupidx(call->groupidx());
 
         // If message is MPI, propagate the necessary MPI bits
         if (call->ismpi()) {

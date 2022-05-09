@@ -11,7 +11,7 @@ namespace tests {
 // want to support.
 TEST_CASE_METHOD(DistTestsFixture,
                  "Test running two MPI functions at the same time",
-                 "[.]")
+                 "[mpi]")
 {
     // Set up this host's resources
     int nLocalSlots = 5;
@@ -32,9 +32,12 @@ TEST_CASE_METHOD(DistTestsFixture,
     // Set up the second message
     std::shared_ptr<faabric::BatchExecuteRequest> reqCopy =
       faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
-    faabric::Message& msgCopy = req->mutable_messages()->at(0);
+    faabric::Message& msgCopy = reqCopy->mutable_messages()->at(0);
     msgCopy.set_ismpi(true);
     msgCopy.set_mpiworldsize(4);
+
+    // Call the functions for a second time
+    sch.callFunctions(reqCopy);
 
     // Check both results are successful
     faabric::Message result =
