@@ -1,31 +1,41 @@
 ---
 
-apiVersion: serving.knative.dev/v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: faasm-worker
   namespace: faasm
 spec:
+  selector:
+    matchLabels:
+      run: faasm-worker
+  replicas: 4 # todo: make this custom
   template:
     metadata:
       labels:
-        app: faasm-worker
+        run: faasm-worker
     spec:
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - podAffinityTerm:
                 labelSelector:
-                  matchLabels:
-                    app: faasm-worker
+                  matchExpressions:
+                    - key: run
+                      operator: In
+                      values:
+                      - faasm-worker
                 topologyKey: kubernetes.io/hostname
               weight: 100
 
       containers:
-        - image: faasm/worker-sgx:0.8.12
+        - image: faasm/worker-sgx:0.8.11
           # We need to add this resources field to make sure the SGX device is
           # available in the pods:
           # https://docs.microsoft.com/en-us/azure/confidential-computing/confidential-nodes-aks-overview#azure-device-plugin-for-intel-sgx-
+          name: faasm-worker
+          ports:
+            - containerPort: 8080
           resources:
             limits:
               sgx.intel.com/epc: "10Mi"
@@ -55,8 +65,6 @@ spec:
               value: "off"
             - name: PYTHON_CODEGEN
               value: "off"
-            - name: BOUND_TIMEOUT
-              value: "30000"
             - name: BOUND_TIMEOUT
               value: "600000"
             - name: GLOBAL_MESSAGE_TIMEOUT
