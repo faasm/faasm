@@ -146,8 +146,10 @@ services:
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}:/dev/sgx
 
   # SGX AESM service to mock the remote attestation environment in production
+  # There is no need to re-create the image every time, as it does not depend
+  # on Faasm's code
   aesmd:
-    image: faasm/sgx-aesmd:${FAASM_VERSION}
+    image: faasm/sgx-aesmd:0.8.9
     devices:
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}/enclave
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}/provision
