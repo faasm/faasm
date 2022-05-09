@@ -11,7 +11,7 @@ namespace tests {
 // want to support.
 TEST_CASE_METHOD(DistTestsFixture,
                  "Test running two MPI functions at the same time",
-                 "[.]")
+                 "[mpi]")
 {
     // Set up this host's resources
     int nLocalSlots = 5;
