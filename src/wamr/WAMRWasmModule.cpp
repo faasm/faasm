@@ -48,11 +48,6 @@ void WAMRWasmModule::initialiseWAMRGlobally()
     }
 }
 
-void tearDownWAMRGlobally()
-{
-    wasm_runtime_destroy();
-}
-
 WAMRWasmModule::WAMRWasmModule()
 {
     initialiseWAMRGlobally();
@@ -66,6 +61,9 @@ WAMRWasmModule::WAMRWasmModule(int threadPoolSizeIn)
 
 WAMRWasmModule::~WAMRWasmModule()
 {
+    SPDLOG_TRACE(
+      "Destructing WAMR wasm module {}/{}", boundUser, boundFunction);
+
     wasm_runtime_deinstantiate(moduleInstance);
     wasm_runtime_unload(wasmModule);
 }
@@ -78,6 +76,11 @@ WAMRWasmModule* getExecutingWAMRModule()
 // ----- Module lifecycle -----
 void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
+    SPDLOG_TRACE("WAMR binding to {}/{} via message {}",
+                 msg.user(),
+                 msg.function(),
+                 msg.id());
+
     // Prepare the filesystem
     filesystem.prepareFilesystem();
 
@@ -153,6 +156,7 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 
 int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 {
+    SPDLOG_TRACE("WAMR executing function from pointer {}", wasmFuncPtr);
     // NOTE: WAMR doesn't provide a nice interface for calling functions using
     // function pointers, so we have to call a few more low-level functions to
     // get it to work.
@@ -194,8 +198,17 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 
 int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
+    SPDLOG_TRACE("WAMR executing function from string {}", funcName);
+
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
+    if (func == nullptr) {
+        SPDLOG_ERROR("Did not find function {} for module {}/{}",
+                     funcName,
+                     boundUser,
+                     boundFunction);
+        throw std::runtime_error("Did not find named wasm function");
+    }
 
     // Note, for some reason WAMR sets the return value in the argv array you
     // pass it, therefore we should provide a single integer argv even though
@@ -237,7 +250,7 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
         return returnValue;
     }
 
-    SPDLOG_DEBUG("{} finished", funcName);
+    SPDLOG_TRACE("WAMR finished executing {}", funcName);
     return returnValue;
 }
 
@@ -279,7 +292,6 @@ uint8_t* WAMRWasmModule::wasmPointerToNative(uint32_t wasmPtr)
 
 uint32_t WAMRWasmModule::growMemory(size_t nBytes)
 {
-
     uint32_t oldBytes = getMemorySizeBytes();
     uint32_t oldBrk = currentBrk.load(std::memory_order_acquire);
     uint32_t newBrk = oldBrk + nBytes;

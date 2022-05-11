@@ -1541,7 +1541,13 @@ Runtime::Function* WAVMWasmModule::getMainFunction(Runtime::Instance* module)
 Runtime::Function* WAVMWasmModule::getWasmConstructorsFunction(
   Runtime::Instance* module)
 {
-    return getFunction(module, WASM_CTORS_FUNC_NAME, false);
+    auto* wasmCtorsFunction = getFunction(module, WASM_CTORS_FUNC_NAME, false);
+    if (wasmCtorsFunction == nullptr) {
+        SPDLOG_ERROR("Did not find {} function", WASM_CTORS_FUNC_NAME);
+        throw std::runtime_error("Did not find wasm constructors function");
+    }
+
+    return wasmCtorsFunction;
 }
 
 Runtime::Function* WAVMWasmModule::getDefaultZygoteFunction(
@@ -1573,14 +1579,7 @@ void WAVMWasmModule::executeZygoteFunction()
 
 void WAVMWasmModule::executeWasmConstructorsFunction(Runtime::Instance* module)
 {
-
     Runtime::Function* wasmCtorsFunction = getWasmConstructorsFunction(module);
-    if (wasmCtorsFunction == nullptr) {
-        SPDLOG_ERROR("Did not find __wasm_call_ctors function for {}/{}",
-                     boundUser,
-                     boundFunction);
-        throw std::runtime_error("Did not find __wasm_call_ctors");
-    }
 
     IR::UntaggedValue result;
     executeWasmFunction(

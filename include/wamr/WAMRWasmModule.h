@@ -77,6 +77,4 @@ class WAMRWasmModule final
 };
 
 WAMRWasmModule* getExecutingWAMRModule();
-
-void tearDownWAMRGlobally();
 }
