@@ -25,23 +25,8 @@ static int32_t __sbrk_wrapper(wasm_exec_env_t exec_env, int32_t increment)
     }
 }
 
-static int32_t mmap_wrapper(wasm_exec_env_t exec_env,
-                            void* addr,
-                            int32_t length,
-                            int32_t prot,
-                            int32_t flags,
-                            int32_t fd,
-                            int32_t offset)
-{
-    SPDLOG_TRACE(
-      "S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
-    WasmModule* module = getExecutingModule();
-    return module->mmapMemory(length);
-}
-
 static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__sbrk, "(i)i"),
-    REG_NATIVE_FUNC(mmap, "(*iiiii)i"),
 };
 
 uint32_t getFaasmMemoryApi(NativeSymbol** nativeSymbols)

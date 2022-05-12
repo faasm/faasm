@@ -20,7 +20,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     int nExecs = 0;
     std::string function;
 
-    SECTION("echo")
+    SECTION("echo function")
     {
         function = "echo";
 
@@ -31,9 +31,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     // We must also check a function that changes the memory size to check that
     // it doesn't mess up
-    SECTION("mmap")
+    SECTION("brk function")
     {
-        function = "mmap";
+        function = "brk";
 
         SECTION("Once") { nExecs = 1; }
 
