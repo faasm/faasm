@@ -219,7 +219,7 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     bool success = aot_create_exec_env_and_call_function(
       reinterpret_cast<AOTModuleInstance*>(moduleInstance),
       reinterpret_cast<AOTFunctionInstance*>(func),
-      0x0,
+      0,
       argv.data());
 
     uint32_t returnValue = argv[0];
@@ -247,6 +247,12 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
         }
 
         SPDLOG_ERROR("Caught wasm runtime exception: {}", errorMessage);
+
+        // Ensure return value is not zero if not successful
+        if(returnValue == 0) {
+            returnValue = 1;
+        }
+
         return returnValue;
     }
 

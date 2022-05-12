@@ -16,6 +16,7 @@
 #include <faabric/util/logging.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/snapshot.h>
+#include <faabric/util/string_tools.h>
 #include <faabric/util/timing.h>
 
 #include <boost/filesystem.hpp>
@@ -448,7 +449,6 @@ int32_t WasmModule::executeTask(
 
 uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
 {
-
     uint32_t regionSize = GUARD_REGION_SIZE;
     uint8_t* nativePtr = wasmPointerToNative(wasmOffset);
 

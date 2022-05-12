@@ -18,16 +18,34 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[wamr]")
 {
     int nExecs = 0;
-    SECTION("Once") { nExecs = 1; }
+    std::string function;
 
-    SECTION("Multiple") { nExecs = 5; }
+    SECTION("echo")
+    {
+        function = "echo";
+
+        SECTION("Once") { nExecs = 1; }
+
+        SECTION("Multiple") { nExecs = 5; }
+    }
+
+    // We must also check a function that changes the memory size to check that
+    // it doesn't mess up
+    SECTION("mmap")
+    {
+        function = "mmap";
+
+        SECTION("Once") { nExecs = 1; }
+
+        SECTION("Multiple") { nExecs = 5; }
+    }
 
     // Set to run WAMR
     conf.wasmVm = "wamr";
 
     // Create a Faaslet
     std::shared_ptr<faabric::BatchExecuteRequest> req =
-      faabric::util::batchExecFactory("demo", "echo", 1);
+      faabric::util::batchExecFactory("demo", function, 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
     faabric::scheduler::ExecutorContext::set(nullptr, req, 0);
     faaslet::Faaslet f(msg);
@@ -35,7 +53,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     // Execute the function using another message
     for (int i = 0; i < nExecs; i++) {
         std::shared_ptr<faabric::BatchExecuteRequest> req =
-          faabric::util::batchExecFactory("demo", "echo", 1);
+          faabric::util::batchExecFactory("demo", function, 1);
         faabric::Message& msg = req->mutable_messages()->at(0);
         faabric::scheduler::ExecutorContext::set(nullptr, req, 0);
 
@@ -45,8 +63,12 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         int returnValue = f.executeTask(0, 0, req);
         REQUIRE(returnValue == 0);
 
-        std::string outputData = msg.outputdata();
-        REQUIRE(outputData == inputData);
+        REQUIRE(msg.returnvalue() == 0);
+
+        if (function == "echo") {
+            std::string outputData = msg.outputdata();
+            REQUIRE(outputData == inputData);
+        }
     }
 
     f.shutdown();

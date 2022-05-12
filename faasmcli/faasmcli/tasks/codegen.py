@@ -16,6 +16,7 @@ LIB_FAKE_FILES = [
 WAMR_ALLOWED_FUNCS = [
     # Misc
     ["demo", "chain"],
+    ["demo", "mmap"],
     # 28/04/22 ffmpeg broken by move to LLVM 13
     # ["ffmpeg", "check"],
     # Environment
