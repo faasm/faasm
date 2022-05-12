@@ -19,33 +19,38 @@
 #include <wasm_export.h>
 
 namespace wasm {
+
 // The high level API for WAMR can be found here:
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/include/wasm_export.h
 static bool wamrInitialised = false;
-std::mutex wamrInitMx;
+
+// WAMR maintains some global state, which we must be careful not to modify
+// concurrently from our side. We are deliberately cautious with this locking,
+// so it may cause performance issues under high churn of short-lived functions.
+static std::mutex wamrGlobalsMutex;
 
 void WAMRWasmModule::initialiseWAMRGlobally()
 {
     if (wamrInitialised) {
         return;
-    } else {
-        faabric::util::UniqueLock lock(wamrInitMx);
-
-        if (wamrInitialised) {
-            return;
-        }
-
-        // Initialise WAMR runtime
-        bool success = wasm_runtime_init();
-        if (!success) {
-            throw std::runtime_error("Failed to initialise WAMR");
-        }
-
-        SPDLOG_DEBUG("Successfully initialised WAMR");
-
-        // Initialise Faasm's own native symbols
-        initialiseWAMRNatives();
     }
+
+    faabric::util::UniqueLock lock(wamrGlobalsMutex);
+
+    if (wamrInitialised) {
+        return;
+    }
+
+    // Initialise WAMR runtime
+    bool success = wasm_runtime_init();
+    if (!success) {
+        throw std::runtime_error("Failed to initialise WAMR");
+    }
+
+    SPDLOG_DEBUG("Successfully initialised WAMR");
+
+    // Initialise Faasm's own native symbols
+    initialiseWAMRNatives();
 }
 
 WAMRWasmModule::WAMRWasmModule()
@@ -64,6 +69,8 @@ WAMRWasmModule::~WAMRWasmModule()
     SPDLOG_TRACE(
       "Destructing WAMR wasm module {}/{}", boundUser, boundFunction);
 
+    faabric::util::UniqueLock lock(wamrGlobalsMutex);
+
     wasm_runtime_deinstantiate(moduleInstance);
     wasm_runtime_unload(wasmModule);
 }
@@ -74,6 +81,20 @@ WAMRWasmModule* getExecutingWAMRModule()
 }
 
 // ----- Module lifecycle -----
+
+void WAMRWasmModule::reset(faabric::Message& msg,
+                           const std::string& snapshotKey)
+{
+    if (!_isBound) {
+        return;
+    }
+
+    std::string funcStr = faabric::util::funcToString(msg, true);
+    SPDLOG_DEBUG("WAMR resetting after {} (snap key {})", funcStr, snapshotKey);
+
+    bindInternal(msg);
+}
+
 void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 {
     SPDLOG_TRACE("WAMR binding to {}/{} via message {}",
@@ -86,19 +107,26 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 
     // Load the wasm file
     storage::FileLoader& functionLoader = storage::getFileLoader();
-    std::vector<uint8_t> wasmBytes =
-      functionLoader.loadFunctionWamrAotFile(msg);
+    wasmBytes = functionLoader.loadFunctionWamrAotFile(msg);
 
-    // Load wasm module
-    wasmModule = wasm_runtime_load(
-      wasmBytes.data(), wasmBytes.size(), errorBuffer, ERROR_BUFFER_SIZE);
+    {
+        faabric::util::UniqueLock lock(wamrGlobalsMutex);
+        SPDLOG_TRACE("WAMR loading {} wasm bytes\n", wasmBytes.size());
+        wasmModule = wasm_runtime_load(
+          wasmBytes.data(), wasmBytes.size(), errorBuffer, ERROR_BUFFER_SIZE);
 
-    if (wasmModule == nullptr) {
-        std::string errorMsg = std::string(errorBuffer);
-        SPDLOG_ERROR("Failed to load WAMR module: \n{}", errorMsg);
-        throw std::runtime_error("Failed to load WAMR module");
+        if (wasmModule == nullptr) {
+            std::string errorMsg = std::string(errorBuffer);
+            SPDLOG_ERROR("Failed to load WAMR module: \n{}", errorMsg);
+            throw std::runtime_error("Failed to load WAMR module");
+        }
     }
 
+    bindInternal(msg);
+}
+
+void WAMRWasmModule::bindInternal(faabric::Message& msg)
+{
     // Instantiate module
     moduleInstance = wasm_runtime_instantiate(
       wasmModule, STACK_SIZE_KB, HEAP_SIZE_KB, errorBuffer, ERROR_BUFFER_SIZE);
@@ -249,7 +277,7 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
         SPDLOG_ERROR("Caught wasm runtime exception: {}", errorMessage);
 
         // Ensure return value is not zero if not successful
-        if(returnValue == 0) {
+        if (returnValue == 0) {
             returnValue = 1;
         }
 
@@ -347,7 +375,6 @@ uint32_t WAMRWasmModule::growMemory(size_t nBytes)
 
 uint32_t WAMRWasmModule::shrinkMemory(size_t nBytes)
 {
-
     SPDLOG_WARN("WAMR ignoring shrink memory");
     return 0;
 }
@@ -367,8 +394,10 @@ size_t WAMRWasmModule::getMemorySizeBytes()
 
 uint8_t* WAMRWasmModule::getMemoryBase()
 {
-    SPDLOG_WARN("WAMR getMemoryBase not implemented");
-    return nullptr;
+    auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem =
+      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+    return reinterpret_cast<uint8_t*>(aotMem->memory_data.ptr);
 }
 
 size_t WAMRWasmModule::getMaxMemoryPages()
