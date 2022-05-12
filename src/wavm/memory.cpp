@@ -64,7 +64,6 @@ std::shared_ptr<faabric::state::StateKeyValue> getStateKV(I32 keyPtr)
 
 I32 doMmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset)
 {
-
     SPDLOG_DEBUG(
       "S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
