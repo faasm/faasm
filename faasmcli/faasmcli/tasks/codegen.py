@@ -107,8 +107,21 @@ def _do_codegen_file(path):
 @task
 def local(ctx):
     """
-    Runs codegen on functions used in tests
+    Run codegen on functions used in tests
     """
+    local_wavm(ctx)
+
+    local_wamr(ctx)
+
+
+@task
+def local_wavm(ctx):
+    """
+    Run codegen on test functions executed with WAVM only
+    """
+    env = copy(environ)
+    env.update({"WASM_VM": "wavm"})
+
     # 28/04/22 ffmpeg broken by move to LLVM 13
     # _do_codegen_user("ffmpeg")
 
@@ -122,7 +135,12 @@ def local(ctx):
     for so in LIB_FAKE_FILES:
         _do_codegen_file(so)
 
-    # For WAMR and SGX codegen, we need to update the environment
+
+@task
+def local_wamr(ctx):
+    """
+    Run codegen on test functions executed with WAMR only
+    """
     env = copy(environ)
 
     # Run the WAMR codegen required by the tests
