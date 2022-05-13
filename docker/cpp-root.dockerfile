@@ -2,8 +2,17 @@ FROM faasm/faabric-base:0.3.0
 
 RUN apt-get update
 RUN apt-get install -y software-properties-common
+
 # Make sure packages from faabric-base are up-to-date
 RUN apt-get upgrade -y
+
+# LLVM setup
+RUN add-apt-repository -y -n "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main"
+RUN add-apt-repository -y -n "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main"
+
+RUN apt-get install -y \
+    llvm-12-dev \
+    llvm-13-dev
 
 # Faasm-specific dependencies
 RUN apt-get install -y \

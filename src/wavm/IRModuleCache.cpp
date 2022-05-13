@@ -24,7 +24,6 @@ IRModuleCache& getIRModuleCache()
 
 IR::Module& IRModuleCache::getModuleFromMap(const std::string& key)
 {
-    // Here we switch on module features that must always be used.
     return moduleMap[key];
 }
 
@@ -185,6 +184,7 @@ IR::Module& IRModuleCache::getMainModule(const std::string& user,
 
             IR::Module& module = getModuleFromMap(key);
             module.featureSpec.simd = true;
+            module.featureSpec.extendedNameSection = true;
             module.featureSpec.nonTrappingFloatToInt = true;
 
             if (faabric::util::isWasm(wasmBytes)) {
