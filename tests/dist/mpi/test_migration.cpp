@@ -10,10 +10,8 @@ namespace tests {
 
 TEST_CASE_METHOD(DistTestsFixture, "Test migrating an MPI execution", "[mpi]")
 {
-    // Even though there are enough resources locally, by setting the migration
-    // check period in an MPI excution we are effectively forcing to under-
-    // provision locally.
-    int nLocalSlots = 4;
+    // Under-allocate resources
+    int nLocalSlots = 2;
     int mpiWorldSize = 4;
     // Try to migrate at 50% of execution
     int migrationCheckPeriod = 5;
@@ -28,11 +26,18 @@ TEST_CASE_METHOD(DistTestsFixture, "Test migrating an MPI execution", "[mpi]")
     msg.set_ismpi(true);
     msg.set_mpiworldsize(mpiWorldSize);
     msg.set_recordexecgraph(true);
-    msg.set_migrationcheckperiod(migrationCheckPeriod);
+    // Set a low migration check period to detect the mgiration right away
+    msg.set_migrationcheckperiod(5);
     msg.set_cmdline(std::to_string(migrationCheckPeriod));
 
     // Call the functions
     sch.callFunctions(req);
+
+    // Sleep for a while to let the scheduler schedule the MPI calls, and then
+    // update the local slots so that a migration opportunity appears
+    SLEEP_MS(500);
+    res.set_slots(mpiWorldSize);
+    sch.setThisHostResources(res);
 
     // Check it's successful
     faabric::Message result =

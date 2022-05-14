@@ -772,6 +772,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         auto& reg = faabric::snapshot::getSnapshotRegistry();
         reg.registerSnapshot(snapKey, snap);
         sch.getSnapshotClient(hostToMigrateTo).pushSnapshot(snapKey, snap);
+        msg.set_snapshotkey(snapKey);
 
         // Propagate the app ID and set the _same_ message ID
         msg.set_appid(call->appid());
