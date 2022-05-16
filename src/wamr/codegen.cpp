@@ -4,6 +4,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <cstdlib>
 #include <stdexcept>
 #include <type_traits>
 
@@ -21,7 +22,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     }
 
     // WAMR logging, set this to 4+ if debugging issues
-    bh_log_set_verbose_level(4);
+    bh_log_set_verbose_level(2);
 
     // Load the module
     char errorBuffer[128];
@@ -33,25 +34,33 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
         throw std::runtime_error("Failed to load wasm module");
     }
 
-    SPDLOG_TRACE("WAMR codegen imported {} bytes of wasm file", wasmBytes.size());
+    SPDLOG_TRACE("WAMR codegen imported {} bytes of wasm file",
+                 wasmBytes.size());
 
     aot_comp_data_t compData = aot_create_comp_data(wasmModule);
     SPDLOG_TRACE("WAMR codegen generated compilation data");
 
     AOTCompOption option = { 0 };
+    option.output_format = AOT_FORMAT_FILE;
+    option.bounds_checks = 2;
+    option.enable_bulk_memory = true;
+    option.enable_ref_types = true;
+    option.enable_simd = true;
+    option.enable_aux_stack_check = true;
     option.opt_level = 3;
     option.size_level = 3;
-    option.output_format = AOT_FORMAT_FILE;
-    // option.bounds_checks = 2;
-
-    option.enable_simd = true;
 
     if (isSgx) {
         option.size_level = 1;
         option.is_sgx_platform = true;
     }
 
-    aot_comp_context_t compContext = aot_create_comp_context(compData, &option);
+    aot_comp_context_t compContext;
+    if (!(compContext = aot_create_comp_context(compData, &option))) {
+        SPDLOG_ERROR("WAMR failed to create compilation context: {}",
+                     aot_get_last_error());
+        throw std::runtime_error("Failed to create WAMR compilation context");
+    }
     SPDLOG_TRACE("WAMR codegen created compilation context");
 
     bool compileSuccess = aot_compile_wasm(compContext);
