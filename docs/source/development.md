@@ -116,6 +116,41 @@ PYTHON_CLI_IMAGE
 
 The defaults for these are set in [`.env`](../.env).
 
+## Running in Visual Studio Code
+
+A recommended way of developing this project is to use [Docker as a development environment](https://code.visualstudio.com/docs/remote/containers) in Visual Studio Code.
+This makes sure that all required header files and dependencies are automatically present and valid.
+It allows you to open the project inside a container and take advantage of Visual Studio Code's full feature set.
+As a language server, **clangd** can be configured, which provides optimal code insight.
+
+First, install the [Remote Development extension pack](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack) and [clangd extension](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) for Visual Studio Code.
+
+We'll use the `faasm-cli` Docker image as our development environment. Start it with:
+
+```bash
+docker-compose up -d faasm-cli
+```
+
+Next, connect to the running container. Use *"Remote-Containers: Attach to Running Container..."* from the Command Palette and select the container with the `faasm-cli` image.
+
+Compile the project to generate the required configuration files for `clangd`:
+
+```bash
+inv dev.cmake
+inv dev.tools
+```
+
+This should generate `/build/faasm/compile_commands.txt` (along with many other files). This file is required for `clangd` to work. In the next step, we're going to point `clangd` to the location of this file.
+
+To point `clangd` to this file, open *Workspace Settings* > *Extensions* > *clangd* > *Clangd: Arguments*. Add the following two items:
+
+```
+-background-index
+-compile-commands-dir=/build/faasm/
+```
+
+Reload the window (e.g. using the command palette). When `clangd` has finished indexing all files, you have a full-functioning development environment.
+
 ## Testing
 
 We use [Catch2](https://github.com/catchorg/Catch2) for testing and your life
