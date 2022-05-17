@@ -61,7 +61,8 @@ int main(int argc, char* argv[])
             return 1;
         }
 
-        boost::filesystem::directory_iterator iter(path), end;
+        boost::filesystem::directory_iterator iter(path);
+        boost::filesystem::directory_iterator end;
         std::mutex mx;
 
         unsigned int nThreads = faabric::util::getUsableCores();

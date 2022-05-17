@@ -14,6 +14,8 @@
 namespace wasm {
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
 {
+    SPDLOG_TRACE("Starting WAMR codegen on {} bytes", wasmBytes.size());
+
     // Make sure WAMR is initialised
     WAMRWasmModule::initialiseWAMRGlobally();
 
@@ -37,7 +39,13 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     SPDLOG_TRACE("WAMR codegen imported {} bytes of wasm file",
                  wasmBytes.size());
 
-    aot_comp_data_t compData = aot_create_comp_data(wasmModule);
+    aot_comp_data_t compData;
+    if (!(compData = aot_create_comp_data(wasmModule))) {
+        SPDLOG_ERROR("WAMR failed to create compilation data: {}",
+                     aot_get_last_error());
+        throw std::runtime_error("Failed to create compilation data");
+    }
+
     SPDLOG_TRACE("WAMR codegen generated compilation data");
 
     AOTCompOption option = { 0 };
@@ -61,6 +69,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
                      aot_get_last_error());
         throw std::runtime_error("Failed to create WAMR compilation context");
     }
+
     SPDLOG_TRACE("WAMR codegen created compilation context");
 
     bool compileSuccess = aot_compile_wasm(compContext);
@@ -68,6 +77,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
         SPDLOG_ERROR("Failed to run codegen on wasm: {}", aot_get_last_error());
         throw std::runtime_error("Failed to run codegen");
     }
+
     SPDLOG_TRACE("WAMR codegen successfully compiled wasm");
 
     // TODO - avoid using a temp file here

@@ -155,6 +155,19 @@ else ()
     endfunction()
 endif ()
 
+# Be explicit about LLVM here, we need to ensure compatibility with both WAVM
+# and WAMR, and can't link more than one version.
+set(LLVM_DIR "/usr/lib/llvm-12/cmake" CACHE STRING "" FORCE)
+find_package(LLVM REQUIRED CONFIG)
+
+# Separate LLVM vars into CMake-friendly lists
+separate_arguments(LLVM_DEFINITIONS)
+separate_arguments(LLVM_INCLUDE_DIRS)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION} (${LLVM_INCLUDE_DIRS})")
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+
 # Third party deps
 include(cmake/ExternalProjects.cmake)
 
