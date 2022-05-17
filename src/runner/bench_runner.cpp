@@ -81,8 +81,8 @@ int doLuleshRun(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    ::setenv(
-      "FAASM_LOCAL_DIR", "/home/shillaker/code/faasm/dev/faasm-local", 1);
+    //::setenv(
+    //  "FAASM_LOCAL_DIR", "/home/shillaker/code/faasm/dev/faasm-local", 1);
 
     SystemConfig& conf = getSystemConfig();
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
     conf.diffingMode = "bytewise";
 
     // Run against local dev cluster
-    faasmConf.s3Host = "localhost";
+    //faasmConf.s3Host = "localhost";
 
     // Turn off single host optimisations to profile dirty tracking
     conf.noSingleHostOptimisations = 1;
