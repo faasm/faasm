@@ -8,9 +8,9 @@ RUN apt-get upgrade -y
 
 # LLVM setup
 RUN add-apt-repository -y -n "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main"
-
 RUN apt-get install -y \
-    llvm-12-dev
+    llvm-12-dev \
+    clang-12
 
 # Faasm-specific dependencies
 RUN apt-get install -y \
