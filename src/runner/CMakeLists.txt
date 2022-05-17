@@ -16,6 +16,14 @@ add_executable(func_runner func_runner.cpp)
 target_link_libraries(func_runner PRIVATE faasm::runner_lib)
 target_include_directories(func_runner PRIVATE ${FAASM_INCLUDE_DIR}/runner)
 
+add_executable(bench_runner bench_runner.cpp)
+target_link_libraries(bench_runner PRIVATE faasm::runner_lib)
+target_include_directories(bench_runner PRIVATE ${FAASM_INCLUDE_DIR}/runner)
+
+add_executable(kernels_runner kernels_runner.cpp)
+target_link_libraries(kernels_runner PRIVATE faasm::runner_lib)
+target_include_directories(kernels_runner PRIVATE ${FAASM_INCLUDE_DIR}/runner)
+
 add_executable(func_sym func_sym.cpp)
 target_link_libraries(func_sym PRIVATE faasm::runner_lib)
 target_include_directories(func_sym PRIVATE ${FAASM_INCLUDE_DIR}/runner)
