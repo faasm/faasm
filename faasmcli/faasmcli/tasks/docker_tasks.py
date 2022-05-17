@@ -18,6 +18,7 @@ from faasmcli.util.version import get_faasm_version
 
 SGX_HW_CONTAINER_SUFFIX = "-sgx"
 SGX_SIMULATION_CONTAINER_SUFFIX = "-sgx-sim"
+
 CONTAINER_NAME2FILE_MAP = {
     "redis": "redis.dockerfile",
     "minio": "minio.dockerfile",
@@ -31,6 +32,7 @@ CONTAINER_NAME2FILE_MAP = {
     "cli": "cli.dockerfile",
     "cli-sgx": "cli.dockerfile",
     "cli-sgx-sim": "cli.dockerfile",
+    "cpp-root": "cpp-root.dockerfile",
     "sgx-aesmd": "sgx-aesmd.dockerfile",
 }
 
