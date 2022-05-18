@@ -1514,8 +1514,9 @@ Runtime::Context* WAVMWasmModule::createThreadContext(
     if (stackGlobal.u32 != STACK_SIZE) {
         SPDLOG_ERROR(
           "Expected first mutable global in context to be stack pointer "
-          "({})",
-          stackGlobal.u32);
+          "{} != {}",
+          stackGlobal.u32,
+          STACK_SIZE);
         throw std::runtime_error("Unexpected mutable global format");
     }
 
