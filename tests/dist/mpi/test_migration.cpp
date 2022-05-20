@@ -27,8 +27,9 @@ TEST_CASE_METHOD(DistTestsFixture, "Test migrating an MPI execution", "[mpi]")
     msg.set_mpiworldsize(mpiWorldSize);
     msg.set_recordexecgraph(true);
     // Set a low migration check period to detect the mgiration right away
-    msg.set_migrationcheckperiod(5);
-    msg.set_cmdline(std::to_string(migrationCheckPeriod));
+    msg.set_migrationcheckperiod(migrationCheckPeriod);
+    int numLoops = 10000;
+    msg.set_cmdline(fmt::format("{} {}", migrationCheckPeriod, numLoops));
 
     // Call the functions
     sch.callFunctions(req);
