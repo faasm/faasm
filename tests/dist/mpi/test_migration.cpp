@@ -15,8 +15,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     // Under-allocate resources
     int nLocalSlots = 2;
     int mpiWorldSize = 4;
-    // Try to migrate at 50% of execution
-    int migrationCheckPeriod = 5;
+    int migrationCheckPeriod = 1;
     faabric::HostResources res;
     res.set_slots(nLocalSlots);
     sch.setThisHostResources(res);
@@ -31,7 +30,9 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     // Set a low migration check period to detect the mgiration right away
     msg.set_migrationcheckperiod(migrationCheckPeriod);
     int numLoops = 10000;
-    msg.set_cmdline(fmt::format("{} {}", migrationCheckPeriod, numLoops));
+    // Try to migrate at 50% of execution
+    int checkAt = 5;
+    msg.set_cmdline(fmt::format("{} {}", checkAt, numLoops));
 
     // Call the functions
     sch.callFunctions(req);
@@ -62,8 +63,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
                  "Test forcing an MPI migration through a topology hint",
                  "[mpi]")
 {
-    // Try to migrate at 50% of execution
-    int migrationCheckPeriod = 5;
+    int migrationCheckPeriod = 1;
     // Set enough slots locally to run all functions, but `UNDERFULL` topology
     // hint will overwrite force a sub-optimal scheduling
     int mpiWorldSize = 4;
@@ -81,7 +81,9 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     // Set a low migration check period to detect the mgiration right away
     msg.set_migrationcheckperiod(migrationCheckPeriod);
     int numLoops = 10000;
-    msg.set_cmdline(fmt::format("{} {}", migrationCheckPeriod, numLoops));
+    // Try to migrate at 50% of execution
+    int checkAt = 5;
+    msg.set_cmdline(fmt::format("{} {}", checkAt, numLoops));
 
     // Call the functions
     sch.callFunctions(req);
