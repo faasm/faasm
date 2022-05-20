@@ -6,15 +6,13 @@
 
 namespace tests {
 
-// 12/11/2021 - This test deliberately fails as multi-tenant MPI execution is
-// still not supported. We keep it here to showcase this is the use case we
-// want to support.
-TEST_CASE_METHOD(DistTestsFixture,
-                 "Test running two MPI functions at the same time",
+TEST_CASE_METHOD(MpiDistTestsFixture,
+                 "Test running two MPI applications at the same time",
                  "[mpi]")
 {
     // Set up this host's resources
     int nLocalSlots = 5;
+    int worldSize = 4;
     faabric::HostResources res;
     res.set_slots(nLocalSlots);
     sch.setThisHostResources(res);
@@ -24,7 +22,8 @@ TEST_CASE_METHOD(DistTestsFixture,
       faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
     msg.set_ismpi(true);
-    msg.set_mpiworldsize(4);
+    msg.set_mpiworldsize(worldSize);
+    msg.set_recordexecgraph(true);
 
     // Call the functions
     sch.callFunctions(req);
@@ -34,7 +33,8 @@ TEST_CASE_METHOD(DistTestsFixture,
       faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
     faabric::Message& msgCopy = reqCopy->mutable_messages()->at(0);
     msgCopy.set_ismpi(true);
-    msgCopy.set_mpiworldsize(4);
+    msgCopy.set_mpiworldsize(worldSize);
+    msgCopy.set_recordexecgraph(true);
 
     // Call the functions for a second time
     sch.callFunctions(reqCopy);
@@ -46,5 +46,16 @@ TEST_CASE_METHOD(DistTestsFixture,
     faabric::Message resultCopy =
       sch.getFunctionResult(msgCopy.id(), functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
+
+    // Check scheduling as expected
+    auto execGraph = sch.getFunctionExecGraph(result.id());
+    std::vector<std::string> expectedHosts(worldSize, getDistTestMasterIp());
+    checkSchedulingFromExecGraph(execGraph, expectedHosts);
+    auto execGraphCopy = sch.getFunctionExecGraph(resultCopy.id());
+    std::vector<std::string> expectedHostsCopy = { getDistTestMasterIp(),
+                                                   getDistTestWorkerIp(),
+                                                   getDistTestWorkerIp(),
+                                                   getDistTestWorkerIp() };
+    checkSchedulingFromExecGraph(execGraphCopy, expectedHostsCopy);
 }
 }
