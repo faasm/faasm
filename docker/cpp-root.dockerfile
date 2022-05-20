@@ -1,4 +1,4 @@
-FROM faasm/faabric-base:0.3.0
+FROM faasm/faabric-base:0.3.3
 
 RUN apt-get update
 RUN apt-get install -y software-properties-common

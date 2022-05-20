@@ -31,6 +31,7 @@ CONTAINER_NAME2FILE_MAP = {
     "cli": "cli.dockerfile",
     "cli-sgx": "cli.dockerfile",
     "cli-sgx-sim": "cli.dockerfile",
+    "cpp-root": "cpp-root.dockerfile",
     "sgx-aesmd": "sgx-aesmd.dockerfile",
 }
 
