@@ -47,15 +47,19 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
       sch.getFunctionResult(msgCopy.id(), functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
-    // Check scheduling as expected
+    // Get the execution graph for both requests
     auto execGraph = sch.getFunctionExecGraph(result.id());
-    std::vector<std::string> expectedHosts(worldSize, getDistTestMasterIp());
-    checkSchedulingFromExecGraph(execGraph, expectedHosts);
     auto execGraphCopy = sch.getFunctionExecGraph(resultCopy.id());
+
+    // Builld the expectation for both requests
+    std::vector<std::string> expectedHosts(worldSize, getDistTestMasterIp());
     std::vector<std::string> expectedHostsCopy = { getDistTestMasterIp(),
                                                    getDistTestWorkerIp(),
                                                    getDistTestWorkerIp(),
                                                    getDistTestWorkerIp() };
+
+    // Check the expecation against the actual execution graphs
+    checkSchedulingFromExecGraph(execGraph, expectedHosts);
     checkSchedulingFromExecGraph(execGraphCopy, expectedHostsCopy);
 }
 }

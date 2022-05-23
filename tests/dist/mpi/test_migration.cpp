@@ -63,14 +63,14 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
                  "Test forcing an MPI migration through a topology hint",
                  "[mpi]")
 {
-    int migrationCheckPeriod = 1;
-    // Set enough slots locally to run all functions, but `UNDERFULL` topology
+    // Set enough slots locally to run all functions, but UNDERFULL topology
     // hint will overwrite force a sub-optimal scheduling
     int mpiWorldSize = 4;
     faabric::HostResources res;
     res.set_slots(mpiWorldSize);
     sch.setThisHostResources(res);
-    // Set up the message
+
+    // Set up the message (important to set the topologyhint)
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("mpi", "migrate", 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -78,11 +78,14 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     msg.set_mpiworldsize(mpiWorldSize);
     msg.set_recordexecgraph(true);
     msg.set_topologyhint("UNDERFULL");
+
     // Set a low migration check period to detect the mgiration right away
+    int migrationCheckPeriod = 1;
     msg.set_migrationcheckperiod(migrationCheckPeriod);
-    int numLoops = 10000;
+
     // Try to migrate at 50% of execution
     int checkAt = 5;
+    int numLoops = 10000;
     msg.set_cmdline(fmt::format("{} {}", checkAt, numLoops));
 
     // Call the functions
@@ -93,13 +96,17 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
       sch.getFunctionResult(msg.id(), functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
-    // Check that we have indeed migrated
+    // Get the execution graph
     auto execGraph = sch.getFunctionExecGraph(msg.id());
+
+    // Prepare the expectation
     std::vector<std::string> expectedHostsBefore = { getDistTestMasterIp(),
                                                      getDistTestMasterIp(),
                                                      getDistTestWorkerIp(),
                                                      getDistTestWorkerIp() };
     std::vector<std::string> expectedHostsAfter(4, getDistTestMasterIp());
+
+    // Check expectation against actual execution graph
     checkSchedulingFromExecGraph(
       execGraph, expectedHostsBefore, expectedHostsAfter);
 }
