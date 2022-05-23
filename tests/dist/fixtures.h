@@ -86,11 +86,11 @@ class MpiDistTestsFixture : public DistTestsFixture
         std::vector<std::string> actualHostsAfter(
           execGraph.rootNode.msg.mpiworldsize());
 
-        faabric::scheduler::getMigratedMpiRankHostsFromExecGraph(
-          execGraph, actualHostsBefore, actualHostsAfter);
+        auto actualHostsBeforeAndAfter =
+          faabric::scheduler::getMigratedMpiRankHostsFromExecGraph(execGraph);
 
-        REQUIRE(actualHostsBefore == expectedHostsBefore);
-        REQUIRE(actualHostsAfter == expectedHostsAfter);
+        REQUIRE(actualHostsBeforeAndAfter.first == expectedHostsBefore);
+        REQUIRE(actualHostsBeforeAndAfter.second == expectedHostsAfter);
     }
 };
 
