@@ -182,8 +182,17 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 
 int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
+    SPDLOG_TRACE("WAMR executing function from string {}", funcName);
+
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
+    if (func == nullptr) {
+        SPDLOG_ERROR("Did not find function {} for module {}/{}",
+                     funcName,
+                     boundUser,
+                     boundFunction);
+        throw std::runtime_error("Did not find named wasm function");
+    }
 
     // Note, for some reason WAMR sets the return value in the argv array you
     // pass it, therefore we should provide a single integer argv even though
@@ -194,7 +203,7 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     bool success = aot_create_exec_env_and_call_function(
       reinterpret_cast<AOTModuleInstance*>(moduleInstance),
       reinterpret_cast<AOTFunctionInstance*>(func),
-      0x0,
+      0,
       argv.data());
 
     uint32_t returnValue = argv[0];
@@ -222,10 +231,16 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
         }
 
         SPDLOG_ERROR("Caught wasm runtime exception: {}", errorMessage);
+
+        // Ensure return value is not zero if not successful
+        if (returnValue == 0) {
+            returnValue = 1;
+        }
+
         return returnValue;
     }
 
-    SPDLOG_DEBUG("{} finished", funcName);
+    SPDLOG_DEBUG("WAMR finished executing {}", funcName);
     return returnValue;
 }
 
