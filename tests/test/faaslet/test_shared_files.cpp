@@ -45,9 +45,7 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
     auto req = setUpContext("demo", "shared_file");
     SECTION("WAVM") { execFunction(req); }
 
-    // 11/04/2022 - WAMR shared files implementation seems to be broken, so we
-    // comment out for now
-    // SECTION("WAMR") { execWamrFunction(req->mutable_messages()->at(0)); }
+    SECTION("WAMR") { execWamrFunction(req->mutable_messages()->at(0)); }
 
     // Check file has been synced locally
     REQUIRE(boost::filesystem::exists(fullPath));
