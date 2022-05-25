@@ -8,7 +8,7 @@
 
 namespace tests {
 
-TEST_CASE_METHOD(DistTestsFixture,
+TEST_CASE_METHOD(MpiDistTestsFixture,
                  "Test running an MPI function spanning two hosts",
                  "[mpi]")
 {
@@ -42,5 +42,10 @@ TEST_CASE_METHOD(DistTestsFixture,
     std::set<std::string> hosts =
       faabric::scheduler::getExecGraphHosts(execGraph);
     REQUIRE(hosts.size() == 2);
+    std::vector<std::string> expectedHosts = { getDistTestMasterIp(),
+                                               getDistTestMasterIp(),
+                                               getDistTestWorkerIp(),
+                                               getDistTestWorkerIp() };
+    checkSchedulingFromExecGraph(execGraph, expectedHosts);
 }
 }

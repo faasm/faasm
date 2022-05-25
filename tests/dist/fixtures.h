@@ -1,5 +1,7 @@
 #pragma once
 
+#include <catch2/catch.hpp>
+
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
 #include <faaslet/Faaslet.h>
@@ -61,4 +63,35 @@ class DistTestsFixture
         faasmConf.reset();
     }
 };
+
+class MpiDistTestsFixture : public DistTestsFixture
+{
+  public:
+    void checkSchedulingFromExecGraph(
+      const faabric::scheduler::ExecGraph& execGraph,
+      const std::vector<std::string> expectedHosts)
+    {
+        std::vector<std::string> hostForRank =
+          faabric::scheduler::getMpiRankHostsFromExecGraph(execGraph);
+        REQUIRE(expectedHosts == hostForRank);
+    }
+
+    void checkSchedulingFromExecGraph(
+      const faabric::scheduler::ExecGraph& execGraph,
+      const std::vector<std::string> expectedHostsBefore,
+      const std::vector<std::string> expectedHostsAfter)
+    {
+        std::vector<std::string> actualHostsBefore(
+          execGraph.rootNode.msg.mpiworldsize());
+        std::vector<std::string> actualHostsAfter(
+          execGraph.rootNode.msg.mpiworldsize());
+
+        auto actualHostsBeforeAndAfter =
+          faabric::scheduler::getMigratedMpiRankHostsFromExecGraph(execGraph);
+
+        REQUIRE(actualHostsBeforeAndAfter.first == expectedHostsBefore);
+        REQUIRE(actualHostsBeforeAndAfter.second == expectedHostsAfter);
+    }
+};
+
 }

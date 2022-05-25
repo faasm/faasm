@@ -51,6 +51,9 @@ int makeChainedCall(const std::string& functionName,
     msg.set_inputdata(inputData.data(), inputData.size());
     msg.set_funcptr(wasmFuncPtr);
 
+    // Propagate the command line if needed
+    msg.set_cmdline(originalCall->cmdline());
+
     // Propagate the app ID
     msg.set_appid(originalCall->appid());
 
