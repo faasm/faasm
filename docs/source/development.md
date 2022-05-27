@@ -34,15 +34,7 @@ can initialise with:
 ./bin/refresh_local.sh
 ```
 
-If you want to nuke your existing `dev/faasm-local` in the process:
-
-```bash
-./bin/refresh_local.sh -d
-```
-
-It may also be useful to run Python scripts outside the containerised
-environments, for which you can set up a suitable Python virtual envrionment
-with:
+You then need to set up a suitable Python virtual envrionment with:
 
 ```bash
 ./bin/create_venv.sh
@@ -54,13 +46,13 @@ Once you've set up the repo, you can start the CLI for whichever project you
 want to work on:
 
 ```bash
-# C++ applications
+# C++ functions
 ./bin/cli.sh cpp
 
-# Python applications
+# Python functions
 ./bin/cli.sh python
 
-# Faasm
+# Faasm (for building Faasm itself)
 ./bin/cli.sh faasm
 ```
 
