@@ -9,13 +9,13 @@ export FAASM_BUILD_MOUNT=/build/faasm
 RETURN_VAL=0
 
 # Run the test server in the background
-docker-compose \
+docker compose \
     up \
     -d \
     dist-test-server
 
 # Run the tests
-docker-compose \
+docker compose \
     run \
     --rm \
     faasm-cli \
@@ -26,10 +26,10 @@ RETURN_VAL=$?
 echo "-------------------------------------------"
 echo "                SERVER LOGS                "
 echo "-------------------------------------------"
-docker-compose logs dist-test-server
+docker compose logs dist-test-server
 
 # Stop everything
-docker-compose stop
+docker compose stop
 
 popd >> /dev/null
 

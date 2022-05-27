@@ -58,7 +58,7 @@ To set up:
 - Install PCP (`apt install pcp -y`)
 - Check that `pmproxy` is running and listening on `44323` (e.g. `tail
   /var/log/pcp/pmproxy/pmproxy.log`). May require a restart
-- Run the Vector container in our dev set-up, e.g. `docker-compose -f
+- Run the Vector container in our dev set-up, e.g. `docker compose -f
   docker-compose-dev.yml vector`
 - Go to http://localhost:80 in your browser
 - Add a connection to host `localhost` on port `44323`

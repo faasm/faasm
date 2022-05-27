@@ -20,17 +20,17 @@ Start a cluster with:
 ```bash
 export PYTHON_CODEGEN=on
 
-docker-compose up -d nginx
+docker compose up -d nginx
 
 # Await machine code generation
-docker-compose exec upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002
+docker compose exec upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002
 ```
 
 Upload and invoke a Python function with:
 
 ```
 # Run the Python CLI
-docker-compose run python /bin/bash
+docker compose run python /bin/bash
 
 # Build and upload the Python runtime
 inv func

@@ -38,7 +38,7 @@ def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
         env["WASM_VM"] = "sgx"
 
     cmd = [
-        "docker-compose up -d",
+        "docker compose up -d",
         "--scale worker={}".format(workers),
         "nginx",
     ]
@@ -66,7 +66,7 @@ def stop(ctx, workers=2):
     """
     Stop the local dev cluster
     """
-    run("docker-compose stop", shell=True, check=True, cwd=PROJ_ROOT)
+    run("docker compose stop", shell=True, check=True, cwd=PROJ_ROOT)
 
 
 @task
@@ -74,7 +74,7 @@ def restart(ctx):
     """
     Restart the whole dev cluster
     """
-    run("docker-compose restart", shell=True, check=True, cwd=PROJ_ROOT)
+    run("docker compose restart", shell=True, check=True, cwd=PROJ_ROOT)
 
 
 @task
@@ -82,7 +82,7 @@ def restart_worker(ctx):
     """
     Restart the workers in the dev cluster
     """
-    run("docker-compose restart worker", shell=True, check=True, cwd=PROJ_ROOT)
+    run("docker compose restart worker", shell=True, check=True, cwd=PROJ_ROOT)
 
 
 @task
@@ -90,7 +90,7 @@ def logs(ctx):
     """
     Follow the logs of the dev cluster
     """
-    run("docker-compose logs -f", shell=True, check=True, cwd=PROJ_ROOT)
+    run("docker compose logs -f", shell=True, check=True, cwd=PROJ_ROOT)
 
 
 @task
@@ -100,7 +100,7 @@ def flush_redis(ctx):
     """
     for r in ["redis-state", "redis-queue"]:
         run(
-            "docker-compose exec {} redis-cli flushall".format(r),
+            "docker compose exec {} redis-cli flushall".format(r),
             shell=True,
             check=True,
             cwd=PROJ_ROOT,
@@ -113,7 +113,7 @@ def available_workers(ctx):
     Return the list of available workers in Redis
     """
     run(
-        "docker-compose exec redis-queue redis-cli smembers {}".format(
+        "docker compose exec redis-queue redis-cli smembers {}".format(
             AVAILABLE_HOSTS_SET
         ),
         shell=True,

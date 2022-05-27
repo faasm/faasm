@@ -35,7 +35,7 @@ function start_sgx_aesmd_socket() {
         --opt device=tmpfs \
         --opt o=rw \
         aesmd-socket
-    docker-compose \
+    docker compose \
         up \
         --no-recreate \
         -d \
@@ -76,14 +76,14 @@ export FAASM_LOCAL_MOUNT=/usr/local/faasm
 
 # Make sure the CLI is running already in the background (avoids creating a new
 # container every time)
-docker-compose \
+docker compose \
     up \
     --no-recreate \
     -d \
     ${CLI_CONTAINER}
 
 # Attach to the CLI container
-docker-compose \
+docker compose \
     exec \
     ${CLI_CONTAINER} \
     ${INNER_SHELL}

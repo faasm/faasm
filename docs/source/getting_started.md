@@ -35,11 +35,11 @@ inv flush invoke demo hello
 To start a local deployment, you can run:
 
 ```
-docker-compose up
+docker compose up
 ```
 
 which creates the containers defined in
-[docker-compose.yml](../docker-compose.yml):
+[docker-compose.yml](../docker compose.yml):
 
 Faasm will generate machine code from all WebAssembly it encounters. This, along
 with other local development artifacts are stored in the `dev` dir at the root

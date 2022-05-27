@@ -204,7 +204,7 @@ From a different terminal, restart the worker and check the logs:
 ```bash
 inv cluster.restart-worker
 
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### Running distributed tests locally
@@ -216,7 +216,7 @@ First of all, you need to make sure everything else is shut down to avoid
 interfering with the tests:
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 Make sure your local setup is built, along with the distributed tests:
@@ -374,11 +374,11 @@ container is running, and reachable from outside the container.
 
 ```
 # Stop anything that may be running in the background
-docker-compose down
+docker compose down
 
-docker-compose up -d redis-state redis-queue minio
+docker compose up -d redis-state redis-queue minio
 
-docker-compose ps
+docker compose ps
 ```
 
 To tell Faasm outside the container to use the containerised Minio, set the

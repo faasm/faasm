@@ -9,7 +9,7 @@ pushd ${PROJ_ROOT} > /dev/null
 export FAASM_BUILD_MOUNT=/build/faasm
 
 # Make sure upload server is running
-docker-compose \
+docker compose \
     up \
     -d \
     upload
@@ -18,7 +18,7 @@ docker-compose \
 sleep 5
 
 # Run the function build and upload
-docker-compose \
+docker compose \
     run \
     --rm \
     cpp \
