@@ -9,7 +9,7 @@ pushd ${PROJ_ROOT} >> /dev/null
 export FAASM_BUILD_MOUNT=/build/faasm
 
 # Run the build
-docker-compose \
+docker compose \
     run \
     --rm \
     faasm-cli \

@@ -20,7 +20,7 @@ The Faasm development environment is containerised, as defined in the [Docker
 compose config](docker-compose.yml).
 
 We mount local checkouts of all the code into these containers, so first you'll
-need to update all the submodules (may take a while):
+need to update the project submodules (may take a while):
 
 ```bash
 git submodule update --init --recursive
@@ -34,40 +34,40 @@ can initialise with:
 ./bin/refresh_local.sh
 ```
 
-If you want to nuke your existing `dev/faasm-local` in the process:
-
-```bash
-./bin/refresh_local.sh -d
-```
-
-It may also be useful to run Python scripts outside the containerised
-environments, for which you can set up a suitable Python virtual envrionment
-with:
-
-```bash
-./bin/create_venv.sh
-```
-
 ## Use
 
-Once you've set up the repo, you can start the CLI for whichever project you
-want to work on:
+Once you've set up the repo, you should first run the Faasm CLI to make sure
+things work:
 
 ```bash
-# C++ applications
+./bin/cli.sh faasm
+
+# Wait for 30s while it sets up the Python environment in the background
+
+# Check the python environment is up (should list commands)
+inv -l
+
+# Run the CMake build
+inv dev.cmake
+inv dev.tools
+```
+
+From there you can compile and run functions using the language-specific
+containers (running the following from the local machine, not inside the Faasm
+CLI container):
+
+```bash
+# C++ functions
 ./bin/cli.sh cpp
 
-# Python applications
+# Python functions
 ./bin/cli.sh python
-
-# Faasm
-./bin/cli.sh faasm
 ```
 
 ## Tests
 
-To check everything works, you can run the tests as follows (note which
-container you need to be in for each step):
+To run the tests, you can execute the following (note that you have to switch
+between containers for the first few steps):
 
 ```bash
 # --- CPP CLI ---
@@ -204,7 +204,7 @@ From a different terminal, restart the worker and check the logs:
 ```bash
 inv cluster.restart-worker
 
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### Running distributed tests locally
@@ -216,7 +216,7 @@ First of all, you need to make sure everything else is shut down to avoid
 interfering with the tests:
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 Make sure your local setup is built, along with the distributed tests:
@@ -374,11 +374,11 @@ container is running, and reachable from outside the container.
 
 ```
 # Stop anything that may be running in the background
-docker-compose down
+docker compose down
 
-docker-compose up -d redis-state redis-queue minio
+docker compose up -d redis-state redis-queue minio
 
-docker-compose ps
+docker compose ps
 ```
 
 To tell Faasm outside the container to use the containerised Minio, set the
