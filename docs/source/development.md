@@ -20,7 +20,7 @@ The Faasm development environment is containerised, as defined in the [Docker
 compose config](docker-compose.yml).
 
 We mount local checkouts of all the code into these containers, so first you'll
-need to update all the submodules (may take a while):
+need to update the project submodules (may take a while):
 
 ```bash
 git submodule update --init --recursive
@@ -34,16 +34,27 @@ can initialise with:
 ./bin/refresh_local.sh
 ```
 
-You then need to set up a suitable Python virtual envrionment with:
-
-```bash
-./bin/create_venv.sh
-```
-
 ## Use
 
-Once you've set up the repo, you can start the CLI for whichever project you
-want to work on:
+Once you've set up the repo, you should first run the Faasm CLI to make sure
+things work:
+
+```bash
+./bin/cli.sh faasm
+
+# Wait for 30s while it sets up the Python environment in the background
+
+# Check the python environment is up (should list commands)
+inv -l
+
+# Run the CMake build
+inv dev.cmake
+inv dev.tools
+```
+
+From there you can compile and run functions using the language-specific
+containers (running the following from the local machine, not inside the Faasm
+CLI container):
 
 ```bash
 # C++ functions
@@ -51,15 +62,12 @@ want to work on:
 
 # Python functions
 ./bin/cli.sh python
-
-# Faasm (for building Faasm itself)
-./bin/cli.sh faasm
 ```
 
 ## Tests
 
-To check everything works, you can run the tests as follows (note which
-container you need to be in for each step):
+To run the tests, you can execute the following (note that you have to switch
+between containers for the first few steps):
 
 ```bash
 # --- CPP CLI ---
