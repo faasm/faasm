@@ -5,3 +5,5 @@ leak:EVP_CIPHER_CTX_new
 leak:EVP_EncryptInit_ex
 # Global WAVM modules
 leak:wasm::instantiateBaseModules
+# WAMR leaks
+leak:/build/faasm/_deps/wamr_ext-src/core/shared/platform/common/posix/posix_malloc.c
