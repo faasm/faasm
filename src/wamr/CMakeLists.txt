@@ -47,6 +47,11 @@ faasm_private_lib(wamrlib "${WAMR_RUNTIME_LIB_SOURCE}")
 target_compile_options(wamrlib PRIVATE
     -Wno-typedef-redefinition
     -Wno-unused-command-line-argument
+    # We comment out some problematic LLVM code in WAMR. Commenting out triggers
+    # compilation warnings that we suppress
+    -Wno-ambiguous-reversed-operator
+    -Wno-unused-function
+    -Wno-deprecated-enum-enum-conversion
 )
 
 # -----------------------------
