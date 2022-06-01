@@ -159,6 +159,41 @@ jobs:
         ports:
           - 9000:9000
     steps:
+      # Some sanitised jobs run out of memory in the GH runner, so we increase
+      # the swap space here
+      - name: "Sudo test"
+        run: sudo ls
+      - name: Swap space report before modification
+        run: |
+          echo "Memory and swap:"
+          free -h
+          echo
+          swapon --show
+          echo
+      - name: "Get the SWAP file"
+        run: echo "SWAP_FILE=$(swapon --show=NAME | tail -n 1)" >> $GITHUB_ENV
+      - name: "Try once"
+        run: sudo swapoff ${{ env.SWAP_FILE }}
+      - name: Set Swap
+        run: |
+            export SWAP_FILE=$(swapon --show=NAME | tail -n 1)
+            sudo swapoff $SWAP_FILE
+            sudo rm $SWAP_FILE
+            sudo fallocate -l ${{ inputs.swap-size-gb }}G $SWAP_FILE
+            sudo chmod 600 $SWAP_FILE
+            sudo mkswap $SWAP_FILE
+            sudo swapon $SWAP_FILE
+      - name: Swap space report after modification
+        run: |
+          echo "Memory and swap:"
+          free -h
+          echo
+          swapon --show
+          echo
+        #       - name: "Increase swap space"
+        #         uses: pierotofy/set-swap-space@master
+        #         with:
+        #           swap-size-gb: 4
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
         with:
