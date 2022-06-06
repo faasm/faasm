@@ -170,7 +170,7 @@ def _deploy_faasm_worker(replicas):
         "-n faasm",
         "apply",
         "-f",
-        join(K8S_SGX_DIR if sgx else K8S_DIR, "worker.yml"),
+        join(K8S_DIR, "worker.yml"),
         "--wait",
     ]
 
