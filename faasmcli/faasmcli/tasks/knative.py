@@ -12,13 +12,17 @@ from faasmcli.util.env import (
     GLOBAL_FAASM_CONFIG_FILE,
     GLOBAL_FAASM_CONFIG_DIR,
 )
+from faasmcli.util.k8s import template_k8s_file
 
 LOCALHOST_IP = "127.0.0.1"
 
 K8S_COMMON_DIR = join(PROJ_ROOT, "deploy", "k8s-common")
-K8S_SGX_DIR = join(PROJ_ROOT, "deploy", "k8s-sgx")
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
 NAMESPACE_FILE = join(K8S_COMMON_DIR, "namespace.yml")
+
+# SGX vars
+K8S_SGX_DIR = join(PROJ_ROOT, "deploy", "k8s-sgx")
+K8S_SGX_TEMPLATED_DIR = join(PROJ_ROOT, "deploy", "k8s-sgx", "templated")
 
 KNATIVE_VERSION = "1.1.0"
 
@@ -37,7 +41,7 @@ def _capture_cmd_output(cmd):
     return output
 
 
-def _get_faasm_worker_pods():
+def _get_faasm_worker_pods(label):
     # To get pods with STATUS "Running" (not "Terminating") we need to use this
     # long template. There's a long-going open discussion on GH about it:
     # https://github.com/kubernetes/kubectl/issues/450
@@ -45,7 +49,7 @@ def _get_faasm_worker_pods():
         "kubectl",
         "-n faasm",
         "get pods",
-        "-l serving.knative.dev/service=faasm-worker",
+        "-l {}".format(label),
         """--template "{{range .items}}{{ if not .metadata.deletionTimestamp"""
         """ }}{{.metadata.name}}{{'\\n'}}{{end}}{{end}}" """,
     ]
@@ -58,7 +62,7 @@ def _get_faasm_worker_pods():
         "kubectl",
         "-n faasm",
         "get pods",
-        "-l serving.knative.dev/service=faasm-worker",
+        "-l {}".format(label),
         """--template "{{range .items}}{{ if not .metadata.deletionTimestamp"""
         """ }}{{.status.podIP}}:{{end}}{{end}}" """,
     ]
@@ -70,7 +74,7 @@ def _get_faasm_worker_pods():
 
 
 @task
-def delete_worker(ctx):
+def delete_worker(ctx, sgx=False):
     """
     Delete the Faasm worker pod
     """
@@ -78,9 +82,19 @@ def delete_worker(ctx):
     cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
     run(cmd, shell=True, check=True)
 
-    cmd = "kn -n faasm service delete faasm-worker"
-    print(cmd)
-    run(cmd, shell=True, check=True)
+    if sgx:
+        # Delete namespace and then workers
+        cmd = "kubectl delete service worker-lb -n faasm"
+        print(cmd)
+        run(cmd, shell=True, check=True)
+
+        cmd = "kubectl delete --all -f {}".format(K8S_SGX_TEMPLATED_DIR)
+        print(cmd)
+        run(cmd, shell=True, check=True)
+    else:
+        cmd = "kn -n faasm service delete faasm-worker"
+        print(cmd)
+        run(cmd, shell=True, check=True)
 
 
 @task
@@ -92,9 +106,33 @@ def deploy(ctx, replicas=0, sgx=False):
 
     replicas = int(replicas)
     print("Deploying Faasm worker with {} fixed replicas".format(replicas))
-    _deploy_faasm_worker(replicas, sgx)
+    if sgx:
+        _deploy_faasm_worker_sgx(replicas)
+    else:
+        _deploy_faasm_worker(replicas)
 
-    ini_file(ctx)
+    ini_file(ctx, sgx=sgx)
+
+
+def wait_for_faasm_pods(label):
+    # Wait for the faasm pods to be ready
+    while True:
+        print("Waiting for Faasm pods...")
+        cmd = [
+            "kubectl",
+            "-n faasm",
+            "get pods -l {}".format(label),
+            "-o jsonpath='{..status.conditions[?(@.type==\"Ready\")].status}'",
+        ]
+
+        output = _capture_cmd_output(cmd)
+        statuses = [o.strip() for o in output.split(" ") if o.strip()]
+        if all([s == "True" for s in statuses]):
+            print("All Faasm pods ready, continuing...")
+            break
+
+        print("Faasm pods not ready, waiting ({})".format(output))
+        sleep(5)
 
 
 def _deploy_faasm_services(sgx=False):
@@ -122,27 +160,10 @@ def _deploy_faasm_services(sgx=False):
             shell=True,
         )
 
-    # Wait for the faasm pods to be ready
-    while True:
-        print("Waiting for Faasm pods...")
-        cmd = [
-            "kubectl",
-            "-n faasm",
-            "get pods -l app=faasm",
-            "-o jsonpath='{..status.conditions[?(@.type==\"Ready\")].status}'",
-        ]
-
-        output = _capture_cmd_output(cmd)
-        statuses = [o.strip() for o in output.split(" ") if o.strip()]
-        if all([s == "True" for s in statuses]):
-            print("All Faasm pods ready, continuing...")
-            break
-
-        print("Faasm pods not ready, waiting ({})".format(output))
-        sleep(5)
+    wait_for_faasm_pods("app=faasm")
 
 
-def _deploy_faasm_worker(replicas, sgx=False):
+def _deploy_faasm_worker(replicas):
     cmd = [
         "kn",
         "service",
@@ -161,6 +182,28 @@ def _deploy_faasm_worker(replicas, sgx=False):
     cmd_string = " ".join(cmd)
     print(cmd_string)
     run(cmd_string, shell=True, check=True)
+
+
+def _deploy_faasm_worker_sgx(replicas):
+    # First template the deployment file with the right number of replicas
+    template_file = join(K8S_SGX_DIR, "worker.yml.j2")
+    output_file = join(K8S_SGX_TEMPLATED_DIR, "worker.yml")
+    template_vars = {"num_faasm_workers": replicas}
+    template_k8s_file(template_file, output_file, template_vars)
+
+    # Second, apply the deployment and the load balancer
+    k8s_worker_sgx_files = [output_file, join(K8S_SGX_DIR, "worker-lb.yml")]
+
+    print("Applying k8s files: {}".format(k8s_worker_sgx_files))
+
+    for file_path in k8s_worker_sgx_files:
+        run(
+            "kubectl apply -f {}".format(file_path),
+            check=True,
+            shell=True,
+        )
+
+    wait_for_faasm_pods("run=faasm-worker")
 
 
 @task
@@ -223,7 +266,7 @@ def install(ctx, reverse=False):
 
 
 @task
-def ini_file(ctx, local=False, publicip=None):
+def ini_file(ctx, local=False, publicip=None, sgx=False):
     """
     Set up the faasm config file for interacting with k8s
     """
@@ -242,21 +285,24 @@ def ini_file(ctx, local=False, publicip=None):
         worker_names = list()
         worker_ips = list()
     else:
-        knative_host = _capture_cmd_output(
-            [
-                "kn",
-                "-n faasm",
-                "service",
-                "describe",
-                "faasm-worker",
-                "-o url",
-            ]
-        )
-        knative_host = knative_host.strip()
+        if sgx:
+            knative_host = "foo"
+        else:
+            knative_host = _capture_cmd_output(
+                [
+                    "kn",
+                    "-n faasm",
+                    "service",
+                    "describe",
+                    "faasm-worker",
+                    "-o url",
+                ]
+            )
+            knative_host = knative_host.strip()
 
-        # We have to remove the http:// prefix from this url otherwise Istio
-        # won't recognise it
-        knative_host = knative_host.replace("http://", "")
+            # We have to remove the http:// prefix from this url otherwise Istio
+            # won't recognise it
+            knative_host = knative_host.replace("http://", "")
 
         # If we're running on bare metal or VMs, we need to use the IP of the
         # host provided for both invocations and upload, but instead of using a
@@ -290,17 +336,42 @@ def ini_file(ctx, local=False, publicip=None):
             )
         else:
             print("\n----- Extracting info from k8s -----\n")
-            invoke_ip = _capture_cmd_output(
-                [
-                    "kubectl",
-                    "-n istio-system",
-                    "get",
-                    "service",
-                    "istio-ingressgateway",
-                    "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
-                ]
-            )
-            invoke_port = 80
+            # If running an SGX-enabled cluster, we deploy the workers manually
+            # and not through Knative
+            if sgx:
+                invoke_ip = _capture_cmd_output(
+                    [
+                        "kubectl",
+                        "-n faasm",
+                        "get",
+                        "service",
+                        "worker-lb",
+                        "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
+                    ]
+                )
+
+                invoke_port = _capture_cmd_output(
+                    [
+                        "kubectl",
+                        "-n faasm",
+                        "get",
+                        "service",
+                        "worker-lb",
+                        "-o 'jsonpath={.spec.ports[0].port}'",
+                    ]
+                )
+            else:
+                invoke_ip = _capture_cmd_output(
+                    [
+                        "kubectl",
+                        "-n istio-system",
+                        "get",
+                        "service",
+                        "istio-ingressgateway",
+                        "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
+                    ]
+                )
+                invoke_port = 80
 
             upload_ip = _capture_cmd_output(
                 [
@@ -323,7 +394,12 @@ def ini_file(ctx, local=False, publicip=None):
                 ]
             )
 
-        worker_names, worker_ips = _get_faasm_worker_pods()
+        # Get worker pods with the right label
+        worker_names, worker_ips = _get_faasm_worker_pods(
+            "run=faasm-worker"
+            if sgx
+            else "serving.knative.dev/service=faasm-worker"
+        )
 
     print("\n----- INI file -----\n")
     print("Overwriting config file at {}\n".format(FAASM_CONFIG_FILE))
