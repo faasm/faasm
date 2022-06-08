@@ -131,7 +131,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sanitiser: [None, Address, Thread, Undefined, Leak]
+        # 08/06/2022 - Disable Thread sanitiser build as it exhausts all the
+        # memory available in GHA runners
+        sanitiser: [None, Address, Undefined, Leak]
     env:
       CGROUP_MODE: off
       HOST_TYPE: ci
@@ -141,7 +143,6 @@ jobs:
       REDIS_STATE_HOST: redis
       ASAN_OPTIONS: "halt_on_error=1"
       LSAN_OPTIONS: "suppressions=/usr/local/code/faasm/leak-sanitizer-ignorelist.txt"
-      TSAN_OPTIONS: "halt_on_error=1:suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt:history_size=7:second_deadlock_stack=1"
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
     container:
       image: faasm/cli:0.8.12
