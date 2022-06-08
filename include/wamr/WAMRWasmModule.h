@@ -29,6 +29,8 @@ class WAMRWasmModule final
     ~WAMRWasmModule();
 
     // ----- Module lifecycle -----
+    void reset(faabric::Message& msg, const std::string& snapshotKey) override;
+
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
     int32_t executeFunction(faabric::Message& msg) override;
@@ -68,15 +70,16 @@ class WAMRWasmModule final
   private:
     char errorBuffer[ERROR_BUFFER_SIZE];
 
+    std::vector<uint8_t> wasmBytes;
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
 
     int executeWasmFunction(const std::string& funcName);
 
     int executeWasmFunctionFromPointer(int wasmFuncPtr);
+
+    void bindInternal(faabric::Message& msg);
 };
 
 WAMRWasmModule* getExecutingWAMRModule();
-
-void tearDownWAMRGlobally();
 }
