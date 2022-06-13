@@ -29,21 +29,12 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm/worker-sgx:0.8.12
-          # We need to add this resources field to make sure the SGX device is
-          # available in the pods:
-          # https://docs.microsoft.com/en-us/azure/confidential-computing/confidential-nodes-aks-overview#azure-device-plugin-for-intel-sgx-
+        - image: faasm/{{ worker_container_name }}:{{ faasm_version }}
           name: faasm-worker
           ports:
             - containerPort: 8080
-          resources:
-            limits:
-              sgx.intel.com/epc: "10Mi"
-            requests:
-              sgx.intel.com/epc: "10Mi"
-          volumeMounts:
-          - name: var-run-aesmd
-            mountPath: /var/run/aesmd # hardcoded in intels libarary, volume name must match that of the daemonset
+          {{ resources | to_nice_yaml(indent=2) | trim | indent(width=10) }}
+          {{ volume_mounts | to_nice_yaml(indent=2) | trim | indent(width=10) }}
           env:
             - name: REDIS_STATE_HOST
               value: "redis-state"
@@ -72,11 +63,8 @@ spec:
             - name: ENDPOINT_INTERFACE
               value: "eth0"
             - name: WASM_VM
-              value: "sgx"
-            - name: SGX_AESM_ADDR
-              value: "1"
-            - name: AZ_ATTESTATION_PROVIDER_URL
-              value: "https://faasmattprov.eus2.attest.azure.net"
+              value: "{{ wasm_vm }}"
+            {{ extra_env_vars | to_nice_yaml(indent=2) | trim | indent(width=12) }}
 
       volumes:
       - name: var-run-aesmd

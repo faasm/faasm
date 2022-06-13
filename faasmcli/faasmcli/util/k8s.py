@@ -8,6 +8,7 @@ def template_k8s_file(template_file_path, output_file_path, template_vars):
         loader=FileSystemLoader(dirname(template_file_path)),
         trim_blocks=True,
         lstrip_blocks=True,
+        extensions=['jinja2_ansible_filters.AnsibleCoreFiltersExtension']
     )
     template = env.get_template(basename(template_file_path))
     output_data = template.render(template_vars)

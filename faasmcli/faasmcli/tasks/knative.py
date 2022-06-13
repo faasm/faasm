@@ -13,6 +13,7 @@ from faasmcli.util.env import (
     GLOBAL_FAASM_CONFIG_DIR,
 )
 from faasmcli.util.k8s import template_k8s_file
+from faasmcli.util.version import get_faasm_version
 
 LOCALHOST_IP = "127.0.0.1"
 
@@ -184,13 +185,37 @@ def _deploy_faasm_worker(replicas):
     run(cmd_string, shell=True, check=True)
 
 
+# @task
+# def bleh(ctx, replicas):
 def _deploy_faasm_worker_sgx(replicas):
     # First template the deployment file with the right number of replicas
     template_file = join(K8S_SGX_DIR, "worker.yml.j2")
     output_file = join(K8S_SGX_TEMPLATED_DIR, "worker.yml")
-    template_vars = {"num_faasm_workers": replicas}
-    template_k8s_file(template_file, output_file, template_vars)
-
+    template_vars = {
+        "faasm_version": get_faasm_version(),
+        "num_faasm_workers": replicas,
+        "worker_container_name": "worker-sgx",
+        "resources": {
+            "resources": {
+                "limits": {"sgx.intel.com/epc": "10Mi"},
+                "requests": {"sgx.intel.com/epc": "10Mi"},
+            }
+        },
+        "wasm_vm": "sgx",
+        "volume_mounts": {
+            "volumeMounts": [
+                {"name": "var-run-aesmd", "mountPath": "/var/run/aesmd"}
+            ]
+        },
+        "extra_env_vars": [
+            {"name": "SGX_AESM_ADDR", "value": "1"},
+            {
+                "name": "AZ_ATTESTATION_PROVIDER_URL",
+                "value": "https://faasmattprov.eus2.attest.azure.net",
+            },
+        ],
+    }
+    # template_k8s_file(template_file, output_file, template_vars)
     # Second, apply the deployment and the load balancer
     k8s_worker_sgx_files = [output_file, join(K8S_SGX_DIR, "worker-lb.yml")]
 
