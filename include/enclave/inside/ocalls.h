@@ -6,11 +6,22 @@
 
 #include <stdio.h>
 
+// For code outside SGX enclaves we use spdlog macros for logging. We provide
+// similar macros for logging (only in debug mode) from inside the enclave. Note
+// that this logging is very costly as it does an ocall to print the message,
+// as a consequence we no-op it at compile time for release builds
+
 #define SPDLOG_DEBUG_SGX(...)                                                  \
     size_t __bufferSize = 512;                                                 \
     char __buffer[__bufferSize];                                               \
     snprintf(__buffer, __bufferSize, __VA_ARGS__);                             \
     ocallLogDebug(__buffer);
+
+#define SPDLOG_ERROR_SGX(...)                                                  \
+    size_t __bufferSize = 512;                                                 \
+    char __buffer[__bufferSize];                                               \
+    snprintf(__buffer, __bufferSize, __VA_ARGS__);                             \
+    ocallLogError(__buffer);
 
 // This file defines the set of functions that can be called from enclave code
 // to the outside (untrusted) Faasm runtime. OCalls in SGX terminology.

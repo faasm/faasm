@@ -699,11 +699,11 @@ uint32_t WasmModule::growMemory(size_t nBytes)
     size_t maxPages = getMaxMemoryPages();
 
     if (newBytes > UINT32_MAX || newPages > maxPages) {
-        SPDLOG_ERROR(
-          "Growing memory would exceed max of {} pages (current {}, requested {})",
-          maxPages,
-          oldPages,
-          newPages);
+        SPDLOG_ERROR("Growing memory would exceed max of {} pages (current {}, "
+                     "requested {})",
+                     maxPages,
+                     oldPages,
+                     newPages);
         throw std::runtime_error("Memory growth exceeding max");
     }
 
@@ -730,7 +730,6 @@ uint32_t WasmModule::growMemory(size_t nBytes)
 
         return oldBrk;
     }
-
 
     uint32_t pageChange = newPages - oldPages;
     bool success = doGrowMemory(pageChange);

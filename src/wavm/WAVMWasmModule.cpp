@@ -1025,14 +1025,12 @@ bool WAVMWasmModule::doGrowMemory(uint32_t pageChange)
                          strerror(errno),
                          pageChange,
                          oldPages);
-        }
-        else if (result == Runtime::GrowResult::outOfMaxSize) {
+        } else if (result == Runtime::GrowResult::outOfMaxSize) {
             SPDLOG_ERROR("No WAVM memory for mapping (growing by {} from {} "
                          "pages)",
                          pageChange,
                          oldPages);
-        }
-        else if (result == Runtime::GrowResult::outOfQuota) {
+        } else if (result == Runtime::GrowResult::outOfQuota) {
             SPDLOG_ERROR(
               "WAVM memory resource quota exceeded (growing by {} from {})",
               pageChange,

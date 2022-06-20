@@ -17,19 +17,19 @@ static uint32_t __wasi_fd_dup_wrapper(wasm_exec_env_t exec_env,
                                       uint32_t fd,
                                       uint32_t* resFd)
 {
-    ocallLogDebug("S - __wasi_fd_dup");
+    SPDLOG_DEBUG_SGX("S - __wasi_fd_dup");
     return 0;
 }
 
 static uint32_t dup_wrapper(wasm_exec_env_t exec_env, uint32_t fd)
 {
-    ocallLogDebug("S - dup");
+    SPDLOG_DEBUG_SGX("S - dup");
     return 0;
 }
 
 static int32_t tempnam_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
 {
-    ocallLogDebug("S - tempnam");
+    SPDLOG_DEBUG_SGX("S - tempnam");
     return 0;
 }
 
@@ -65,7 +65,7 @@ static int32_t wasi_fd_fdstat_set_flags(wasm_exec_env_t exec_env,
                                         int32_t a,
                                         int32_t b)
 {
-    ocallLogDebug("S - fd_fdstat_set_flags");
+    SPDLOG_DEBUG_SGX("S - fd_fdstat_set_flags");
     return 0;
 }
 
@@ -80,7 +80,7 @@ static int32_t wasi_fd_filestat_get(wasm_exec_env_t exec_env,
                                     int32_t fd,
                                     __wasi_filestat_t* statWasm)
 {
-    ocallLogDebug("S - fd_filestat_get");
+    SPDLOG_DEBUG_SGX("S - fd_filestat_get");
     return 0;
 }
 
@@ -89,7 +89,7 @@ static int32_t wasi_fd_prestat_dir_name(wasm_exec_env_t exec_env,
                                         char* path,
                                         int32_t* pathLen)
 {
-    ocallLogDebug("S - fd_prestat_dir_name");
+    SPDLOG_DEBUG_SGX("S - fd_prestat_dir_name");
     return 0;
 }
 
@@ -97,7 +97,7 @@ static int32_t wasi_fd_prestat_get(wasm_exec_env_t exec_env,
                                    int32_t fd,
                                    wasi_prestat_app_t* prestatWasm)
 {
-    ocallLogDebug("S - fd_prestat_get");
+    SPDLOG_DEBUG_SGX("S - fd_prestat_get");
     return 0;
 }
 
@@ -107,7 +107,7 @@ static int32_t wasi_fd_read(wasm_exec_env_t exec_env,
                             int32_t ioVecCountWasm,
                             int32_t* bytesRead)
 {
-    ocallLogDebug("S - fd_read");
+    SPDLOG_DEBUG_SGX("S - fd_read");
     return 0;
 }
 
@@ -118,13 +118,13 @@ static int32_t wasi_fd_readdir(wasm_exec_env_t exec_env,
                                int64_t d,
                                int32_t e)
 {
-    ocallLogDebug("S - fd_readdir");
+    SPDLOG_DEBUG_SGX("S - fd_readdir");
     return 0;
 }
 
 static int wasi_fd_seek(wasm_exec_env_t execEnv, int a, int64 b, int c, int d)
 {
-    ocallLogDebug("S - wasi_fd_seek");
+    SPDLOG_DEBUG_SGX("S - wasi_fd_seek");
     return 0;
 }
 
@@ -134,7 +134,7 @@ static int wasi_fd_write(wasm_exec_env_t execEnv,
                          int32_t ioVecCountWasm,
                          int32_t* bytesWritten)
 {
-    // SPDLOG_DEBUG_SGX("S - wasi_fd_write %i", fd);
+    SPDLOG_DEBUG_SGX("S - wasi_fd_write %i", fd);
     return 0;
 }
 
@@ -143,7 +143,7 @@ static int32_t wasi_path_create_directory(wasm_exec_env_t exec_env,
                                           int32_t* b,
                                           char* c)
 {
-    ocallLogDebug("S - path_create_directory");
+    SPDLOG_DEBUG_SGX("S - path_create_directory");
     return 0;
 }
 
@@ -154,7 +154,7 @@ static int32_t wasi_path_filestat_get(wasm_exec_env_t exec_env,
                                       int32_t pathLen,
                                       __wasi_filestat_t* statWasm)
 {
-    ocallLogDebug("S - path_filestat_get");
+    SPDLOG_DEBUG_SGX("S - path_filestat_get");
     return 0;
 }
 
@@ -167,7 +167,7 @@ static int32_t wasi_path_link(wasm_exec_env_t exec_env,
                               int32_t* f,
                               char* g)
 {
-    ocallLogDebug("S - path_link");
+    SPDLOG_DEBUG_SGX("S - path_link");
     return 0;
 }
 
@@ -182,7 +182,7 @@ static int32_t wasi_path_open(wasm_exec_env_t exec_env,
                               int32_t fdFlags,
                               int32_t* fdWasm)
 {
-    ocallLogDebug("S - wasi_path_open");
+    SPDLOG_DEBUG_SGX("S - wasi_path_open");
     return 0;
 }
 
@@ -194,7 +194,7 @@ static int32_t wasi_path_readlink(wasm_exec_env_t exec_env,
                                   uint32_t bufLen,
                                   uint32_t* bufApp)
 {
-    ocallLogDebug("S - path_readlink");
+    SPDLOG_DEBUG_SGX("S - path_readlink");
     return 0;
 }
 
@@ -203,7 +203,7 @@ static int32_t wasi_path_remove_directory(wasm_exec_env_t exec_env,
                                           int32_t* b,
                                           char* c)
 {
-    ocallLogDebug("S - path_remove_directory");
+    SPDLOG_DEBUG_SGX("S - path_remove_directory");
     return 0;
 }
 
@@ -215,7 +215,7 @@ static int32_t wasi_path_rename(wasm_exec_env_t exec_env,
                                 char* newPath,
                                 uint32_t newPathLen)
 {
-    ocallLogDebug("S - path_rename");
+    SPDLOG_DEBUG_SGX("S - path_rename");
     return 0;
 }
 
@@ -226,7 +226,7 @@ static int32_t wasi_path_symlink(wasm_exec_env_t exec_env,
                                  const char* newPath,
                                  uint32_t newPathLen)
 {
-    ocallLogDebug("S - path_symlink");
+    SPDLOG_DEBUG_SGX("S - path_symlink");
     return 0;
 }
 
@@ -235,7 +235,7 @@ static int32_t wasi_path_unlink_file(wasm_exec_env_t exec_env,
                                      char* path,
                                      uint32_t pathLen)
 {
-    ocallLogDebug("S - path_unlink_file");
+    SPDLOG_DEBUG_SGX("S - path_unlink_file");
     return 0;
 }
 
