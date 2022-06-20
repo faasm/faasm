@@ -1,6 +1,6 @@
 // Annoyingly we have to redefine these here
 #define FAASM_SGX 1
-#define FAASM_SGX_WAMR_WASI_LIBC 0
+#define FAASM_SGX_WAMR_WASI_LIBC 1
 
 enclave{
     include "/usr/local/code/faasm/include/enclave/error.h"

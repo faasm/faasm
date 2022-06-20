@@ -4,6 +4,14 @@
 #include <sgx.h>
 #include <sgx_defs.h>
 
+#include <stdio.h>
+
+#define SPDLOG_DEBUG_SGX(...)                                                  \
+    size_t __bufferSize = 512;                                                 \
+    char __buffer[__bufferSize];                                               \
+    snprintf(__buffer, __bufferSize, __VA_ARGS__);                             \
+    ocallLogDebug(__buffer);
+
 // This file defines the set of functions that can be called from enclave code
 // to the outside (untrusted) Faasm runtime. OCalls in SGX terminology.
 extern "C"

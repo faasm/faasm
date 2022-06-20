@@ -60,6 +60,7 @@ set(ENCLAVE_TRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/inside/EnclaveWasmModule.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/native.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/ocalls.h
+    ${FAASM_INCLUDE_DIR}/enclave/inside/types.h
 )
 
 set(ENCLAVE_TRUSTED_SRC
