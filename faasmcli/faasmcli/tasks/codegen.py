@@ -24,6 +24,8 @@ WAMR_ALLOWED_FUNCS = [
     ["errors", "ret_one"],
     # Memory
     ["demo", "brk"],
+    ["demo", "mmap"],
+    ["demo", "mmap_big"],
     # Filesystem
     ["demo", "fcntl"],
     ["demo", "file"],

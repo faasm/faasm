@@ -316,66 +316,9 @@ uint8_t* WAMRWasmModule::wasmPointerToNative(uint32_t wasmPtr)
     return static_cast<uint8_t*>(nativePtr);
 }
 
-uint32_t WAMRWasmModule::growMemory(size_t nBytes)
+bool WAMRWasmModule::doGrowMemory(uint32_t pageChange)
 {
-
-    uint32_t oldBytes = getMemorySizeBytes();
-    uint32_t oldBrk = currentBrk.load(std::memory_order_acquire);
-    uint32_t newBrk = oldBrk + nBytes;
-
-    if (!isWasmPageAligned(newBrk)) {
-        SPDLOG_ERROR("Growing WAMR memory by {} is not wasm page aligned"
-                     " (current brk: {}, new brk: {})",
-                     nBytes,
-                     oldBrk,
-                     newBrk);
-        throw std::runtime_error("Non-wasm-page-aligned WAMR memory growth");
-    }
-
-    size_t newBytes = oldBytes + nBytes;
-    uint32_t oldPages = getNumberOfWasmPagesForBytes(oldBytes);
-    uint32_t newPages = getNumberOfWasmPagesForBytes(newBytes);
-    size_t maxPages = getMaxMemoryPages();
-
-    if (newPages > maxPages) {
-        SPDLOG_ERROR(
-          "WAMR grow memory would exceed max of {} pages (requested {})",
-          maxPages,
-          newPages);
-        throw std::runtime_error("WAMR grow memory exceeding max");
-    }
-
-    uint32_t pageChange = newPages - oldPages;
-    bool success = wasm_runtime_enlarge_memory(moduleInstance, pageChange);
-    if (!success) {
-        throw std::runtime_error("Failed to grow WAMR memory");
-    }
-
-    SPDLOG_TRACE("Growing WAMR memory from {} to {} pages", oldPages, newPages);
-
-    size_t newMemorySize = getMemorySizeBytes();
-    currentBrk.store(newMemorySize, std::memory_order_release);
-    if (newMemorySize != newBytes) {
-        SPDLOG_ERROR(
-          "Expected new brk ({}) to be old WAMR memory plus new bytes ({})",
-          newMemorySize,
-          newBytes);
-        throw std::runtime_error("WAMR memory growth discrepancy");
-    }
-
-    return oldBrk;
-}
-
-uint32_t WAMRWasmModule::shrinkMemory(size_t nBytes)
-{
-
-    SPDLOG_WARN("WAMR ignoring shrink memory");
-    return 0;
-}
-
-uint32_t WAMRWasmModule::mmapMemory(size_t nBytes)
-{
-    return growMemory(nBytes);
+    return wasm_runtime_enlarge_memory(moduleInstance, pageChange);
 }
 
 size_t WAMRWasmModule::getMemorySizeBytes()

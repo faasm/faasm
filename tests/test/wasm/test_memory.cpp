@@ -56,10 +56,14 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test mmapping a file", "[wasm]")
     REQUIRE(expected == actual);
 }
 
-TEST_CASE_METHOD(FunctionExecTestFixture,
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test memory growth and shrinkage",
                  "[wasm]")
 {
+    // Test different WASM VMs
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
@@ -147,15 +151,26 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     REQUIRE(newBrk == oldBrk);
 }
 
-TEST_CASE_METHOD(FunctionExecTestFixture, "Test mmap/munmap", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test mmap/munmap",
+                 "[faaslet]")
 {
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
     checkCallingFunctionGivesBoolOutput("demo", "mmap", true);
 }
 
-TEST_CASE_METHOD(FunctionExecTestFixture, "Test big mmap", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test big mmap",
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "mmap_big");
-    execFunction(req);
+
+    SECTION("WAVM") { execFunction(req); }
+
+    SECTION("WAMR") { execWamrFunction(req->mutable_messages()->at(0)); }
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture,
@@ -167,17 +182,15 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
 
     std::shared_ptr<wasm::WasmModule> module = nullptr;
 
-    std::string expectedMessage;
+    std::string expectedMessage = "Memory growth exceeding max";
     SECTION("WAVM")
     {
         module = std::make_shared<wasm::WAVMWasmModule>();
-        expectedMessage = "Memory growth exceeding max";
     }
 
     SECTION("WAMR")
     {
         module = std::make_shared<wasm::WAMRWasmModule>();
-        expectedMessage = "WAMR grow memory exceeding max";
     }
 
     module->bindToFunction(call);
