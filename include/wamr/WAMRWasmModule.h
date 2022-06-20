@@ -49,19 +49,13 @@ class WAMRWasmModule final
     uint8_t* wasmPointerToNative(uint32_t wasmPtr) override;
 
     // ----- Memory management -----
-    uint32_t growMemory(size_t nBytes) override;
-
-    uint32_t shrinkMemory(size_t nBytes) override;
-
-    uint32_t mmapMemory(size_t nBytes) override;
-
     uint32_t mmapFile(uint32_t fp, size_t length) override;
 
     size_t getMemorySizeBytes() override;
 
     uint8_t* getMemoryBase() override;
 
-    size_t getMaxMemoryPages();
+    size_t getMaxMemoryPages() override;
 
     WASMModuleInstanceCommon* getModuleInstance();
 
@@ -79,6 +73,8 @@ class WAMRWasmModule final
     int executeWasmFunctionFromPointer(int wasmFuncPtr);
 
     void bindInternal(faabric::Message& msg);
+
+    bool doGrowMemory(uint32_t pageChange) override;
 };
 
 WAMRWasmModule* getExecutingWAMRModule();
