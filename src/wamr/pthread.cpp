@@ -35,7 +35,8 @@ static int32_t pthread_once_wrapper(wasm_exec_env_t exec_env,
                                     int32_t a,
                                     int32_t b)
 {
-    SPDLOG_DEBUG("S - pthread_once {} {}", a, b);
+    // Trace logging as this may be called a lot
+    SPDLOG_TRACE("S - pthread_once {} {}", a, b);
     return 0;
 }
 

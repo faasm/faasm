@@ -16,6 +16,9 @@ LIB_FAKE_FILES = [
 WAMR_ALLOWED_FUNCS = [
     # Misc
     ["demo", "chain"],
+    ["demo", "chain_named_a"],
+    ["demo", "chain_named_b"],
+    ["demo", "chain_named_c"],
     ["ffmpeg", "check"],
     # Environment
     ["demo", "argc_argv_test"],

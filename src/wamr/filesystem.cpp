@@ -369,6 +369,18 @@ static int32_t wasi_path_open(wasm_exec_env_t exec_env,
     return __WASI_ESUCCESS;
 }
 
+static int32_t wasi_path_readlink(wasm_exec_env_t exec_env,
+                                  uint32_t fd,
+                                  const char* path,
+                                  uint32_t pathLen,
+                                  char* buf,
+                                  uint32_t bufLen,
+                                  uint32_t* bufApp)
+{
+    SPDLOG_DEBUG("S - path_readlink");
+    throw std::runtime_error("path_readlink not implemented!");
+}
+
 static int32_t wasi_path_remove_directory(wasm_exec_env_t exec_env,
                                           int32_t a,
                                           int32_t* b,
@@ -408,6 +420,17 @@ static int32_t wasi_path_rename(wasm_exec_env_t exec_env,
     return __WASI_ESUCCESS;
 }
 
+static int32_t wasi_path_symlink(wasm_exec_env_t exec_env,
+                                 const char* oldPath,
+                                 uint32_t oldPathLen,
+                                 uint32_t fd,
+                                 const char* newPath,
+                                 uint32_t newPathLen)
+{
+    SPDLOG_DEBUG("S - path_symlink");
+    throw std::runtime_error("path_symlink not implemented");
+}
+
 static int32_t wasi_path_unlink_file(wasm_exec_env_t exec_env,
                                      uint32_t fd,
                                      char* path,
@@ -442,8 +465,10 @@ static NativeSymbol wasiNs[] = {
     REG_WASI_NATIVE_FUNC(path_filestat_get, "(ii*~*)i"),
     REG_WASI_NATIVE_FUNC(path_link, "(ii*~i*~)i"),
     REG_WASI_NATIVE_FUNC(path_open, "(ii*~iIIi*)i"),
+    REG_WASI_NATIVE_FUNC(path_readlink, "(i*~*~*)i"),
     REG_WASI_NATIVE_FUNC(path_remove_directory, "(i*~)i"),
     REG_WASI_NATIVE_FUNC(path_rename, "(i*~i*~)i"),
+    REG_WASI_NATIVE_FUNC(path_symlink, "(*~i*~)i"),
     REG_WASI_NATIVE_FUNC(path_unlink_file, "(i*~)i"),
 };
 
