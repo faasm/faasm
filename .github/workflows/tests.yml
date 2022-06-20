@@ -15,7 +15,7 @@ defaults:
 jobs:
   formatting:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     container:
       image: faasm/cli:0.8.14
     steps:
@@ -42,7 +42,7 @@ jobs:
 
   docs:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     container:
       image: faasm/cli:0.8.14
     steps:
@@ -55,7 +55,7 @@ jobs:
 
   cpp-funcs:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     container:
       image: faasm/cpp-sysroot:0.1.6
     defaults:
@@ -84,7 +84,7 @@ jobs:
 
   py-funcs:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     container:
       image: faasm/cpython:0.1.1
     defaults:
@@ -113,7 +113,7 @@ jobs:
 
   conan-cache:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     container:
       image: faasm/cli:0.8.14
     steps:
@@ -127,7 +127,7 @@ jobs:
   tests:
     if: github.event.pull_request.draft == false
     needs: [cpp-funcs, py-funcs, conan-cache]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
@@ -226,7 +226,7 @@ jobs:
   sgx-tests:
     if: github.event.pull_request.draft == false
     needs: [cpp-funcs, py-funcs, conan-cache]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       fail-fast: false
     env:
@@ -317,7 +317,7 @@ jobs:
 
   dist-tests:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: ${{ github.workspace }}
@@ -353,7 +353,7 @@ jobs:
 
   quick-start:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: ${{ github.workspace }}
