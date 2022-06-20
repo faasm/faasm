@@ -32,11 +32,9 @@ class EnclaveInterface final : public WasmModule
 
     int32_t executeFunction(faabric::Message& msg) override;
 
-    uint32_t growMemory(size_t nBytes) override;
-
-    uint32_t shrinkMemory(size_t nBytes) override;
-
     size_t getMemorySizeBytes() override;
+
+    size_t getMaxMemoryPages() override;
 
     uint8_t* getMemoryBase() override;
 
