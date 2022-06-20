@@ -183,15 +183,9 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     std::shared_ptr<wasm::WasmModule> module = nullptr;
 
     std::string expectedMessage = "Memory growth exceeding max";
-    SECTION("WAVM")
-    {
-        module = std::make_shared<wasm::WAVMWasmModule>();
-    }
+    SECTION("WAVM") { module = std::make_shared<wasm::WAVMWasmModule>(); }
 
-    SECTION("WAMR")
-    {
-        module = std::make_shared<wasm::WAMRWasmModule>();
-    }
+    SECTION("WAMR") { module = std::make_shared<wasm::WAMRWasmModule>(); }
 
     module->bindToFunction(call);
 

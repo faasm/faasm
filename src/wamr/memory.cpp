@@ -33,7 +33,6 @@ static int32_t mmap_wrapper(wasm_exec_env_t exec_env,
                             int32_t fd,
                             int64_t offset)
 {
-    // TODO - reduce code duplication with WAVM's mmap
     SPDLOG_DEBUG(
       "S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
