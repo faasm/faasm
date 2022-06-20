@@ -99,15 +99,15 @@ class WasmModule
 
     virtual void setMemorySize(size_t nBytes);
 
-    virtual uint32_t growMemory(size_t nBytes);
+    uint32_t growMemory(size_t nBytes);
 
-    virtual uint32_t shrinkMemory(size_t nBytes);
+    uint32_t shrinkMemory(size_t nBytes);
 
-    virtual uint32_t mmapMemory(size_t nBytes);
+    uint32_t mmapMemory(size_t nBytes);
 
     virtual uint32_t mmapFile(uint32_t fp, size_t length);
 
-    virtual void unmapMemory(uint32_t offset, size_t nBytes);
+    void unmapMemory(uint32_t offset, size_t nBytes);
 
     uint32_t createMemoryGuardRegion(uint32_t wasmOffset);
 
@@ -119,6 +119,8 @@ class WasmModule
     virtual uint8_t* wasmPointerToNative(uint32_t wasmPtr);
 
     virtual size_t getMemorySizeBytes();
+
+    virtual size_t getMaxMemoryPages();
 
     virtual uint8_t* getMemoryBase();
 
@@ -214,6 +216,9 @@ class WasmModule
 
     // Module-specific binding
     virtual void doBindToFunction(faabric::Message& msg, bool cache);
+
+    // WASM-runtime specific method to actually grow the internal WASM memories
+    virtual bool doGrowMemory(uint32_t pageChange);
 
     // Snapshots
     faabric::snapshot::SnapshotRegistry& reg;
