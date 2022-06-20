@@ -8,7 +8,9 @@
 using namespace faaslet;
 
 namespace tests {
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test function chaining", "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test function chaining",
+                 "[faaslet]")
 {
     SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
