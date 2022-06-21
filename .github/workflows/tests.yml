@@ -134,7 +134,7 @@ jobs:
         # 21/06/2022 - We have disabled the ASAN and TSAN builds as they were
         # consuming upwards of 15 to 20 GB of memory (each). Even on a self-
         # hosted runner this is too much
-        sanitiser: [None, Thread, Undefined, Leak]
+        sanitiser: [None, Address, Thread, Undefined, Leak]
     env:
       CGROUP_MODE: off
       HOST_TYPE: ci
@@ -142,6 +142,7 @@ jobs:
       NETNS_MODE: off
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
+      ASAN_OPTIONS: "halt_on_error=1:quarantine_size_mb=16"
       LSAN_OPTIONS: "suppressions=/usr/local/code/faasm/leak-sanitizer-ignorelist.txt"
       TSAN_OPTIONS: "halt_on_error=1:suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt:history_size=2:second_deadlock_stack=1"
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
