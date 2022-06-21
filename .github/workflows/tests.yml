@@ -149,15 +149,11 @@ jobs:
     services:
       redis:
         image: faasm/redis:0.8.14
-        ports:
-          - 6379:6379
       minio:
         image: faasm/minio:0.8.14
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
-        ports:
-          - 9000:9000
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
@@ -241,15 +237,11 @@ jobs:
     services:
       redis:
         image: faasm/redis:0.8.14
-        ports:
-          - 6379:6379
       minio:
         image: faasm/minio:0.8.14
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
-        ports:
-          - 9000:9000
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
