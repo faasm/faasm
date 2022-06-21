@@ -38,9 +38,7 @@ class OpenMPTestFixture
     }
 };
 
-TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test OpenMP static for scheduling",
-                 "[wasm][openmp]")
+TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP static for scheduling", "[.]")
 {
     doOmpTestLocal("for_static_schedule");
 }
