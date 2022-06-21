@@ -75,18 +75,13 @@ extern "C"
     int32_t ocallSbrk(int32_t increment)
     {
         SPDLOG_TRACE("S - __sbrk - {}", increment);
-        wasm::WasmModule* module = wasm::getExecutingModule();
-        uint32_t oldBrk = module->getCurrentBrk();
-
-        if (increment == 0) {
-            return oldBrk;
-        } else if (increment < 0) {
-            module->shrinkMemory(-1 * increment);
-            return oldBrk;
-        } else {
-            return module->growMemory(increment);
-        }
+        SPDLOG_WARN("SGX-WAMR sbrk does not allocate more memory");
+        return 0;
     }
+
+    // ---------------------------------------
+    // Logging
+    // ---------------------------------------
 
     void ocallLogDebug(const char* msg) { SPDLOG_DEBUG("[enclave] {}", msg); }
 
