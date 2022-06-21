@@ -14,6 +14,9 @@ signal:*
 race:std::__future_base::_Result
 race:std::future<*>::get
 
+# TODO: Data race in the scheduler's reset
+race:faabric::scheduler::Scheduler::reset()
+
 # Raciness inside webassembly openmp modules
 race:wasm::startReduceCritical
 
