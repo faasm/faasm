@@ -1,4 +1,4 @@
-# Kubernetes/ Knative integration
+# Kubernetes integration
 
 Faasm runs on a K8s cluster.
 
@@ -152,7 +152,6 @@ the following:
 - Set up your local `kubectl` to connect to your cluster (click the "Connect"
   button in the web interface).
 - Check things are working by running `kubectl get nodes`.
-- Install Knative serving as described below.
 
 ## Azure Kubernetes Service
 

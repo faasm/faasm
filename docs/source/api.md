@@ -17,7 +17,7 @@ The Faasm API is split into two parts which correspond to two endpoints:
 
 Generally `upload` is on port 8002, and `invoke` on port 8080. The specifics of
 the endpoints themselves will depend on the deployment of Faasm. Locally these
-are available on `localhost`, whereas in a [Knative deployment](kubernetes.md)
+are available on `localhost`, whereas in a [k8s deployment](kubernetes.md)
 these will be provided by the Kubernetes infrastructure.
 
 In some deployments the `upload` server will also act as a file server for the
