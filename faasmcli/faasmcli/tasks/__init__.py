@@ -11,7 +11,7 @@ from . import docs
 from . import files
 from . import flame
 from . import flush
-from . import knative
+from . import k8s
 from . import network
 from . import python
 from . import redis
@@ -33,7 +33,7 @@ ns = Collection(
     files,
     flame,
     flush,
-    knative,
+    k8s,
     network,
     python,
     redis,

@@ -37,11 +37,11 @@ do the following:
 # List all commands
 inv -l
 
-# List all commands in the knative namespace
-inv -l knative
+# List all commands in the k8s namespace
+inv -l k8s
 
 # Show help for a given command
-inv -h knative.ini-file
+inv -h k8s.ini-file
 
 # Chain commands
 inv flush invoke demo hello

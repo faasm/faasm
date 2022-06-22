@@ -63,11 +63,11 @@ def _get_faasm_worker_pods(label):
 
 
 @task
-def deploy(ctx, replicas=0, sgx=False):
+def deploy(ctx, workers, sgx=False):
     """
     Deploy Faasm to a k8s cluster
     """
-    _deploy_faasm_services(int(replicas), sgx)
+    _deploy_faasm_services(int(workers), sgx)
 
     ini_file(ctx)
 
