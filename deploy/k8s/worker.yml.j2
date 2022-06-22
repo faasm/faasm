@@ -1,28 +1,46 @@
 ---
 
-apiVersion: serving.knative.dev/v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: faasm-worker
   namespace: faasm
+  labels:
+    app: faasm
 spec:
+  selector:
+    matchLabels:
+      run: faasm-worker
+  replicas: {{ num_faasm_workers }}
   template:
     metadata:
       labels:
-        app: faasm-worker
+        run: faasm-worker
     spec:
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - podAffinityTerm:
                 labelSelector:
-                  matchLabels:
-                    app: faasm-worker
+                  matchExpressions:
+                    - key: run
+                      operator: In
+                      values:
+                      - faasm-worker
                 topologyKey: kubernetes.io/hostname
               weight: 100
 
       containers:
-        - image: faasm/worker:0.8.12
+        - image: faasm/{{ worker_container_name }}:{{ faasm_version }}
+          name: faasm-worker
+          ports:
+            - containerPort: 8080
+          {% if resources is defined %}
+          {{ resources | to_nice_yaml(indent=2) | trim | indent(width=10) }}
+          {% endif %}
+          {% if volume_mounts is defined %}
+          {{ volume_mounts | to_nice_yaml(indent=2) | trim | indent(width=10) }}
+          {% endif %}
           env:
             - name: REDIS_STATE_HOST
               value: "redis-state"
@@ -45,11 +63,18 @@ spec:
             - name: PYTHON_CODEGEN
               value: "off"
             - name: BOUND_TIMEOUT
-              value: "30000"
-            - name: BOUND_TIMEOUT
               value: "600000"
             - name: GLOBAL_MESSAGE_TIMEOUT
               value: "700000"
             - name: ENDPOINT_INTERFACE
               value: "eth0"
+            - name: WASM_VM
+              value: "{{ wasm_vm }}"
+            {% if extra_env_vars is defined %}
+            {{ extra_env_vars | to_nice_yaml(indent=2) | trim | indent(width=12) }}
+            {% endif %}
 
+      volumes:
+      - name: var-run-aesmd
+        hostPath:
+          path: /var/run/aesmd
