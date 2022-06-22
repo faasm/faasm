@@ -11,7 +11,7 @@ myst-parser==0.17.2
 Jinja2==3.0.3
 matplotlib==3.3.4
 networkx==2.5.1
-numpy==1.21.0
+numpy==1.22.0
 packaging==20.9
 pydot==1.4.2
 psutil==5.8.0
