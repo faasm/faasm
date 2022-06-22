@@ -202,7 +202,6 @@ def delete(ctx, local=False, sgx=False):
 
 @task
 def ini_file(ctx, local=False, publicip=None):
-    # TODO - remove from here
     """
     Set up the faasm config file for interacting with k8s
     """
