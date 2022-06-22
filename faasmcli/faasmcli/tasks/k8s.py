@@ -209,7 +209,6 @@ def ini_file(ctx, local=False, publicip=None):
 
     if local:
         print("\n----- Setting up local config -----\n")
-        knative_host = LOCALHOST_IP
         invoke_port = "8080"
         invoke_ip = LOCALHOST_IP
         upload_ip = LOCALHOST_IP

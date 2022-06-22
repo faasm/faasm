@@ -3,7 +3,7 @@ import pprint
 
 from faasmcli.util.env import PYTHON_USER, PYTHON_FUNC
 from faasmcli.util.http import do_post
-from faasmcli.util.endpoints import get_invoke_host_port, get_knative_headers
+from faasmcli.util.endpoints import get_invoke_host_port
 
 STATUS_SUCCESS = "SUCCESS"
 STATUS_FAILED = "FAILED"
@@ -69,7 +69,6 @@ def invoke_impl(
     input=None,
     py=False,
     asynch=False,
-    knative=True,
     poll=False,
     cmdline=None,
     mpi_world_size=None,
@@ -119,13 +118,7 @@ def invoke_impl(
     if graph:
         msg["record_exec_graph"] = graph
 
-    # Knative must pass custom headers
-    headers = dict()
-    if knative:
-        headers = get_knative_headers()
-        print("Invoking function at {} ({})".format(url, headers))
-    else:
-        print("Invoking function at {}".format(url))
+    print("Invoking function at {}".format(url))
 
     print("Payload:")
     pprint.pprint(msg)
@@ -175,5 +168,4 @@ def _do_single_call(host, port, msg, quiet):
     if port != 80:
         url += ":{}/".format(port)
 
-    headers = get_knative_headers()
-    return do_post(url, msg, headers=headers, quiet=quiet, json=True)
+    return do_post(url, msg, quiet=quiet, json=True)
