@@ -124,11 +124,9 @@ def invoke_impl(
     pprint.pprint(msg)
 
     if asynch:
-        return _async_invoke(
-            url, msg, headers=headers, poll=poll, host=host, port=port
-        )
+        return _async_invoke(url, msg, poll=poll, host=host, port=port)
     else:
-        return do_post(url, msg, headers=headers, json=True, debug=debug)
+        return do_post(url, msg, json=True, debug=debug)
 
 
 def status_call_impl(user, func, call_id, host, port, quiet=False):

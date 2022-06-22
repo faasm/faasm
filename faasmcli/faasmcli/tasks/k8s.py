@@ -103,7 +103,7 @@ def wait_for_faasm_lb(service_name):
             "kubectl",
             "-n faasm",
             "get service {}".format(service_name),
-            "-o jsonpath='{.status.loadBalancer.ingress[0].ip}'"
+            "-o jsonpath='{.status.loadBalancer.ingress[0].ip}'",
         ]
 
         output = _capture_cmd_output(cmd)
@@ -138,30 +138,36 @@ def _deploy_faasm_services(worker_replicas, sgx=False):
         "worker_container_name": "worker-sgx" if sgx else "worker",
     }
     if sgx:
-        template_vars.update({
-            "resources": {
+        template_vars.update(
+            {
                 "resources": {
-                    "limits": {"sgx.intel.com/epc": "10Mi"},
-                    "requests": {"sgx.intel.com/epc": "10Mi"},
-                }
-            },
-            "volume_mounts": {
-                "volumeMounts": [
-                    {"name": "var-run-aesmd", "mountPath": "/var/run/aesmd"}
-                ]
-            },
-            "extra_env_vars": [
-                {"name": "SGX_AESM_ADDR", "value": "1"},
-                {
-                    "name": "AZ_ATTESTATION_PROVIDER_URL",
-                    "value": "https://faasmattprov.eus2.attest.azure.net",
+                    "resources": {
+                        "limits": {"sgx.intel.com/epc": "10Mi"},
+                        "requests": {"sgx.intel.com/epc": "10Mi"},
+                    }
                 },
-            ],
+                "volume_mounts": {
+                    "volumeMounts": [
+                        {
+                            "name": "var-run-aesmd",
+                            "mountPath": "/var/run/aesmd",
+                        }
+                    ]
+                },
+                "extra_env_vars": [
+                    {"name": "SGX_AESM_ADDR", "value": "1"},
+                    {
+                        "name": "AZ_ATTESTATION_PROVIDER_URL",
+                        "value": "https://faasmattprov.eus2.attest.azure.net",
+                    },
+                ],
             }
         )
 
     # Add all files that don't need templating
-    k8s_files = [join(K8S_DIR, fn) for fn in listdir(K8S_DIR) if fn.endswith(".yml")]
+    k8s_files = [
+        join(K8S_DIR, fn) for fn in listdir(K8S_DIR) if fn.endswith(".yml")
+    ]
     # Then, template all other files
     for template_file in templated_k8s_files:
         output_file = join(K8S_TEMPLATED_DIR, basename(template_file)[:-3])
