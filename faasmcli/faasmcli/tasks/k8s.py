@@ -232,8 +232,6 @@ def ini_file(ctx, local=False, publicip=None):
             )
         else:
             print("\n----- Extracting info from k8s -----\n")
-            # If running an SGX-enabled cluster, we deploy the workers manually
-            # and not through Knative
             invoke_ip = _capture_cmd_output(
                 [
                     "kubectl",

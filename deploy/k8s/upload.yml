@@ -25,6 +25,6 @@ spec:
         - name: LD_LIBRARY_PATH
           value: "/build/faasm/third-party/lib:/usr/local/lib"
         - name: PYTHON_CODEGEN
-          value: "{{ python_codegen }}"
+          value: "on"
         - name: WASM_VM
           value: "wavm"
