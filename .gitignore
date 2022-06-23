@@ -136,6 +136,3 @@ callgrind.*
 
 # Flamegraph
 *.svg
-
-# Templated k8s deployment files
-templated/

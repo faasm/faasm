@@ -1,6 +1,6 @@
 from datetime import datetime
 from os import makedirs, listdir
-from os.path import basename, join
+from os.path import join
 from subprocess import run, PIPE
 from time import sleep
 
@@ -12,14 +12,13 @@ from faasmcli.util.env import (
     GLOBAL_FAASM_CONFIG_FILE,
     GLOBAL_FAASM_CONFIG_DIR,
 )
-from faasmcli.util.k8s import template_k8s_file
-from faasmcli.util.version import get_faasm_version
 
 LOCALHOST_IP = "127.0.0.1"
 
+K8S_COMMON_DIR = join(PROJ_ROOT, "deploy", "k8s-common")
+K8S_SGX_DIR = join(PROJ_ROOT, "deploy", "k8s-sgx")
 K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
-K8S_TEMPLATED_DIR = join(PROJ_ROOT, "deploy", "k8s", "templated")
-NAMESPACE_FILE = join(K8S_DIR, "namespace.yml")
+NAMESPACE_FILE = join(K8S_COMMON_DIR, "namespace.yml")
 
 
 def _capture_cmd_output(cmd):
@@ -123,59 +122,27 @@ def _deploy_faasm_services(worker_replicas, sgx=False):
         shell=True,
     )
 
-    # List files that need to be templated
-    templated_k8s_files = listdir(K8S_DIR)
-    templated_k8s_files = [
-        join(K8S_DIR, f) for f in templated_k8s_files if f.endswith(".yml.j2")
-    ]
-
-    # Template variables
-    template_vars = {
-        "faasm_version": get_faasm_version(),
-        "wasm_vm": "sgx" if sgx else "wavm",
-        "python_codegen": "off" if sgx else "on",
-        "num_faasm_workers": worker_replicas,
-        "worker_container_name": "worker-sgx" if sgx else "worker",
-    }
-    if sgx:
-        template_vars.update(
-            {
-                "resources": {
-                    "resources": {
-                        "limits": {"sgx.intel.com/epc": "10Mi"},
-                        "requests": {"sgx.intel.com/epc": "10Mi"},
-                    }
-                },
-                "volume_mounts": {
-                    "volumeMounts": [
-                        {
-                            "name": "var-run-aesmd",
-                            "mountPath": "/var/run/aesmd",
-                        }
-                    ]
-                },
-                "extra_env_vars": [
-                    {"name": "SGX_AESM_ADDR", "value": "1"},
-                    {
-                        "name": "AZ_ATTESTATION_PROVIDER_URL",
-                        "value": "https://faasmattprov.eus2.attest.azure.net",
-                    },
-                ],
-            }
-        )
-
-    # Add all files that don't need templating
+    # First, add all the common files
     k8s_files = [
-        join(K8S_DIR, fn) for fn in listdir(K8S_DIR) if fn.endswith(".yml")
+        join(K8S_COMMON_DIR, f)
+        for f in listdir(K8S_COMMON_DIR)
+        if f.endswith(".yml")
     ]
-    # Then, template all other files
-    for template_file in templated_k8s_files:
-        output_file = join(K8S_TEMPLATED_DIR, basename(template_file)[:-3])
-        template_k8s_file(template_file, output_file, template_vars)
-        k8s_files.append(output_file)
 
+    # Then add the deployment specific files
+    if sgx:
+        k8s_files += [
+            join(K8S_SGX_DIR, f)
+            for f in listdir(K8S_SGX_DIR)
+            if f.endswith(".yml")
+        ]
+    else:
+        k8s_files += [
+            join(K8S_DIR, f) for f in listdir(K8S_DIR) if f.endswith(".yml")
+        ]
+
+    # Apply all the files
     print("Applying k8s files: {}".format(k8s_files))
-
     for file_path in k8s_files:
         run(
             "kubectl apply -f {}".format(file_path),
@@ -189,6 +156,16 @@ def _deploy_faasm_services(worker_replicas, sgx=False):
     # Wait for the worker deployment
     wait_for_faasm_pods("run=faasm-worker")
 
+    # Scale the worker deployment to the right number of pods, and wait again
+    run(
+        "kubectl -n faasm scale deployment/faasm-worker --replicas={}".format(
+            worker_replicas
+        ),
+        check=True,
+        shell=True,
+    )
+    wait_for_faasm_pods("run=faasm-worker")
+
     # Lastly, wait for the load balancers to be assigned ingress IPs
     wait_for_faasm_lb("worker-lb")
     wait_for_faasm_lb("upload-lb")
@@ -200,7 +177,7 @@ def delete(ctx, local=False, sgx=False):
     Remove Faasm's k8s cluster
     """
     # Delete the rest
-    for dir_to_delete in [K8S_TEMPLATED_DIR, K8S_DIR]:
+    for dir_to_delete in [K8S_COMMON_DIR, K8S_DIR, K8S_SGX_DIR]:
         cmd = "kubectl delete --all -f {}".format(dir_to_delete)
         print(cmd)
         run(cmd, shell=True, check=True)

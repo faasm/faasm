@@ -11,7 +11,7 @@ metadata:
 spec:
   containers:
     - name: upload
-      image: faasm/upload:{{ faasm_version }}
+      image: faasm/upload:0.8.12
       ports:
         - containerPort: 8002
         - containerPort: 5000
@@ -27,4 +27,4 @@ spec:
         - name: PYTHON_CODEGEN
           value: "{{ python_codegen }}"
         - name: WASM_VM
-          value: "{{ wasm_vm }}"
+          value: "wavm"
