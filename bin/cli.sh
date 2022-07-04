@@ -49,12 +49,12 @@ elif [[ "$1" == "faasm" ]]; then
     CLI_CONTAINER="faasm-cli"
 elif [[ "$1" == "faasm-sgx-sim" ]]; then
     CLI_CONTAINER="faasm-cli"
-    export FAASM_CLI_IMAGE=faasm/cli-sgx-sim:$(cat ${PROJ_ROOT}/VERSION)
+    export FAASM_CLI_IMAGE=${FAASM_SGX_CLI_IMAGE:-faasm/cli-sgx-sim:$(cat ${PROJ_ROOT}/VERSION)}
     export FAASM_WORKER_IMAGE=faasm/worker-sgx-sim:$(cat ${PROJ_ROOT}/VERSION)
     export WASM_VM=sgx
 elif [[ "$1" == "faasm-sgx" ]]; then
     CLI_CONTAINER="faasm-cli"
-    export FAASM_CLI_IMAGE=faasm/cli-sgx:$(cat ${PROJ_ROOT}/VERSION)
+    export FAASM_CLI_IMAGE=${FAASM_SGX_CLI_IMAGE:-faasm/cli-sgx:$(cat ${PROJ_ROOT}/VERSION)}
     export FAASM_WORKER_IMAGE=faasm/worker-sgx:$(cat ${PROJ_ROOT}/VERSION)
     export WASM_VM=sgx
     start_sgx_aesmd_socket

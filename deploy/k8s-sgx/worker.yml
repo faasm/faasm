@@ -1,36 +1,48 @@
 ---
 
-apiVersion: serving.knative.dev/v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: faasm-worker
   namespace: faasm
+  labels:
+    app: faasm
 spec:
+  selector:
+    matchLabels:
+      run: faasm-worker
+  replicas: 2
   template:
     metadata:
       labels:
-        app: faasm-worker
+        run: faasm-worker
     spec:
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - podAffinityTerm:
                 labelSelector:
-                  matchLabels:
-                    app: faasm-worker
+                  matchExpressions:
+                    - key: run
+                      operator: In
+                      values:
+                      - faasm-worker
                 topologyKey: kubernetes.io/hostname
               weight: 100
 
       containers:
         - image: faasm/worker-sgx:0.8.12
-          # We need to add this resources field to make sure the SGX device is
-          # available in the pods:
-          # https://docs.microsoft.com/en-us/azure/confidential-computing/confidential-nodes-aks-overview#azure-device-plugin-for-intel-sgx-
+          name: faasm-worker
+          ports:
+            - containerPort: 8080
           resources:
             limits:
               sgx.intel.com/epc: "10Mi"
             requests:
               sgx.intel.com/epc: "10Mi"
+          volumeMounts:
+            - name: var-run-aesmd
+              mountPath: /var/run/aesmd # hardcoded in intels libarary, volume name must match that of the daemonset
           env:
             - name: REDIS_STATE_HOST
               value: "redis-state"
@@ -38,8 +50,6 @@ spec:
               value: "redis-queue"
             - name: LOG_LEVEL
               value: "info"
-            - name: HOST_TYPE
-              value: "knative"
             - name: CAPTURE_STDOUT
               value: "on"
             - name: CGROUP_MODE
@@ -53,8 +63,6 @@ spec:
             - name: PYTHON_CODEGEN
               value: "off"
             - name: BOUND_TIMEOUT
-              value: "30000"
-            - name: BOUND_TIMEOUT
               value: "600000"
             - name: GLOBAL_MESSAGE_TIMEOUT
               value: "700000"
@@ -63,7 +71,11 @@ spec:
             - name: WASM_VM
               value: "sgx"
             - name: SGX_AESM_ADDR
-              value: 1
+              value: "1"
             - name: AZ_ATTESTATION_PROVIDER_URL
               valie: "https://faasmattprov.eus2.attest.azure.net"
 
+      volumes:
+      - name: var-run-aesmd
+        hostPath:
+          path: /var/run/aesmd

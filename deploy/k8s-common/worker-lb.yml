@@ -3,14 +3,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: upload-lb
+  name: worker-lb
   namespace: faasm
   labels:
     app: faasm
 spec:
   type: LoadBalancer
   ports:
-  - port: 8002
+  - port: 8080
   selector:
-    role: upload
+    run: faasm-worker
 

@@ -26,4 +26,5 @@ spec:
           value: "/build/faasm/third-party/lib:/usr/local/lib"
         - name: PYTHON_CODEGEN
           value: "on"
-
+        - name: WASM_VM
+          value: "wavm"

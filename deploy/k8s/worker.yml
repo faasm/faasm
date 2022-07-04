@@ -1,28 +1,40 @@
 ---
 
-apiVersion: serving.knative.dev/v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: faasm-worker
   namespace: faasm
+  labels:
+    app: faasm
 spec:
+  selector:
+    matchLabels:
+      run: faasm-worker
+  replicas: 2
   template:
     metadata:
       labels:
-        app: faasm-worker
+        run: faasm-worker
     spec:
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - podAffinityTerm:
                 labelSelector:
-                  matchLabels:
-                    app: faasm-worker
+                  matchExpressions:
+                    - key: run
+                      operator: In
+                      values:
+                      - faasm-worker
                 topologyKey: kubernetes.io/hostname
               weight: 100
 
       containers:
         - image: faasm/worker:0.8.12
+          name: faasm-worker
+          ports:
+            - containerPort: 8080
           env:
             - name: REDIS_STATE_HOST
               value: "redis-state"
@@ -30,8 +42,6 @@ spec:
               value: "redis-queue"
             - name: LOG_LEVEL
               value: "info"
-            - name: HOST_TYPE
-              value: "knative"
             - name: CAPTURE_STDOUT
               value: "on"
             - name: CGROUP_MODE
@@ -45,11 +55,10 @@ spec:
             - name: PYTHON_CODEGEN
               value: "off"
             - name: BOUND_TIMEOUT
-              value: "30000"
-            - name: BOUND_TIMEOUT
               value: "600000"
             - name: GLOBAL_MESSAGE_TIMEOUT
               value: "700000"
             - name: ENDPOINT_INTERFACE
               value: "eth0"
-
+            - name: WASM_VM
+              value: "wavm"

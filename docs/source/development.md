@@ -183,7 +183,7 @@ To run external applications and benchmarks against this cluster, you may also
 need to set up your config file to point at this cluster:
 
 ```bash
-inv knative.ini-file --local
+inv k8s.ini-file --local
 ```
 
 ### Making changes in your local cluster

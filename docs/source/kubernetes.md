@@ -1,59 +1,37 @@
-# Kubernetes/ Knative integration
+# Kubernetes integration
 
-Faasm runs on K8s using [Knative](https://knative.dev/).
+Faasm runs on a K8s cluster.
 
 Faasm's K8s configuration can be found in the [k8s](../deploy/k8s) directory,
-and the relevant parts of the Faasm CLI can be found in the [Knative
-tasks](../tasks/knative.py).
+and the relevant parts of the Faasm CLI can be found in the [k8s
+tasks](../tasks/k8s.py).
 
 Faasm assumes a K8s cluster is set up with
 [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) available
-on the commandline, along with [`kn`](https://github.com/knative/client), the
-Knative client.
+on the commandline.
 
 If you don't have a cluster set up, see the instructions at the bottom of this
 page.
 
-## Installing Knative and Istio
-
-Faasm requires the underlying K8s cluster to have both Knative Serving and Istio
-installed.
-
-To install both:
-
-```bash
-# NOTE: this often fails on the first run, just rerun and it should work
-inv knative.install
-```
-
-You can check whether the pods are ready with:
-
-```bash
-kubectl get pods -n knative-serving
-kubectl get pods -n istio-system
-```
-
 ## Deplying Faasm to K8s
 
-Once Knative and Istio are installed, you can deploy Faasm as follows:
+To deploy Faasm to your k8s cluster, you must specify the number of workers:
 
 ```bash
-# Deploy with Knative auto-scaling
-inv knative.deploy
-
-# Deploy with fixed number of replicas
-inv knative.deploy --replicas=4
+inv k8s.deploy --workers=4
 ```
 
-If specifying `replicas`, the max should usually be one less than the number
-of K8s nodes. This leaves enough space for the scheduler to place one Faasm
-worker on each K8s node, while still respecting resource constraints.
+As a rule of thumb, the number of workers should not exceed the number of nodes
+in the underlying node pool. This leaves enough space for the scheduler to
+place one Faasm worker on each K8s node, while still respecting resource
+constraints.
 
 If Faasm workers are getting colocated on nodes, this means that there is not
 enough space on the nodes that aren't being used, so you may need to reduce the
-number of replicas.
+number of workers.
 
-The deploy can take up to a couple of minutes.
+If you want to scale up or down the number of workers, you can use [standard
+`kubectl` commands](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#scaling-a-deployment).
 
 ## Faasm config file
 
@@ -64,14 +42,14 @@ accessing the Faasm deployment.
 If you need to regenerate this, you can run:
 
 ```bash
-inv knative.ini-file
+inv k8s.ini-file
 ```
 
 *If you are running on a bare metal cluster (i.e. not as part of a managed k8s
 service like AKS), you'll need to run the following instead:*
 
 ```bash
-inv knative.ini-file --publicip <ip of one of your hosts>
+inv k8s.ini-file --publicip <ip of one of your hosts>
 ```
 
 This is because Faasm normally assumes different public IPs for the upload and
@@ -138,11 +116,14 @@ kubectl -n faasm logs -f faasm-worker-xxx user-container
 
 # Tail the logs for all containers in the deployment
 # You only need to specify the max-log-requests if you have more than 5
-kubectl -n faasm logs -f -c user-container -l serving.knative.dev/service=faasm-worker --max-log-requests=<N_CONTAINERS>
+kubectl -n faasm logs -f -c user-container -l run=faasm-worker --max-log-requests=<N_CONTAINERS>
 
 # Get all logs from the given deployment (add a very large --tail)
-kubectl -n faasm logs --tail=100000 -c user-container -l serving.knative.dev/service=faasm-worker --max-log-requests=10 > /tmp/out.log
+kubectl -n faasm logs --tail=100000 -c user-container -l run=faasm-worker --max-log-requests=10 > /tmp/out.log
 ```
+
+We also highly encourage using [k9s](https://k9scli.io/) to manage the cluster
+and troubleshoot the Faasm deployment.
 
 ## Isolation and privileges
 
@@ -171,7 +152,6 @@ the following:
 - Set up your local `kubectl` to connect to your cluster (click the "Connect"
   button in the web interface).
 - Check things are working by running `kubectl get nodes`.
-- Install Knative serving as described below.
 
 ## Azure Kubernetes Service
 
