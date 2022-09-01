@@ -37,6 +37,12 @@ pushd ${PROJ_ROOT} >> /dev/null
 # Virtualenv
 # ----------------------------
 
+# disable previous environment with `deactivate` if it exists
+if command -v deactivate &> /dev/null
+then
+    deactivate
+fi
+
 if [ ! -d ${VENV_PATH} ]; then
     ${PROJ_ROOT}/bin/create_venv.sh
 fi
