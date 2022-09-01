@@ -13,7 +13,9 @@ if [[ -z "$FAASM_DOCKER" ]]; then
     if [ "$(ps -o comm= -p $$)" = "zsh" ]; then
         THIS_DIR="$( cd "$( dirname "${ZSH_ARGZERO}" )" >/dev/null 2>&1 && pwd )"
     fi
+    echo $THIS_DIR
     PROJ_ROOT="${THIS_DIR}/.."
+    #PROJ_ROOT="${THIS_DIR}/"
     VENV_PATH="${PROJ_ROOT}/venv-bm"
 
     # Normal terminal
@@ -85,7 +87,11 @@ fi
 # Build binaries on path
 export PATH=${FAASM_BUILD_DIR}/bin:$PATH
 
-export PS1="(faasm) $PS1"
+if [ -z "$PS1_old" ]; then
+  # PS1_old is not set
+  export PS1_old=$PS1
+fi
+export PS1="(faasm) $PS1_old"
 
 # -----------------------------
 # Splash
