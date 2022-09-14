@@ -37,7 +37,7 @@ pushd ${PROJ_ROOT} >> /dev/null
 # Virtualenv
 # ----------------------------
 
-# disable previous environment with `deactivate` if it exists
+# Disable previous environment with deactivate if it exists
 if command -v deactivate &> /dev/null
 then
     deactivate
