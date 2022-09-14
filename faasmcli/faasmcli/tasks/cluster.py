@@ -66,7 +66,12 @@ def stop(ctx, workers=2):
     """
     Stop the local dev cluster
     """
-    run("docker compose stop", shell=True, check=True, cwd=PROJ_ROOT)
+    run(
+        "docker compose stop nginx worker upload minio redis-state redis-queue",
+        shell=True,
+        check=True,
+        cwd=PROJ_ROOT,
+    )
 
 
 @task
