@@ -13,7 +13,6 @@ if [[ -z "$FAASM_DOCKER" ]]; then
     if [ "$(ps -o comm= -p $$)" = "zsh" ]; then
         THIS_DIR="$( cd "$( dirname "${ZSH_ARGZERO}" )" >/dev/null 2>&1 && pwd )"
     fi
-    echo $THIS_DIR
     PROJ_ROOT="${THIS_DIR}/.."
     VENV_PATH="${PROJ_ROOT}/venv-bm"
 
