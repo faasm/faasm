@@ -15,7 +15,6 @@ if [[ -z "$FAASM_DOCKER" ]]; then
     fi
     echo $THIS_DIR
     PROJ_ROOT="${THIS_DIR}/.."
-    #PROJ_ROOT="${THIS_DIR}/"
     VENV_PATH="${PROJ_ROOT}/venv-bm"
 
     # Normal terminal
