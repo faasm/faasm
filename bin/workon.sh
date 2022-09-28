@@ -35,6 +35,12 @@ pushd ${PROJ_ROOT} >> /dev/null
 # Virtualenv
 # ----------------------------
 
+# Disable previous environment with deactivate if it exists
+if command -v deactivate &> /dev/null
+then
+    deactivate
+fi
+
 if [ ! -d ${VENV_PATH} ]; then
     ${PROJ_ROOT}/bin/create_venv.sh
 fi
@@ -85,7 +91,11 @@ fi
 # Build binaries on path
 export PATH=${FAASM_BUILD_DIR}/bin:$PATH
 
-export PS1="(faasm) $PS1"
+if [ -z "$PS1_old" ]; then
+  # PS1_old is not set
+  export PS1_old=$PS1
+fi
+export PS1="(faasm) $PS1_old"
 
 # -----------------------------
 # Splash
