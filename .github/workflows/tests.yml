@@ -17,7 +17,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.8.14
+      image: faasm/cli:0.8.15
     steps:
       # Get the code
       - name: "Fetch ref"
@@ -44,7 +44,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.8.14
+      image: faasm/cli:0.8.15
     steps:
       - name: "Fetch ref"
         run: git fetch origin ${GITHUB_REF}:ci-branch
@@ -115,7 +115,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.8.14
+      image: faasm/cli:0.8.15
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
@@ -145,14 +145,14 @@ jobs:
       LSAN_OPTIONS: "suppressions=/usr/local/code/faasm/leak-sanitizer-ignorelist.txt"
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
     container:
-      image: faasm/cli:0.8.14
+      image: faasm/cli:0.8.15
     services:
       redis:
-        image: faasm/redis:0.8.14
+        image: faasm/redis:0.8.15
         ports:
           - 6379:6379
       minio:
-        image: faasm/minio:0.8.14
+        image: faasm/minio:0.8.15
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
@@ -237,14 +237,14 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli-sgx-sim:0.8.14
+      image: faasm/cli-sgx-sim:0.8.15
     services:
       redis:
-        image: faasm/redis:0.8.14
+        image: faasm/redis:0.8.15
         ports:
           - 6379:6379
       minio:
-        image: faasm/minio:0.8.14
+        image: faasm/minio:0.8.15
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
