@@ -31,6 +31,7 @@ RUN mkdir -p /usr/local/faasm/runtime_root/etc \
 # Out of tree clean build of the basic targets
 RUN rm -rf /build/faasm \
     && mkdir -p /build/faasm \
+    && cd /build/faasm \
     && cmake \
         -GNinja \
         -DCMAKE_CXX_COMPILER=/usr/bin/clang++-13 \

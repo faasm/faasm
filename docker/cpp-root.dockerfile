@@ -9,5 +9,5 @@ RUN apt update \
         iptables \
         libcgroup-dev \
         software-properties-common \
-    && apt clean autoclean \
-    && apt autoremove
+    && apt clean autoclean -y \
+    && apt autoremove -y
