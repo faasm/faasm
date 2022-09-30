@@ -11,11 +11,11 @@ from . import docs
 from . import files
 from . import flame
 from . import flush
+from . import git
 from . import k8s
 from . import network
 from . import python
 from . import redis
-from . import release
 from . import run
 from . import sgx
 from . import state
@@ -33,11 +33,11 @@ ns = Collection(
     files,
     flame,
     flush,
+    git,
     k8s,
     network,
     python,
     redis,
-    release,
     run,
     sgx,
     state,
