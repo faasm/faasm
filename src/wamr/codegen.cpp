@@ -27,10 +27,6 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
 
     // Load the module
     char errorBuffer[128];
-    /*
-    wasm_module_t wasmModule = wasm_runtime_load(
-      wasmBytes.data(), wasmBytes.size(), errorBuffer, sizeof(errorBuffer));
-      */
     // Sadly, non-pointer types are not portably provided by the WASM headers
     using wasm_module = std::pointer_traits<wasm_module_t>::element_type;
     std::unique_ptr<wasm_module, decltype(&wasm_runtime_unload)> wasmModule(
@@ -46,7 +42,6 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     SPDLOG_TRACE("WAMR codegen imported {} bytes of wasm file",
                  wasmBytes.size());
 
-    // aot_comp_data_t compData;
     using aot_comp_data = std::pointer_traits<aot_comp_data_t>::element_type;
     std::unique_ptr<aot_comp_data, decltype(&aot_destroy_comp_data)>
       compileData(aot_create_comp_data(wasmModule.get()),
@@ -72,10 +67,6 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
         option.is_sgx_platform = true;
     }
 
-    /*
-    aot_comp_context_t compContext;
-    if ((compContext = aot_create_comp_context(compData, &option)) == nullptr) {
-    */
     using aot_comp_context =
       std::pointer_traits<aot_comp_context_t>::element_type;
     std::unique_ptr<aot_comp_context, decltype(&aot_destroy_comp_context)>
