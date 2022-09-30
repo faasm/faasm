@@ -20,6 +20,7 @@ RUN apt update \
 
 # Install wabt
 RUN git clone -b 1.0.29 https://github.com/WebAssembly/wabt/ /tmp/wabt \
+    && mkdir -p /tmp/wabt/build \
     && cd /tmp/wabt/build \
     && cmake -GNinja -DBUILD_TESTS=OFF -DBUILD_LIBWASM=OFF .. \
     && ninja install \
