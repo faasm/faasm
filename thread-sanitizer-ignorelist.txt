@@ -18,7 +18,7 @@ race:std::future<*>::get
 race:wasm::startReduceCritical
 
 # Raciness in Network Namespaces
-race:*NetworkNamespace*
+# race:*NetworkNamespace*
 
 # TODO: Remove: There's something weird going on with MPI code I don't understand
 race:faabric::scheduler::MpiWorld::*
