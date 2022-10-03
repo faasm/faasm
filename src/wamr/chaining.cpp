@@ -1,3 +1,4 @@
+#include <faabric/util/logging.h>
 #include <wamr/native.h>
 #include <wasm/chaining.h>
 
@@ -11,6 +12,7 @@ static int32_t __faasm_chain_name_wrapper(wasm_exec_env_t execEnv,
                                           uint32_t inputSize)
 {
     std::vector<uint8_t> _input(input, input + inputSize);
+    SPDLOG_DEBUG("S - chain_name - {}", std::string(name));
     return wasm::makeChainedCall(std::string(name), 0, nullptr, _input);
 }
 
