@@ -20,12 +20,15 @@ jobs:
       image: faasm/cli:0.8.15
     steps:
       # Get the code
-      - name: "Fetch ref"
-        run: git fetch origin ${GITHUB_REF}:ci-branch
-      - name: "Check out branch"
-        run: git checkout --force ci-branch
-      - name: "Update submodules"
-        run: git submodule update
+      #      - name: "Fetch ref"
+      #        run: git fetch origin ${GITHUB_REF}:ci-branch
+      #      - name: "Check out branch"
+      #        run: git checkout --force ci-branch
+      #      - name: "Update submodules"
+      #        run: git submodule update
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Update python deps"
         run: |
           source venv/bin/activate
@@ -57,7 +60,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cpp-sysroot:0.1.6
+      image: faasm/cpp-sysroot:0.1.7
     defaults:
       run:
         working-directory: /__w/faasm/faasm/clients/cpp
