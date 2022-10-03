@@ -131,9 +131,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 21/06/2022 - We have disabled the ASAN and TSAN builds as they were
-        # consuming upwards of 15 to 20 GB of memory (each). Even on a self-
-        # hosted runner this is too much
         sanitiser: [None, Address, Thread, Undefined, Leak]
     env:
       CGROUP_MODE: off
