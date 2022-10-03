@@ -19,14 +19,8 @@ jobs:
     container:
       image: faasm/cli:0.8.15
     steps:
-      # Get the code
-      #      - name: "Fetch ref"
-      #        run: git fetch origin ${GITHUB_REF}:ci-branch
-      #      - name: "Check out branch"
-      #        run: git checkout --force ci-branch
-      #      - name: "Update submodules"
-      #        run: git submodule update
-      - uses: actions/checkout@v3
+      - name: "Checkout code"
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: "Update python deps"
@@ -49,10 +43,8 @@ jobs:
     container:
       image: faasm/cli:0.8.15
     steps:
-      - name: "Fetch ref"
-        run: git fetch origin ${GITHUB_REF}:ci-branch
-      - name: "Check out branch"
-        run: git checkout --force ci-branch
+      - name: "Checkout code"
+        uses: actions/checkout@v3
       - name: "Build docs"
         run: ./bin/inv_wrapper.sh docs
 
@@ -61,19 +53,17 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: faasm/cpp-sysroot:0.1.7
-    defaults:
-      run:
-        working-directory: /__w/faasm/faasm/clients/cpp
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@v2
-      - name: "CPP submodule"
-        run: git submodule update --init clients/cpp
-        working-directory: /__w/faasm/faasm
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Build C++ functions"
-        run: inv func.local
+        run: ./bin/inv_wrapper.sh func.local
+        working-directory: ${{ github.workspace }}/clients/cpp
       - name: "Build libfake"
-        run: inv libfake
+        run: ./bin/inv_wrapper.sh libfake
+        working-directory: ${{ github.workspace }}/clients/cpp
       - name: "Upload cpp wasm"
         uses: actions/upload-artifact@v2
         with:
@@ -90,19 +80,17 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: faasm/cpython:0.1.1
-    defaults:
-      run:
-        working-directory: /__w/faasm/faasm/clients/python
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@v2
-      - name: "Python submodule"
-        run: git submodule update --init clients/python
-        working-directory: /__w/faasm/faasm
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Build CPython function"
         run: inv func
+        working-directory: ${{ github.workspace }}/clients/python
       - name: "Put Python functions in place"
         run: inv func.upload-all --local
+        working-directory: ${{ github.workspace }}/clients/python
       - name: "Upload python wasm"
         uses: actions/upload-artifact@v2
         with:
@@ -321,7 +309,7 @@ jobs:
         CONAN_CACHE_MOUNT_SOURCE: ~/.conan
     steps:
       - name: "Check out code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
         with:
@@ -357,9 +345,9 @@ jobs:
       PYTHON_CODEGEN: "on"
     steps:
       - name: "Check out code"
-        uses: actions/checkout@v2
-      - name: "Submodules"
-        run: git submodule update --init
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
