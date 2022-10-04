@@ -11,6 +11,6 @@ HELLO_WASM=/code/cpp/build/func/demo/hello.wasm
 CP_BIN=/usr/bin/cp
 
 docker compose run -T cpp bash -c \
-    "inv func demo echo && ${CP_BIN} ${ECHO_WASM} ${HELLO_WASM} && inv func.upload demo hello"
+    "./bin/inv_wrapper.sh func demo echo && ${CP_BIN} ${ECHO_WASM} ${HELLO_WASM} && ./bin/inv_wrapper.sh func.upload demo hello"
 
 popd > /dev/null
