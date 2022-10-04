@@ -160,7 +160,7 @@ def get_release_body():
 
 
 @task
-def create(ctx):
+def create_release(ctx):
     """
     Create a draft release on Github
     """
@@ -179,7 +179,7 @@ def create(ctx):
 
 
 @task
-def publish(ctx):
+def publish_release(ctx):
     """
     Publish the draft release
     """

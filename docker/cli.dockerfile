@@ -5,27 +5,27 @@ FROM faasm/base${FAASM_SGX_PARENT_SUFFIX}:$FAASM_VERSION
 SHELL ["/bin/bash", "-c"]
 
 # Install various deps
-RUN apt-get update
-RUN apt-get install -y \
-    clang-tidy-10 \
-    clang-tidy-13 \
-    doxygen \
-    libpython3-dev \
-    python3-dev \
-    python3-pip \
-    python3-venv \
-    libcairo2-dev \
-    python3-cairo \
-    vim
+RUN apt update \
+    && apt install -y \
+        clang-tidy-10 \
+        clang-tidy-13 \
+        doxygen \
+        libpython3-dev \
+        python3-dev \
+        python3-pip \
+        python3-venv \
+        libcairo2-dev \
+        python3-cairo \
+        vim
 
 # Install wabt
-# TODO - pin this to a release
-RUN git clone https://github.com/WebAssembly/wabt/ /tmp/wabt
-WORKDIR /tmp/wabt/build
-RUN cmake -GNinja -DBUILD_TESTS=OFF -DBUILD_LIBWASM=OFF ..
-RUN ninja install
-WORKDIR /
-RUN rm -r /tmp/wabt
+RUN git clone -b 1.0.29 https://github.com/WebAssembly/wabt/ /tmp/wabt \
+    && mkdir -p /tmp/wabt/build \
+    && cd /tmp/wabt/build \
+    && cmake -GNinja -DBUILD_TESTS=OFF -DBUILD_LIBWASM=OFF .. \
+    && ninja install \
+    && cd / \
+    && rm -r /tmp/wabt
 
 # Python set-up
 WORKDIR /usr/local/code/faasm

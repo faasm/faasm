@@ -17,15 +17,12 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.8.14
+      image: faasm/cli:0.8.15
     steps:
-      # Get the code
-      - name: "Fetch ref"
-        run: git fetch origin ${GITHUB_REF}:ci-branch
-      - name: "Check out branch"
-        run: git checkout --force ci-branch
-      - name: "Update submodules"
-        run: git submodule update
+      - name: "Checkout code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Update python deps"
         run: |
           source venv/bin/activate
@@ -44,12 +41,10 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.8.14
+      image: faasm/cli:0.8.15
     steps:
-      - name: "Fetch ref"
-        run: git fetch origin ${GITHUB_REF}:ci-branch
-      - name: "Check out branch"
-        run: git checkout --force ci-branch
+      - name: "Checkout code"
+        uses: actions/checkout@v3
       - name: "Build docs"
         run: ./bin/inv_wrapper.sh docs
 
@@ -57,20 +52,18 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cpp-sysroot:0.1.6
-    defaults:
-      run:
-        working-directory: /__w/faasm/faasm/clients/cpp
+      image: faasm/cpp-sysroot:0.1.7
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@v2
-      - name: "CPP submodule"
-        run: git submodule update --init clients/cpp
-        working-directory: /__w/faasm/faasm
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Build C++ functions"
-        run: inv func.local
+        run: ./bin/inv_wrapper.sh func.local
+        working-directory: ${{ github.workspace }}/clients/cpp
       - name: "Build libfake"
-        run: inv libfake
+        run: ./bin/inv_wrapper.sh libfake
+        working-directory: ${{ github.workspace }}/clients/cpp
       - name: "Upload cpp wasm"
         uses: actions/upload-artifact@v2
         with:
@@ -87,19 +80,17 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: faasm/cpython:0.1.1
-    defaults:
-      run:
-        working-directory: /__w/faasm/faasm/clients/python
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@v2
-      - name: "Python submodule"
-        run: git submodule update --init clients/python
-        working-directory: /__w/faasm/faasm
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Build CPython function"
         run: inv func
+        working-directory: ${{ github.workspace }}/clients/python
       - name: "Put Python functions in place"
         run: inv func.upload-all --local
+        working-directory: ${{ github.workspace }}/clients/python
       - name: "Upload python wasm"
         uses: actions/upload-artifact@v2
         with:
@@ -115,7 +106,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.8.14
+      image: faasm/cli:0.8.15
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
@@ -144,12 +135,12 @@ jobs:
       TSAN_OPTIONS: "history_size=0 halt_on_error=1 suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt flush_memory_ms=5000"
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
     container:
-      image: faasm/cli:0.8.14
+      image: faasm/cli:0.8.15
     services:
       redis:
-        image: faasm/redis:0.8.14
+        image: faasm/redis:0.8.15
       minio:
-        image: faasm/minio:0.8.14
+        image: faasm/minio:0.8.15
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
@@ -234,12 +225,12 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli-sgx-sim:0.8.14
+      image: faasm/cli-sgx-sim:0.8.15
     services:
       redis:
-        image: faasm/redis:0.8.14
+        image: faasm/redis:0.8.15
       minio:
-        image: faasm/minio:0.8.14
+        image: faasm/minio:0.8.15
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
@@ -318,7 +309,7 @@ jobs:
         CONAN_CACHE_MOUNT_SOURCE: ~/.conan
     steps:
       - name: "Check out code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
         with:
@@ -354,9 +345,9 @@ jobs:
       PYTHON_CODEGEN: "on"
     steps:
       - name: "Check out code"
-        uses: actions/checkout@v2
-      - name: "Submodules"
-        run: git submodule update --init
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
@@ -379,21 +370,21 @@ jobs:
           (echo "Wait for upload failed after retries" && docker compose logs upload && exit 1)
       # Function upload
       - name: "Build and upload cpp function"
-        run: docker compose run -T cpp inv func demo hello func.upload demo hello
+        run: docker compose run -T cpp ./bin/inv_wrapper.sh func demo hello func.upload demo hello
       - name: "Build and upload python function"
         run: docker compose run -T python inv func func.upload func.uploadpy hello
       # Function invocation
       - name: "Invoke cpp function"
-        run: docker compose run -T cpp inv func.invoke demo hello | tee output_1.log
+        run: docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
       - name: "Invoke python hello function"
         run: docker compose run -T python inv func.invoke python hello
       # Re-invocation of same function with different code after flush
       - name: "Flush workers"
-        run: docker compose run -T cpp inv func.flush
+        run: docker compose run -T cpp ./bin/inv_wrapper.sh func.flush
       - name: "Build echo function and upload in place of hello function"
         run: ./deploy/local/replace_hello_with_echo.sh
       - name: "Invoke cpp function"
-        run: docker compose run -T cpp inv func.invoke demo hello | tee output_2.log
+        run: docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_2.log
       - name: "Check both outputs are different"
         run: (cmp output_1.log output_2.log && exit 1 || exit 0)
       # Print logs and finish

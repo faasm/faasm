@@ -64,15 +64,11 @@ find_package(picojson REQUIRED)
 # https://github.com/aws/aws-sdk-cpp/blob/main/Docs/CMake_External_Project.md
 # but they don't specify how to link the libraries, which required adding an
 # extra couple of CMake targets.
-# There are some AWS docs on using the cpp sdk as an external project:
-# https://github.com/aws/aws-sdk-cpp/blob/main/Docs/CMake_External_Project.md
-# but they don't specify how to link the libraries, which required adding an
-# extra couple of CMake targets.
 set(AWS_CORE_LIBRARY ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-core.so)
 set(AWS_S3_LIBRARY ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-s3.so)
 ExternalProject_Add(aws_ext
     GIT_REPOSITORY   "https://github.com/aws/aws-sdk-cpp.git"
-    GIT_TAG          "b733384b16945818fa5da5b73e410dea1e9ab9d0"
+    GIT_TAG          "a47c163630a4d4e62cd3c42e9c391c954be80664"
     BUILD_ALWAYS     0
     TEST_COMMAND     ""
     UPDATE_COMMAND   ""

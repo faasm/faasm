@@ -13,10 +13,10 @@ Version can be updated with:
 
 ```
 # Minor
-inv release.bump
+inv git.bump
 
 # Custom
-inv release.bump --ver=1.2.3
+inv git.bump --ver=1.2.3
 ```
 
 Check the diff to make sure this hasn't edited anything we don't expect.
@@ -28,7 +28,7 @@ Push all the changes to your branch.
 Each release is built from a tag. Create this with:
 
 ```bash
-inv release.tag
+inv git.tag
 ```
 
 This will trigger the [container
@@ -38,7 +38,7 @@ If there's an issue with the tag (e.g. the container build fails), you can
 update it with:
 
 ```bash
-inv release.tag --force
+inv git.tag --force
 ```
 
 If you're having real issues, see the section below on building containers
@@ -58,7 +58,7 @@ commit log. To do so, once the PR has been merged:
 git checkout main
 git pull origin main
 cat VERSION # ensure VERSION has the correct tag
-inv release.tag --force
+inv git.tag --force
 ```
 
 ## 5. Create the Github release
@@ -66,8 +66,8 @@ inv release.tag --force
 Run the following to create the new release from your tag:
 
 ```bash
-inv release.create
-inv release.publish
+inv git.create-release
+inv git.publish-release
 ```
 
 # Building containers locally
