@@ -46,6 +46,8 @@ void WAMRWasmModule::initialiseWAMRGlobally()
 
     // Initialise Faasm's own native symbols
     initialiseWAMRNatives();
+
+    wamrInitialised = true;
 }
 
 WAMRWasmModule::WAMRWasmModule()
