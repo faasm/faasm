@@ -22,7 +22,7 @@ docker compose \
     run \
     --rm \
     cpp \
-    inv func.user demo \
+    ./bin/inv_wrapper.sh func.user demo \
     func.upload-user demo \
     func.user mpi \
     func.upload-user mpi \
