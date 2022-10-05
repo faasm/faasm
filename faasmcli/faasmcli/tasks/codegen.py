@@ -117,6 +117,7 @@ def local(ctx):
     _do_codegen_user("demo")
     _do_codegen_user("errors")
     _do_codegen_user("ffmpeg")
+    _do_codegen_user("imagemagick")
     _do_codegen_user("mpi")
     _do_codegen_user("omp")
     _do_codegen_user("python")

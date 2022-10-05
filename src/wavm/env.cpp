@@ -406,7 +406,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getrusage", I32, getrusage, I32 a, I32 b)
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getrlimit", I32, getrlimit, I32 a, I32 b)
 {
     SPDLOG_DEBUG("S - getrlimit - {} {}", a, b);
-    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    // We ignore calls to getrlimit, this may break some functionalities
+    return 0;
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setrlimit", I32, setrlimit, I32 a, I32 b)
