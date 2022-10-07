@@ -64,6 +64,9 @@ jobs:
       - name: "Build libfake"
         run: ./bin/inv_wrapper.sh libfake
         working-directory: ${{ github.workspace }}/clients/cpp
+      - name: "Update ImageMagick submodule"
+        run: git submodule update --init -f third-party/ImageMagick
+        working-directory: ${{ github.workspace }}/clients/cpp
       - name: "Build ImageMagick binary"
         run: ./bin/inv_wrapper.sh imagemagick
         working-directory: ${{ github.workspace }}/clients/cpp
