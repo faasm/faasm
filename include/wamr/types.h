@@ -1,5 +1,6 @@
 #pragma once
 
+// Types like __wasi_fd_t are defined in the following WAMR header
 #include <wasmtime_ssp.h>
 
 struct iovec_app_t

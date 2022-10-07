@@ -4,6 +4,20 @@
 #include <unordered_map>
 #include <vector>
 
+#define FAKE_NAME "faasm"
+#define FAKE_PASSWORD "foobar123"
+#define FAKE_HOME "/home/faasm/"
+#define FAKE_WORKING_DIR "/bin"
+#define FAKE_HOSTNAME "faasm"
+
+#define FAKE_PID 23
+#define FAKE_TID 66
+#define FAKE_UID 1000
+#define FAKE_GID 1000
+#define FAKE_N_PROCESSORS 4
+
+#define MAIN_MODULE_DYNLINK_HANDLE 999
+
 namespace wasm {
 class WasmEnvironment
 {
