@@ -1,5 +1,6 @@
 #include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
+#include <wasm/WasmCommon.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 
@@ -24,15 +25,6 @@
 #include <sys/uio.h>
 
 namespace wasm {
-
-bool isWasmPageAligned(int32_t offset)
-{
-    if (offset & (WASM_BYTES_PER_PAGE - 1)) {
-        return false;
-    } else {
-        return true;
-    }
-}
 
 size_t getNumberOfWasmPagesForBytes(size_t nBytes)
 {

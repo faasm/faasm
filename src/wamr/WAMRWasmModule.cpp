@@ -1,6 +1,7 @@
 #include <storage/FileLoader.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
+#include <wasm/WasmCommon.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 
@@ -323,6 +324,7 @@ bool WAMRWasmModule::doGrowMemory(uint32_t pageChange)
     return wasm_runtime_enlarge_memory(moduleInstance, pageChange);
 }
 
+/*
 size_t WAMRWasmModule::getMemorySizeBytes()
 {
     auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
@@ -330,6 +332,7 @@ size_t WAMRWasmModule::getMemorySizeBytes()
       ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
     return aotMem->cur_page_count * WASM_BYTES_PER_PAGE;
 }
+*/
 
 uint8_t* WAMRWasmModule::getMemoryBase()
 {

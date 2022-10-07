@@ -75,6 +75,6 @@ enclave{
                                     unsigned int bufferSize
         );
 
-        int32_t ocallSbrk(int32_t increment);
+        // int32_t ocallSbrk(int32_t increment);
     };
 };

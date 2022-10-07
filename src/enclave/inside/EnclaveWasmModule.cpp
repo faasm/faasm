@@ -1,5 +1,6 @@
 #include <enclave/inside/EnclaveWasmModule.h>
 #include <enclave/inside/ocalls.h>
+#include <wasm/WasmCommon.h>
 
 #include <string>
 #include <vector>
@@ -140,4 +141,117 @@ std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
     return nullptr;
 }
 
+uint32_t EnclaveWasmModule::getCurrentBrk() const
+{
+    return currentBrk;
+}
+
+uint32_t EnclaveWasmModule::shrinkMemory(size_t nBytes)
+{
+    if (!isWasmPageAligned((int32_t) nBytes)) {
+        SPDLOG_ERROR_SGX("Shrink size not page aligned %li", nBytes);
+        throw std::runtime_error("New break not page aligned");
+    }
+
+    uint32_t oldBrk = currentBrk;
+
+    if (nBytes > oldBrk) {
+        SPDLOG_ERROR_SGX(
+          "Shrinking by more than current brk (%li > %i)", nBytes, oldBrk);
+        throw std::runtime_error("Shrinking by more than current brk");
+    }
+
+    // Note - we don't actually free the memory, we just change the brk
+    uint32_t newBrk = oldBrk - nBytes;
+
+    SPDLOG_DEBUG_SGX("MEM - shrinking memory %i -> %i", oldBrk, newBrk);
+    currentBrk = newBrk;
+
+    return oldBrk;
+}
+
+uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
+{
+    if (nBytes == 0) {
+        return currentBrk;
+    }
+
+    /*
+    uint32_t oldBytes = getMemorySizeBytes();
+    uint32_t oldBrk = currentBrk.load(std::memory_order_acquire);
+    uint32_t newBrk = oldBrk + nBytes;
+
+    if (!isWasmPageAligned(newBrk)) {
+        SPDLOG_ERROR_SGX("Growing memory by %li is not wasm page aligned"
+                         " (current brk: %i, new brk: %i)",
+                         nBytes,
+                         oldBrk,
+                         newBrk);
+        throw std::runtime_error("Non-wasm-page-aligned memory growth");
+    }
+
+    size_t newBytes = oldBytes + nBytes;
+    uint32_t oldPages = getNumberOfWasmPagesForBytes(oldBytes);
+    uint32_t newPages = getNumberOfWasmPagesForBytes(newBytes);
+    size_t maxPages = getMaxMemoryPages();
+
+    if (newBytes > UINT32_MAX || newPages > maxPages) {
+        SPDLOG_ERROR("Growing memory would exceed max of {} pages (current {}, "
+                     "requested {})",
+                     maxPages,
+                     oldPages,
+                     newPages);
+        throw std::runtime_error("Memory growth exceeding max");
+    }
+
+    // If we can reclaim old memory, just bump the break
+    if (newBrk <= oldBytes) {
+        SPDLOG_TRACE(
+          "MEM - Growing memory using already provisioned {} + {} <= {}",
+          oldBrk,
+          nBytes,
+          oldBytes);
+
+        currentBrk.store(newBrk, std::memory_order_release);
+
+        // Make sure permissions on memory are open
+        size_t newTop = faabric::util::getRequiredHostPages(currentBrk);
+        size_t newStart = faabric::util::getRequiredHostPagesRoundDown(oldBrk);
+        newTop *= faabric::util::HOST_PAGE_SIZE;
+        newStart *= faabric::util::HOST_PAGE_SIZE;
+        SPDLOG_TRACE("Reclaiming memory {}-{}", newStart, newTop);
+
+        uint8_t* memBase = getMemoryBase();
+        faabric::util::claimVirtualMemory(
+          { memBase + newStart, memBase + newTop });
+
+        return oldBrk;
+    }
+
+    uint32_t pageChange = newPages - oldPages;
+    bool success = doGrowMemory(pageChange);
+    if (!success) {
+        throw std::runtime_error("Failed to grow memory");
+    }
+
+    SPDLOG_TRACE("Growing memory from {} to {} pages (max {})",
+                 oldPages,
+                 newPages,
+                 maxPages);
+
+    size_t newMemorySize = getMemorySizeBytes();
+    currentBrk.store(newMemorySize, std::memory_order_release);
+
+    if (newMemorySize != newBytes) {
+        SPDLOG_ERROR(
+          "Expected new brk ({}) to be old memory plus new bytes ({})",
+          newMemorySize,
+          newBytes);
+        throw std::runtime_error("Memory growth discrepancy");
+    }
+    */
+
+    return 0;
+    // return oldBrk;
+}
 }

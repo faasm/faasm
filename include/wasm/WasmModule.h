@@ -9,6 +9,7 @@
 #include <faabric/util/queue.h>
 #include <faabric/util/snapshot.h>
 #include <threads/ThreadState.h>
+#include <wasm/WasmCommon.h>
 
 #include <atomic>
 #include <exception>
@@ -38,8 +39,6 @@ enum ThreadRequestType
     PTHREAD = 1,
     OPENMP = 2,
 };
-
-bool isWasmPageAligned(int32_t offset);
 
 class WasmModule
 {

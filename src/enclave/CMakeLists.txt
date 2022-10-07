@@ -24,7 +24,7 @@ endif()
 # Global SGX Compilation Flags
 # --------------------------------------------------------
 
-set(SGX_C_GLOBAL_FLAGS -m64)
+set(SGX_C_GLOBAL_FLAGS -m64 -frtti)
 
 if(CMAKE_BUILD_TYPE EQUAL "Debug")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O0 -g)
@@ -49,7 +49,7 @@ set(WAMR_BUILD_SPEC_TEST)
 
 # Set AOT mode, disable JIT
 set(WAMR_BUILD_AOT 1)
-set(WAMR_BUILD_JIT 0)
+set(WAMR_BUILD_JIT 1)
 set(WAMR_BUILD_LAZY_JIT 0)
 
 # Set libraries

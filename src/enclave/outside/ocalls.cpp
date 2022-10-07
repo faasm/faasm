@@ -72,12 +72,14 @@ extern "C"
         return wasm::awaitChainedCallOutput(callId, buffer, bufferSize);
     }
 
+    /*
     int32_t ocallSbrk(int32_t increment)
     {
         SPDLOG_TRACE("S - __sbrk - {}", increment);
         SPDLOG_WARN("SGX-WAMR sbrk does not allocate more memory");
         return 0;
     }
+    */
 
     // ---------------------------------------
     // Logging

@@ -18,6 +18,7 @@
 #include <conf/FaasmConfig.h>
 #include <storage/SharedFiles.h>
 #include <threads/ThreadState.h>
+#include <wasm/WasmCommon.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wavm/IRModuleCache.h>

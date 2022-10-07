@@ -1,6 +1,7 @@
 #pragma once
 
 #include <wamr/WAMRModuleMixin.h>
+#include <wasm/WasmCommon.h>
 
 #include <iwasm/aot/aot_runtime.h>
 #include <wasm_runtime_common.h>
@@ -10,8 +11,6 @@
 #include <unordered_map>
 #include <vector>
 
-#define ONE_KB_BYTES 1024
-#define ONE_MB_BYTES (1024 * 1024)
 
 #define FAASM_SGX_WAMR_HEAP_SIZE (32 * ONE_MB_BYTES)
 #define FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128
@@ -49,6 +48,14 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     size_t getArgvBufferSize();
 
+    // ---- Memory management ----
+
+    uint32_t getCurrentBrk() const;
+
+    uint32_t growMemory(size_t nBytes);
+
+    uint32_t shrinkMemory(size_t nBytes);
+
   private:
     char errorBuffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
 
@@ -61,6 +68,10 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     size_t argvBufferSize;
 
     void prepareArgcArgv(uint32_t argcIn, char** argvIn);
+
+    // Memory management
+    // TODO: does this need to be atomic?
+    uint32_t currentBrk = 0;
 };
 
 // Data structure to keep track of the modules currently loaded in the enclave.

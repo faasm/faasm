@@ -1,5 +1,8 @@
 #pragma once
 
+#include <wasm/WasmCommon.h>
+
+#include <aot_runtime.h>
 #include <wasm_export.h>
 
 #include <string>
@@ -22,6 +25,8 @@
 template<typename T>
 struct WAMRModuleMixin
 {
+    // Returns a reference to the underlying module instance: either a
+    // WAMRWasmModule or an EnclaveWasmModule
     T& underlying() { return static_cast<T&>(*this); }
 
     // ---- Native address - WASM offset translation and bound-checks ----
@@ -76,5 +81,15 @@ struct WAMRModuleMixin
     {
         writeStringArrayToMemory(
           this->underlying().getArgv(), argvOffsetsWasm, argvBuffWasm);
+    }
+
+    // ---- Memory management ----
+
+    size_t getMemorySizeBytes()
+    {
+        auto* aotModule = reinterpret_cast<AOTModuleInstance*>(this->underlying());
+        AOTMemoryInstance* aotMem =
+          ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+        return aotMem->cur_page_count * WASM_BYTES_PER_PAGE;
     }
 };
