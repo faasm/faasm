@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include "fixtures.h"
+#include "faasm_fixtures.h"
 #include "utils.h"
 
 #include <boost/filesystem.hpp>
@@ -14,9 +14,8 @@
 #include <upload/UploadServer.h>
 
 namespace tests {
-class ImageMagickTestFixture : public ExecutorContextTestFixture
+class ImageMagickTestFixture : public MultiRuntimeFunctionExecTestFixture
 {
-
   public:
     ImageMagickTestFixture()
       : loader(storage::getFileLoader())
@@ -24,19 +23,22 @@ class ImageMagickTestFixture : public ExecutorContextTestFixture
         storage::SharedFiles::clear();
 
         // Remove the file
-        filePath = loader.getSharedFileFile(relativeSharedFilePath);
-        boost::filesystem::remove(filePath);
+        filePathIn = loader.getSharedFileFile(relativeSharedFilePathIn);
+        boost::filesystem::remove(filePathIn);
 
         // Upload the file
         fileBytes = faabric::util::readFileToBytes(testFilePath);
-        loader.uploadSharedFile(relativeSharedFilePath, fileBytes);
+        loader.uploadSharedFile(relativeSharedFilePathIn, fileBytes);
     }
 
     ~ImageMagickTestFixture()
     {
         storage::SharedFiles::clear();
 
-        boost::filesystem::remove(filePath);
+        // Remove input and output files
+        boost::filesystem::remove(filePathIn);
+        filePathOut = loader.getSharedFileFile(relativeSharedFilePathOut);
+        boost::filesystem::remove(filePathOut);
     }
 
   protected:
@@ -44,28 +46,23 @@ class ImageMagickTestFixture : public ExecutorContextTestFixture
 
     std::string testFilePath =
       "./tests/test/ported_libs/files/sample_image.png";
-    std::string filePath;
-    std::string relativeSharedFilePath = "imagemagick/sample_image.mp4";
+    std::string filePathIn;
+    std::string filePathOut;
+    std::string relativeSharedFilePathIn = "imagemagick/sample_image.png";
+    std::string relativeSharedFilePathOut = "imagemagick/image_out.png";
     std::vector<uint8_t> fileBytes;
 };
 
-TEST_CASE_METHOD(ExecutorContextTestFixture,
-                 "Test executing ImageMagick",
-                 "[libs]")
+TEST_CASE_METHOD(ImageMagickTestFixture, "Test executing ImageMagick", "[libs]")
 {
     auto req = setUpContext("imagemagick", "main");
     faabric::Message& msg = req->mutable_messages()->at(0);
-    msg.set_cmdline("/imagemagick/sample_image.png -flip /image_out.png");
-    execFunction(msg);
-}
+    msg.set_cmdline(fmt::format("faasm://{} -flip faasm://{}",
+                                relativeSharedFilePathIn,
+                                relativeSharedFilePathOut));
 
-/*
-TEST_CASE_METHOD(FFmpegTestFixture,
-                 "Test executing FFmpeg checks in WAMR",
-                 "[libs][wamr]")
-{
-    auto req = setUpContext("ffmpeg", "check");
-    executeWithWamrPool("ffmpeg", "check");
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
-*/
 }

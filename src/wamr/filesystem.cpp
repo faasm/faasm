@@ -7,6 +7,7 @@
 
 #include <cstring>
 #include <stdexcept>
+#include <string>
 #include <sys/uio.h>
 
 #include <wasm_export.h>
@@ -32,8 +33,36 @@ static uint32_t __wasi_fd_dup_wrapper(wasm_exec_env_t exec_env,
 
 static uint32_t dup_wrapper(wasm_exec_env_t exec_env, uint32_t fd)
 {
-    SPDLOG_DEBUG("S - dup {}");
+    SPDLOG_DEBUG("S - dup {}", fd);
     return doWasiDup(fd);
+}
+
+static uint32_t getcwd_wrapper(wasm_exec_env_t exec_env,
+                               char* buf,
+                               uint32_t bufLen)
+{
+    SPDLOG_DEBUG("S - getcwd");
+
+    // Fake working directory
+    std::strcpy(buf, FAKE_WORKING_DIR);
+
+    return __WASI_ESUCCESS;
+}
+
+static uint32_t getpwnam_wrapper(wasm_exec_env_t exec_env, uint32_t a)
+{
+    SPDLOG_DEBUG("S - getpwnam");
+    throw std::runtime_error("getpwnam not implemented");
+}
+
+static int32_t sendfile_wrapper(wasm_exec_env_t exec_env,
+                                int32_t out_fd,
+                                int32_t in_fd,
+                                int32_t offset,
+                                int32_t count)
+{
+    SPDLOG_DEBUG("S - sendfile {}");
+    throw std::runtime_error("sendfile not implemented");
 }
 
 static int32_t tempnam_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
@@ -42,9 +71,9 @@ static int32_t tempnam_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
 }
 
 static NativeSymbol ns[] = {
-    REG_NATIVE_FUNC(__wasi_fd_dup, "(i*)i"),
-    REG_NATIVE_FUNC(dup, "(i)i"),
-    REG_NATIVE_FUNC(tempnam, "(ii)i"),
+    REG_NATIVE_FUNC(__wasi_fd_dup, "(i*)i"), REG_NATIVE_FUNC(dup, "(i)i"),
+    REG_NATIVE_FUNC(getcwd, "(*~)i"),        REG_NATIVE_FUNC(getpwnam, "(i)i"),
+    REG_NATIVE_FUNC(sendfile, "(iiii)i"),    REG_NATIVE_FUNC(tempnam, "(ii)i"),
 };
 
 uint32_t getFaasmFilesystemApi(NativeSymbol** nativeSymbols)
@@ -54,6 +83,15 @@ uint32_t getFaasmFilesystemApi(NativeSymbol** nativeSymbols)
 }
 
 // ---------- WASI symbols ----------
+
+static uint32_t wasi_fd_allocate(wasm_exec_env_t exec_env,
+                                 __wasi_fd_t fd,
+                                 __wasi_filesize_t offset,
+                                 __wasi_filesize_t len)
+{
+    SPDLOG_DEBUG("wasi_fd_allocate {}", fd);
+    throw std::runtime_error("wasi_fd_allocate not implemented");
+}
 
 static int32_t wasi_fd_close(wasm_exec_env_t exec_env, int32_t fd)
 {
@@ -141,6 +179,17 @@ static int32_t wasi_fd_filestat_get(wasm_exec_env_t exec_env,
     return doFileStat(fd, "", statWasm);
 }
 
+static uint32_t wasi_fd_pread(wasm_exec_env_t exec_env,
+                              __wasi_fd_t fd,
+                              iovec_app_t* iovecWasm,
+                              uint32_t iovecLen,
+                              __wasi_filesize_t offset,
+                              uint32_t* nReadWasm)
+{
+    SPDLOG_DEBUG("S - fd_pread {}");
+    throw std::runtime_error("fd_pread not implemented");
+}
+
 static int32_t wasi_fd_prestat_dir_name(wasm_exec_env_t exec_env,
                                         int32_t fd,
                                         char* path,
@@ -180,6 +229,17 @@ static int32_t wasi_fd_prestat_get(wasm_exec_env_t exec_env,
     prestatWasm->pr_name_len = fileDesc.getPath().size();
 
     return __WASI_ESUCCESS;
+}
+
+static uint32_t wasi_fd_pwrite(wasm_exec_env_t exec_env,
+                               __wasi_fd_t fd,
+                               const iovec_app_t* iovecWasm,
+                               uint32_t iovecLen,
+                               __wasi_filesize_t offset,
+                               uint32_t* nWrittenWasm)
+{
+    SPDLOG_DEBUG("S - fd_pwrite {}");
+    throw std::runtime_error("fd_pwrite not implemented");
 }
 
 static int32_t wasi_fd_read(wasm_exec_env_t exec_env,
@@ -244,6 +304,25 @@ static int32_t wasi_fd_seek(wasm_exec_env_t exec_env,
     auto wasiErrno = fileDesc.seek(offset, whence, newOffset);
 
     return wasiErrno;
+}
+
+static uint32_t wasi_fd_sync(wasm_exec_env_t exec_env, __wasi_fd_t fd)
+{
+    SPDLOG_DEBUG("S - fd_sync {}", fd);
+    throw std::runtime_error("fd_sync not implemented");
+}
+
+static uint32_t wasi_fd_tell(wasm_exec_env_t exec_env,
+                             uint32_t fd,
+                             uint32_t* resOffset)
+{
+    SPDLOG_TRACE("S - fd_tell {}", fd);
+
+    storage::FileDescriptor& fileDesc =
+      getExecutingWAMRModule()->getFileSystem().getFileDescriptor(fd);
+    *resOffset = fileDesc.tell();
+
+    return 0;
 }
 
 static int32_t wasi_fd_write(wasm_exec_env_t exec_env,
@@ -315,11 +394,24 @@ static int32_t wasi_path_filestat_get(wasm_exec_env_t exec_env,
 {
     WAMRWasmModule* module = getExecutingWAMRModule();
     module->validateNativePointer(path, pathLen);
-    const std::string pathStr(path, pathLen);
+    std::string pathStr(path, pathLen);
 
-    SPDLOG_DEBUG("S - path_filestat_get {} ({})", fd, pathStr);
+    SPDLOG_DEBUG("S - path_filestat_get {} ({})", fd, pathStr, path, pathLen);
 
     return doFileStat(fd, pathStr, statWasm);
+}
+
+static uint32_t wasi_path_filestat_set_times(wasm_exec_env_t exec_env,
+                                             __wasi_fd_t fd,
+                                             __wasi_lookupflags_t flags,
+                                             const char* path,
+                                             uint32_t pathLen,
+                                             __wasi_timestamp_t stAtim,
+                                             __wasi_timestamp_t stMtim,
+                                             __wasi_fstflags_t fstflags)
+{
+    SPDLOG_DEBUG("wasi_path_filestat_set_times {}", fd);
+    throw std::runtime_error("wasi_path_filestat_set_times not implemented");
 }
 
 static int32_t wasi_path_link(wasm_exec_env_t exec_env,
@@ -371,14 +463,25 @@ static int32_t wasi_path_open(wasm_exec_env_t exec_env,
 
 static int32_t wasi_path_readlink(wasm_exec_env_t exec_env,
                                   uint32_t fd,
-                                  const char* path,
+                                  char* path,
                                   uint32_t pathLen,
                                   char* buf,
                                   uint32_t bufLen,
-                                  uint32_t* bufApp)
+                                  uint32_t* resBytesUsed)
 {
-    SPDLOG_DEBUG("S - path_readlink");
-    throw std::runtime_error("path_readlink not implemented!");
+    WAMRWasmModule* module = getExecutingWAMRModule();
+
+    module->validateNativePointer(path, pathLen);
+    const std::string pathStr(path, pathLen);
+
+    SPDLOG_DEBUG("S - path_readlink {} {} {}", fd, pathStr, pathLen);
+
+    storage::FileDescriptor& fileDesc =
+      module->getFileSystem().getFileDescriptor(fd);
+
+    *resBytesUsed = fileDesc.readLink(pathStr, buf, bufLen);
+
+    return __WASI_ESUCCESS;
 }
 
 static int32_t wasi_path_remove_directory(wasm_exec_env_t exec_env,
@@ -451,18 +554,24 @@ static int32_t wasi_path_unlink_file(wasm_exec_env_t exec_env,
 }
 
 static NativeSymbol wasiNs[] = {
+    REG_WASI_NATIVE_FUNC(fd_allocate, "(iII)i"),
     REG_WASI_NATIVE_FUNC(fd_close, "(i)i"),
     REG_WASI_NATIVE_FUNC(fd_fdstat_get, "(i*)i"),
     REG_WASI_NATIVE_FUNC(fd_fdstat_set_flags, "(ii)i"),
     REG_WASI_NATIVE_FUNC(fd_filestat_get, "(i*)i"),
+    REG_WASI_NATIVE_FUNC(fd_pread, "(i*iI*)i"),
     REG_WASI_NATIVE_FUNC(fd_prestat_dir_name, "(i*~)i"),
     REG_WASI_NATIVE_FUNC(fd_prestat_get, "(i*)i"),
     REG_WASI_NATIVE_FUNC(fd_read, "(i*i*)i"),
     REG_WASI_NATIVE_FUNC(fd_readdir, "(i*~I*)i"),
+    REG_WASI_NATIVE_FUNC(fd_pwrite, "(i*iI*)i"),
     REG_WASI_NATIVE_FUNC(fd_seek, "(iIi*)i"),
+    REG_WASI_NATIVE_FUNC(fd_sync, "(i)i"),
+    REG_WASI_NATIVE_FUNC(fd_tell, "(i*)i"),
     REG_WASI_NATIVE_FUNC(fd_write, "(i*i*)i"),
     REG_WASI_NATIVE_FUNC(path_create_directory, "(i*~)i"),
     REG_WASI_NATIVE_FUNC(path_filestat_get, "(ii*~*)i"),
+    REG_WASI_NATIVE_FUNC(path_filestat_set_times, "(ii*~IIi)i"),
     REG_WASI_NATIVE_FUNC(path_link, "(ii*~i*~)i"),
     REG_WASI_NATIVE_FUNC(path_open, "(ii*~iIIi*)i"),
     REG_WASI_NATIVE_FUNC(path_readlink, "(i*~*~*)i"),

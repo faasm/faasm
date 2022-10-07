@@ -22,10 +22,13 @@ void initialiseWAMRNatives()
     // Register native symbols
     doSymbolRegistration(getFaasmChainingApi);
     doSymbolRegistration(getFaasmDynlinkApi);
+    doSymbolRegistration(getFaasmEnvApi);
     doSymbolRegistration(getFaasmFilesystemApi);
     doSymbolRegistration(getFaasmFunctionsApi);
     doSymbolRegistration(getFaasmMemoryApi);
+    doSymbolRegistration(getFaasmProcessApi);
     doSymbolRegistration(getFaasmPthreadApi);
+    doSymbolRegistration(getFaasmSignalApi);
     doSymbolRegistration(getFaasmStateApi);
     doSymbolRegistration(getFaasmStubs);
 
