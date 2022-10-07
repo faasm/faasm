@@ -19,7 +19,9 @@ WAMR_ALLOWED_FUNCS = [
     ["demo", "chain_named_a"],
     ["demo", "chain_named_b"],
     ["demo", "chain_named_c"],
+    # Cross-compiled libraries
     ["ffmpeg", "check"],
+    ["imagemagick", "main"],
     # Environment
     ["demo", "argc_argv_test"],
     ["demo", "exit"],
