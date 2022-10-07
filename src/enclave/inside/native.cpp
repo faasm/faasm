@@ -17,6 +17,7 @@ void doWasiSymbolRegistration(uint32_t (*f)(NativeSymbol** ns))
 
 void initialiseSGXWAMRNatives()
 {
+    doNativeSymbolRegistration(getFaasmFilesystemApi);
     doNativeSymbolRegistration(getFaasmFunctionsApi);
     doNativeSymbolRegistration(getFaasmMemoryApi);
     doNativeSymbolRegistration(getFaasmPthreadApi);

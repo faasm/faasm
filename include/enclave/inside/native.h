@@ -38,6 +38,8 @@
 namespace sgx {
 void initialiseSGXWAMRNatives();
 
+uint32_t getFaasmFilesystemApi(NativeSymbol** nativeSymbols);
+
 uint32_t getFaasmFunctionsApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmMemoryApi(NativeSymbol** nativeSymbols);

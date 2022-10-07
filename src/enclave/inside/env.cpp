@@ -9,7 +9,7 @@ static int wasi_args_get(wasm_exec_env_t execEnv,
                          uint32_t* argvOffsetsWasm,
                          char* argvBuffWasm)
 {
-    ocallLogDebug("S - wasi_args_get");
+    SPDLOG_DEBUG_SGX("S - wasi_args_get");
 
     GET_EXECUTING_MODULE_AND_CHECK(execEnv);
 
@@ -22,7 +22,7 @@ static int wasi_args_sizes_get(wasm_exec_env_t execEnv,
                                uint32_t* argcWasm,
                                uint32_t* argvBuffSizeWasm)
 {
-    ocallLogDebug("S - wasi_args_sizes_get");
+    SPDLOG_DEBUG_SGX("S - wasi_args_sizes_get");
 
     GET_EXECUTING_MODULE_AND_CHECK(execEnv);
 
@@ -32,7 +32,12 @@ static int wasi_args_sizes_get(wasm_exec_env_t execEnv,
     return 0;
 }
 
-static void wasi_proc_exit(wasm_exec_env_t execEnv, int returnCode) {}
+static void wasi_proc_exit(wasm_exec_env_t execEnv, int returnCode)
+{
+    SPDLOG_DEBUG_SGX("S - proc_exit");
+
+    // TODO - implement
+}
 
 static NativeSymbol wasiNs[] = {
     REG_WASI_NATIVE_FUNC(args_get, "(**)i"),
