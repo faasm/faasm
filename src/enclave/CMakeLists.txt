@@ -24,7 +24,7 @@ endif()
 # Global SGX Compilation Flags
 # --------------------------------------------------------
 
-set(SGX_C_GLOBAL_FLAGS -m64 -frtti)
+set(SGX_C_GLOBAL_FLAGS -m64)
 
 if(CMAKE_BUILD_TYPE EQUAL "Debug")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O0 -g)
@@ -49,13 +49,16 @@ set(WAMR_BUILD_SPEC_TEST)
 
 # Set AOT mode, disable JIT
 set(WAMR_BUILD_AOT 1)
-set(WAMR_BUILD_JIT 1)
+set(WAMR_BUILD_JIT 0)
 set(WAMR_BUILD_LAZY_JIT 0)
 
 # Set libraries
 set(WAMR_BUILD_LIBC_BUILTIN 1)
 set(WAMR_BUILD_LIBC_WASI 1)
 set(WAMR_BUILD_LIB_PTHREAD 0)
+
+# Debug flags
+set(WAMR_BUILD_DUMP_CALL_STACK 1)
 
 # Let WAMR do the including and importing of the sources
 include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)

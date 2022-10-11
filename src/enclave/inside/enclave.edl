@@ -45,6 +45,11 @@ enclave{
 
         void ocallLogDebug([in, string] const char* msg);
 
+        // We need separate OCalls because WAMR's native logging adds
+        // newlines, which makes the output through the spdlog-based OCalls
+        // unreadable
+        void ocallLogWamr([in, string] const char* msg);
+
         int ocallFaasmReadInput(
             [in, out, size=bufferSize]  uint8_t* buffer,
                                         unsigned int bufferSize

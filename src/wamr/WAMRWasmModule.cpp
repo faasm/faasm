@@ -37,6 +37,8 @@ void WAMRWasmModule::initialiseWAMRGlobally()
         return;
     }
 
+    bh_log_set_verbose_level(4);
+
     // Initialise WAMR runtime
     bool success = wasm_runtime_init();
     if (!success) {
@@ -111,7 +113,7 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
         faabric::util::UniqueLock lock(wamrGlobalsMutex);
         SPDLOG_TRACE("WAMR loading {} wasm bytes\n", wasmBytes.size());
         wasmModule = wasm_runtime_load(
-          wasmBytes.data(), wasmBytes.size(), errorBuffer, ERROR_BUFFER_SIZE);
+          wasmBytes.data(), wasmBytes.size(), errorBuffer, WAMR_ERROR_BUFFER_SIZE);
 
         if (wasmModule == nullptr) {
             std::string errorMsg = std::string(errorBuffer);
@@ -127,7 +129,7 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
 {
     // Instantiate module
     moduleInstance = wasm_runtime_instantiate(
-      wasmModule, STACK_SIZE_KB, HEAP_SIZE_KB, errorBuffer, ERROR_BUFFER_SIZE);
+      wasmModule, WAMR_STACK_SIZE, WAMR_HEAP_SIZE, errorBuffer, WAMR_ERROR_BUFFER_SIZE);
 
     // Sense-check the module
     auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
@@ -140,6 +142,14 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
                      WASM_BYTES_PER_PAGE);
         throw std::runtime_error("WAMR module bytes per page wrong");
     }
+
+    // Sense-check the memory layout
+    /*
+    auto* aotWasmModule = reinterpret_cast<AOTModule*>(wasmModule);
+    auto heapBaseGlobalIdx = aotWasmModule->aux_heap_base_global_index - aotWasmModule->import_global_count;
+    uint8_t* heapBaseGlobalAddr = (uint8_t*) aotModule->global_data.ptr + aotWasmModule->globals[heapBaseGlobalIdx].data_offset;
+    SPDLOG_INFO("__heap_base: Idx: {} - Global Addr: {}", heapBaseGlobalIdx, heapBaseGlobalAddr);
+    */
 
     if (moduleInstance == nullptr) {
         std::string errorMsg = std::string(errorBuffer);
@@ -185,7 +195,7 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
     // get it to work.
 
     std::unique_ptr<WASMExecEnv, decltype(&wasm_exec_env_destroy)> execEnv(
-      wasm_exec_env_create(moduleInstance, STACK_SIZE_KB),
+      wasm_exec_env_create(moduleInstance, WAMR_STACK_SIZE),
       &wasm_exec_env_destroy);
     if (execEnv == nullptr) {
         SPDLOG_ERROR("Failed to create exec env for func ptr {}", wasmFuncPtr);
@@ -324,7 +334,6 @@ bool WAMRWasmModule::doGrowMemory(uint32_t pageChange)
     return wasm_runtime_enlarge_memory(moduleInstance, pageChange);
 }
 
-/*
 size_t WAMRWasmModule::getMemorySizeBytes()
 {
     auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
@@ -332,11 +341,10 @@ size_t WAMRWasmModule::getMemorySizeBytes()
       ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
     return aotMem->cur_page_count * WASM_BYTES_PER_PAGE;
 }
-*/
 
 uint8_t* WAMRWasmModule::getMemoryBase()
 {
-    auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem =
       ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
     return reinterpret_cast<uint8_t*>(aotMem->memory_data.ptr);
@@ -344,7 +352,7 @@ uint8_t* WAMRWasmModule::getMemoryBase()
 
 size_t WAMRWasmModule::getMaxMemoryPages()
 {
-    auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem =
       ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
     return aotMem->max_page_count;

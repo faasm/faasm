@@ -4,6 +4,9 @@
 
 #include <memory>
 
+#include "wasm_export.h"
+#include "bh_platform.h"
+
 #include <sgx_report.h>
 #include <sgx_trts.h>
 #include <sgx_utils.h>
@@ -11,6 +14,9 @@
 // Implementation of the ECalls API
 extern "C"
 {
+    typedef void (*os_print_function_t)(const char* message);
+    extern void os_set_print_function(os_print_function_t pf);
+
     faasm_sgx_status_t ecallCreateReport(const sgx_target_info_t* qeTarget,
                                          const sgx_report_data_t* heldData,
                                          sgx_report_t* report)
@@ -30,6 +36,8 @@ extern "C"
 
     faasm_sgx_status_t ecallInitWamr(void)
     {
+        os_set_print_function(ocallLogWamr);
+
         // Initialise WAMR once for all modules
         ocallLogDebug("Initialising WAMR runtime");
         if (!wasm::EnclaveWasmModule::initialiseWAMRGlobally()) {
@@ -99,7 +107,7 @@ extern "C"
         {
             std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
             if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
-                ocallLogError("Faaslet not bound to any module.");
+                SPDLOG_ERROR_SGX("Faaslet not bound to any module.");
                 return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
             }
 
@@ -108,8 +116,9 @@ extern "C"
 
         // Call the function without a lock on the module map, to allow for
         // chaining on the same enclave
-        if (!module->callFunction(argc, argv)) {
-            ocallLogError("Error trying to call function");
+        uint32_t returnValue = module->callFunction(argc, argv);
+        if (returnValue != 0) {
+            SPDLOG_ERROR_SGX("Error trying to call function. Return value: %i", returnValue);
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
 

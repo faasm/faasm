@@ -1,15 +1,9 @@
 #pragma once
 
 #include <wamr/WAMRModuleMixin.h>
+#include <wasm/WasmCommon.h>
 #include <wasm/WasmModule.h>
 #include <wasm_runtime_common.h>
-
-#define ERROR_BUFFER_SIZE 256
-#define STACK_SIZE_KB 8192
-#define HEAP_SIZE_KB 8192
-
-#define WAMR_INTERNAL_EXCEPTION_PREFIX "Exception: "
-#define WAMR_EXIT_PREFIX "wamr_exit_code_"
 
 namespace wasm {
 
@@ -62,7 +56,7 @@ class WAMRWasmModule final
     std::vector<std::string> getArgv();
 
   private:
-    char errorBuffer[ERROR_BUFFER_SIZE];
+    char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
 
     std::vector<uint8_t> wasmBytes;
     WASMModuleCommon* wasmModule;

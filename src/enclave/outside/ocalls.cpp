@@ -48,7 +48,7 @@ extern "C"
         return wasm::makeChainedCall(std::string(name), 0, nullptr, _input);
     }
 
-    unsigned int ocallFaasmChainPtr(int wasmFuncPtr,
+    unsigned int ocallFaasmChainPtr(const int wasmFuncPtr,
                                     uint8_t* input,
                                     unsigned int inputSize)
     {
@@ -88,4 +88,6 @@ extern "C"
     void ocallLogDebug(const char* msg) { SPDLOG_DEBUG("[enclave] {}", msg); }
 
     void ocallLogError(const char* msg) { SPDLOG_ERROR("[enclave] {}", msg); }
+
+    void ocallLogWamr(const char* msg) { printf("%s", msg); }
 }

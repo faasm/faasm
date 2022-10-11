@@ -1,6 +1,7 @@
 #include <enclave/inside/native.h>
 #include <enclave/inside/ocalls.h>
 #include <enclave/inside/types.h>
+#include <wasm/WasmEnvironment.h>
 
 #include <string>
 
@@ -27,6 +28,34 @@ static uint32_t dup_wrapper(wasm_exec_env_t exec_env, uint32_t fd)
     return 0;
 }
 
+static uint32_t getcwd_wrapper(wasm_exec_env_t exec_env,
+                               char* buf,
+                               uint32_t bufLen)
+{
+    SPDLOG_DEBUG_SGX("S - getcwd");
+
+    // Fake working directory
+    strcpy(buf, FAKE_WORKING_DIR);
+
+    return __WASI_ESUCCESS;
+}
+
+static uint32_t getpwnam_wrapper(wasm_exec_env_t exec_env, uint32_t a)
+{
+    SPDLOG_DEBUG_SGX("S - getpwnam");
+    throw std::runtime_error("getpwnam not implemented");
+}
+
+static int32_t sendfile_wrapper(wasm_exec_env_t exec_env,
+                                int32_t out_fd,
+                                int32_t in_fd,
+                                int32_t offset,
+                                int32_t count)
+{
+    SPDLOG_DEBUG_SGX("S - sendfile {}");
+    throw std::runtime_error("sendfile not implemented");
+}
+
 static int32_t tempnam_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
 {
     SPDLOG_DEBUG_SGX("S - tempnam");
@@ -34,9 +63,9 @@ static int32_t tempnam_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
 }
 
 static NativeSymbol ns[] = {
-    REG_NATIVE_FUNC(__wasi_fd_dup, "(i*)i"),
-    REG_NATIVE_FUNC(dup, "(i)i"),
-    REG_NATIVE_FUNC(tempnam, "(ii)i"),
+    REG_NATIVE_FUNC(__wasi_fd_dup, "(i*)i"), REG_NATIVE_FUNC(dup, "(i)i"),
+    REG_NATIVE_FUNC(getcwd, "(*~)i"),        REG_NATIVE_FUNC(getpwnam, "(i)i"),
+    REG_NATIVE_FUNC(sendfile, "(iiii)i"),    REG_NATIVE_FUNC(tempnam, "(ii)i"),
 };
 
 uint32_t getFaasmFilesystemApi(NativeSymbol** nativeSymbols)

@@ -3,7 +3,7 @@
 
 #include <wasm_export.h>
 
-namespace wasm {
+namespace sgx {
 static uint32_t getpid_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 {
     SPDLOG_DEBUG_SGX("getpid");
@@ -31,7 +31,7 @@ static uint32_t raise_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 static uint32_t system_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 {
     SPDLOG_DEBUG_SGX("system");
-    return 0;
+    throw std::runtime_error("system not implemented");
 }
 
 static NativeSymbol ns[] = {

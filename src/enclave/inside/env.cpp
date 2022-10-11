@@ -5,6 +5,25 @@
 #include <string>
 
 namespace sgx {
+static int32_t getrlimit_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
+{
+    SPDLOG_DEBUG_SGX("S - getrlimit");
+    // We ignore calls to getrlimit, this may break some functionalities
+    return 0;
+}
+
+static NativeSymbol ns[] = {
+    REG_NATIVE_FUNC(getrlimit, "(ii)i"),
+};
+
+uint32_t getFaasmEnvApi(NativeSymbol** nativeSymbols)
+{
+    *nativeSymbols = ns;
+    return sizeof(ns) / sizeof(NativeSymbol);
+}
+
+// ----- WASI Symbols -----
+
 static int wasi_args_get(wasm_exec_env_t execEnv,
                          uint32_t* argvOffsetsWasm,
                          char* argvBuffWasm)

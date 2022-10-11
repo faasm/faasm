@@ -33,8 +33,12 @@ extern "C"
 // prevent it from doing an ocall (hence the different signature).
 #ifdef FAASM_SGX_DEBUG
     void ocallLogDebug(const char* msg) { ; };
+
+    void ocallLogWamr(const char* msg) { ; }
 #else
-    extern sgx_status_t SGX_CDECL ocallLogDebug(const char* msg);
+    void ocallLogDebug(const char* msg);
+
+    void ocallLogWamr(const char* msg);
 #endif
 
     extern sgx_status_t SGX_CDECL ocallFaasmReadInput(int* returnValue,

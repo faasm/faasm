@@ -73,6 +73,7 @@ set(ENCLAVE_TRUSTED_SRC
     native.cpp
     process.cpp
     pthread.cpp
+    signals.cpp
     ${ENCLAVE_TRUSTED_HEADERS}
 )
 

@@ -12,7 +12,7 @@ std::unordered_map<uint32_t, std::shared_ptr<EnclaveWasmModule>> moduleMap;
 std::mutex moduleMapMutex;
 
 // Define the WAMR's heap buffer
-static uint8_t wamrHeapBuffer[FAASM_SGX_WAMR_HEAP_SIZE];
+static uint8_t wamrHeapBuffer[WAMR_HEAP_BUFFER_SIZE];
 
 bool EnclaveWasmModule::initialiseWAMRGlobally()
 {
@@ -22,6 +22,9 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     wamrRteArgs.mem_alloc_type = Alloc_With_Pool;
     wamrRteArgs.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
     wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
+
+    // Debug logging
+    bh_log_set_verbose_level(4);
 
     // Returns true if success, false otherwise
     return wasm_runtime_full_init(&wamrRteArgs);
@@ -43,7 +46,7 @@ bool EnclaveWasmModule::loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize)
     wasmModule = wasm_runtime_load(wasmBytes.data(),
                                    wasmBytes.size(),
                                    errorBuffer,
-                                   FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE);
+                                   WAMR_ERROR_BUFFER_SIZE);
 
     if (wasmModule == nullptr) {
         return false;
@@ -51,18 +54,37 @@ bool EnclaveWasmModule::loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize)
 
     moduleInstance =
       wasm_runtime_instantiate(wasmModule,
-                               FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE,
-                               FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE,
+                               WAMR_STACK_SIZE,
+                               WAMR_HEAP_SIZE,
                                errorBuffer,
-                               FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE);
+                               WAMR_ERROR_BUFFER_SIZE);
+
+    // Sense-check the module after instantiation
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem =
+      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+
+    if (aotMem->num_bytes_per_page != WASM_BYTES_PER_PAGE) {
+        SPDLOG_ERROR_SGX("WAMR module bytes per page wrong, %i != %i, overriding",
+                         aotMem->num_bytes_per_page,
+                         WASM_BYTES_PER_PAGE);
+        throw std::runtime_error("WAMR module bytes per page wrong");
+    }
+
+    if (moduleInstance == nullptr) {
+        std::string errorMsg = std::string(errorBuffer);
+        SPDLOG_ERROR_SGX("Failed to instantiate WAMR module: \n%s", errorMsg.c_str());
+        throw std::runtime_error("Failed to instantiate WAMR module");
+    }
+    currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
 
     return moduleInstance != nullptr;
 }
 
-bool EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
+uint32_t EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
 {
     WASMFunctionInstanceCommon* func =
-      wasm_runtime_lookup_function(moduleInstance, WASM_ENTRY_FUNC, nullptr);
+      wasm_runtime_lookup_function(moduleInstance, ENTRY_FUNC_NAME, nullptr);
 
     prepareArgcArgv(argcIn, argvIn);
 
@@ -75,16 +97,30 @@ bool EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
                                             0x0,
                                             argv.data());
 
-    if (success) {
-        SPDLOG_DEBUG_SGX("Success calling WASM function");
-    } else {
+    uint32_t returnValue = argv[0];
+
+    if (!success || returnValue != 0) {
         std::string errorMessage(
           ((AOTModuleInstance*)moduleInstance)->cur_exception);
+
+        // Strip the prefix that WAMR puts on internally
+        std::string strippedErrorMessage = errorMessage;
+        size_t pos = strippedErrorMessage.find(WAMR_INTERNAL_EXCEPTION_PREFIX);
+        if (pos != std::string::npos) {
+            strippedErrorMessage.erase(pos, strlen(WAMR_INTERNAL_EXCEPTION_PREFIX));
+        }
+
         SPDLOG_ERROR_SGX("Caught WASM runtime exception: %s",
-                         errorMessage.c_str());
+                         strippedErrorMessage.c_str());
+
+        if (returnValue == 0) {
+            returnValue = 1;
+        }
+    } else {
+        SPDLOG_DEBUG_SGX("Success calling WASM function");
     }
 
-    return success;
+    return returnValue;
 }
 
 WASMModuleInstanceCommon* EnclaveWasmModule::getModuleInstance()
@@ -105,7 +141,7 @@ void EnclaveWasmModule::prepareArgcArgv(uint32_t argcIn, char** argvIn)
     }
 }
 
-uint32_t EnclaveWasmModule::getArgc()
+uint32_t EnclaveWasmModule::getArgc() const
 {
     return argc;
 }
@@ -115,7 +151,7 @@ std::vector<std::string> EnclaveWasmModule::getArgv()
     return argv;
 }
 
-size_t EnclaveWasmModule::getArgvBufferSize()
+size_t EnclaveWasmModule::getArgvBufferSize() const
 {
     return argvBufferSize;
 }
@@ -143,7 +179,7 @@ std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
 
 uint32_t EnclaveWasmModule::getCurrentBrk() const
 {
-    return currentBrk;
+    return currentBrk.load(std::memory_order_acquire);
 }
 
 uint32_t EnclaveWasmModule::shrinkMemory(size_t nBytes)
@@ -153,7 +189,9 @@ uint32_t EnclaveWasmModule::shrinkMemory(size_t nBytes)
         throw std::runtime_error("New break not page aligned");
     }
 
-    uint32_t oldBrk = currentBrk;
+    std::unique_lock<std::mutex> lock(moduleMutex);
+
+    uint32_t oldBrk = currentBrk.load(std::memory_order_acquire);
 
     if (nBytes > oldBrk) {
         SPDLOG_ERROR_SGX(
@@ -165,7 +203,7 @@ uint32_t EnclaveWasmModule::shrinkMemory(size_t nBytes)
     uint32_t newBrk = oldBrk - nBytes;
 
     SPDLOG_DEBUG_SGX("MEM - shrinking memory %i -> %i", oldBrk, newBrk);
-    currentBrk = newBrk;
+    currentBrk.store(newBrk, std::memory_order_release);
 
     return oldBrk;
 }
@@ -173,10 +211,11 @@ uint32_t EnclaveWasmModule::shrinkMemory(size_t nBytes)
 uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
 {
     if (nBytes == 0) {
-        return currentBrk;
+        return currentBrk.load(std::memory_order_release);
     }
 
-    /*
+    std::unique_lock<std::mutex> lock(moduleMapMutex);
+
     uint32_t oldBytes = getMemorySizeBytes();
     uint32_t oldBrk = currentBrk.load(std::memory_order_acquire);
     uint32_t newBrk = oldBrk + nBytes;
@@ -196,23 +235,24 @@ uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
     size_t maxPages = getMaxMemoryPages();
 
     if (newBytes > UINT32_MAX || newPages > maxPages) {
-        SPDLOG_ERROR("Growing memory would exceed max of {} pages (current {}, "
-                     "requested {})",
-                     maxPages,
-                     oldPages,
-                     newPages);
+        SPDLOG_ERROR_SGX("Growing memory would exceed max of %li pages "
+                         "(current %i, requested %i)",
+                         maxPages,
+                         oldPages,
+                         newPages);
         throw std::runtime_error("Memory growth exceeding max");
     }
 
     // If we can reclaim old memory, just bump the break
+    /* For the moment we don't reclaim old memory in SGX
     if (newBrk <= oldBytes) {
-        SPDLOG_TRACE(
-          "MEM - Growing memory using already provisioned {} + {} <= {}",
+        SPDLOG_DEBUG_SGX(
+          "MEM - Growing memory using already provisioned %i + %li <= %i",
           oldBrk,
           nBytes,
           oldBytes);
 
-        currentBrk.store(newBrk, std::memory_order_release);
+        currentBrk = newBrk;
 
         // Make sure permissions on memory are open
         size_t newTop = faabric::util::getRequiredHostPages(currentBrk);
@@ -227,31 +267,55 @@ uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
 
         return oldBrk;
     }
+    */
 
     uint32_t pageChange = newPages - oldPages;
-    bool success = doGrowMemory(pageChange);
+    bool success = wasm_runtime_enlarge_memory(moduleInstance, pageChange);
     if (!success) {
+        SPDLOG_ERROR_SGX("Failed to grow memory (page change: %i)", pageChange);
         throw std::runtime_error("Failed to grow memory");
     }
 
-    SPDLOG_TRACE("Growing memory from {} to {} pages (max {})",
-                 oldPages,
-                 newPages,
-                 maxPages);
+    SPDLOG_DEBUG_SGX("Growing memory from %i to %i pages (max %li)",
+                     oldPages,
+                     newPages,
+                     maxPages);
 
     size_t newMemorySize = getMemorySizeBytes();
     currentBrk.store(newMemorySize, std::memory_order_release);
 
     if (newMemorySize != newBytes) {
-        SPDLOG_ERROR(
-          "Expected new brk ({}) to be old memory plus new bytes ({})",
+        SPDLOG_ERROR_SGX(
+          "Expected new brk (%li) to be old memory plus new bytes (%li)",
           newMemorySize,
           newBytes);
         throw std::runtime_error("Memory growth discrepancy");
     }
-    */
 
-    return 0;
-    // return oldBrk;
+    return oldBrk;
+}
+
+size_t EnclaveWasmModule::getMemorySizeBytes()
+{
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem =
+      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+    return aotMem->cur_page_count * WASM_BYTES_PER_PAGE;
+}
+
+uint8_t* EnclaveWasmModule::getMemoryBase()
+{
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem =
+      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+    return reinterpret_cast<uint8_t*>(aotMem->memory_data.ptr);
+}
+
+size_t EnclaveWasmModule::getMaxMemoryPages()
+{
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem =
+      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+    return aotMem->max_page_count;
 }
 }

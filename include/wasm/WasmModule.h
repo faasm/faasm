@@ -21,14 +21,6 @@
 
 #include <storage/FileSystem.h>
 
-// Special known function names
-// Zygote function (must match faasm.h linked into the functions themselves)
-#define ZYGOTE_FUNC_NAME "_faasm_zygote"
-#define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
-#define ENTRY_FUNC_NAME "_start"
-
-#define MAX_WASM_MEM (1024L * 1024L * 1024L * 4L)
-
 namespace wasm {
 
 // Note - avoid a zero default on the thread request type otherwise it can
@@ -231,8 +223,6 @@ class WasmModule
 };
 
 // Convenience functions
-size_t getNumberOfWasmPagesForBytes(size_t nBytes);
-
 uint32_t roundUpToWasmPageAligned(uint32_t nBytes);
 
 size_t getPagesForGuardRegion();

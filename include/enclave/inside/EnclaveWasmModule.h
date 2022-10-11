@@ -6,19 +6,11 @@
 #include <iwasm/aot/aot_runtime.h>
 #include <wasm_runtime_common.h>
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
-
-
-#define FAASM_SGX_WAMR_HEAP_SIZE (32 * ONE_MB_BYTES)
-#define FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128
-#define FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE (8 * ONE_KB_BYTES)
-#define FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE (8 * ONE_KB_BYTES)
-
-#define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
-#define WASM_ENTRY_FUNC "_start"
 
 namespace wasm {
 
@@ -36,28 +28,36 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     bool loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize);
 
-    bool callFunction(uint32_t argcIn, char** argvIn);
+    uint32_t callFunction(uint32_t argcIn, char** argvIn);
 
     WASMModuleInstanceCommon* getModuleInstance();
 
     // ---- argc/arv ----
 
-    uint32_t getArgc();
+    uint32_t getArgc() const;
 
     std::vector<std::string> getArgv();
 
-    size_t getArgvBufferSize();
+    size_t getArgvBufferSize() const;
 
     // ---- Memory management ----
+    // TODO(csegarragonz): what bits of the memory management can we
+    // de-duplicate using the WAMR's module mixin?
 
     uint32_t getCurrentBrk() const;
+
+    size_t getMemorySizeBytes();
+
+    uint8_t* getMemoryBase();
+
+    size_t getMaxMemoryPages();
 
     uint32_t growMemory(size_t nBytes);
 
     uint32_t shrinkMemory(size_t nBytes);
 
   private:
-    char errorBuffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
+    char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
 
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
@@ -70,8 +70,8 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     void prepareArgcArgv(uint32_t argcIn, char** argvIn);
 
     // Memory management
-    // TODO: does this need to be atomic?
-    uint32_t currentBrk = 0;
+    std::atomic<uint32_t> currentBrk = 0;
+    std::mutex moduleMutex;
 };
 
 // Data structure to keep track of the modules currently loaded in the enclave.

@@ -2,11 +2,19 @@
 
 #include <wasm/WasmCommon.h>
 
-#include <aot_runtime.h>
 #include <wasm_export.h>
 
 #include <string>
 #include <vector>
+
+#define WAMR_INTERNAL_EXCEPTION_PREFIX "Exception: "
+#define WAMR_EXIT_PREFIX "wamr_exit_code_"
+
+// This variables rely on the STACK_SIZE set in wasm/WasmCommon.h
+#define WAMR_ERROR_BUFFER_SIZE 256
+#define WAMR_STACK_SIZE STACK_SIZE
+#define WAMR_HEAP_BUFFER_SIZE (16 * WAMR_HEAP_SIZE)
+#define WAMR_HEAP_SIZE STACK_SIZE
 
 /*
  * This mixin implements common methods shared between the WAMRWasmModule class
@@ -81,15 +89,5 @@ struct WAMRModuleMixin
     {
         writeStringArrayToMemory(
           this->underlying().getArgv(), argvOffsetsWasm, argvBuffWasm);
-    }
-
-    // ---- Memory management ----
-
-    size_t getMemorySizeBytes()
-    {
-        auto* aotModule = reinterpret_cast<AOTModuleInstance*>(this->underlying());
-        AOTMemoryInstance* aotMem =
-          ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
-        return aotMem->cur_page_count * WASM_BYTES_PER_PAGE;
     }
 };
