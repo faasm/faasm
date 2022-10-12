@@ -1,12 +1,13 @@
+#include <enclave/inside/EnclaveWasmModule.h>
 #include <enclave/inside/native.h>
 #include <enclave/inside/ocalls.h>
-#include <enclave/inside/types.h>
+#include <wamr/types.h>
+#include <wamr/WAMRModuleMixin.h>
 #include <wasm/WasmEnvironment.h>
 
 #include <string>
 
 #include <wasm_export.h>
-#include <wasmtime_ssp.h>
 
 namespace sgx {
 uint32_t doWasiDup(uint32_t fd)
@@ -82,12 +83,43 @@ static int32_t wasi_fd_close(wasm_exec_env_t execEnv, int32_t fd)
     return 0;
 }
 
+// For fd_fdstat_get we need to:
+// 1. Validate the return pointer provided by the address
+// 2. Retrieve the stat for the corresponding file descriptor
+// 3. Copy the results into the provided pointer
+// We do steps 1 and 3 inside the enclave, and do an OCall for step 2
 static int32_t wasi_fd_fdstat_get(wasm_exec_env_t execEnv,
                                   int32_t fd,
                                   __wasi_fdstat_t* statWasm)
 {
     SPDLOG_DEBUG_SGX("S - wasi_fd_fdstat_get %i", fd);
-    return 0;
+    GET_EXECUTING_MODULE_AND_CHECK(execEnv);
+
+    if (!module->validateNativePointer(statWasm, sizeof(__wasi_fdstat_t)))
+    {
+        SPDLOG_ERROR_SGX("Pointer provided by WASM is not a valid pointer");
+        return __WASI_EBADF;
+    }
+
+    uint8_t wasiFileType;
+    uint64_t rightsBase;
+    uint64_t rightsInheriting;
+    int32_t returnValue;
+    sgx_status_t sgxReturnValue;
+    if ((sgxReturnValue = ocallWasiFdFdstatGet(&returnValue,
+                                                    fd,
+                                                    &wasiFileType,
+                                                    &rightsBase,
+                                                    &rightsInheriting)) != SGX_SUCCESS) {
+        SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
+    }
+
+    statWasm->fs_filetype = wasiFileType;
+    statWasm->fs_rights_base = rightsBase;
+    statWasm->fs_rights_inheriting = rightsInheriting;
+    statWasm->fs_flags = 0;
+
+    return returnValue;
 }
 
 static int32_t wasi_fd_fdstat_set_flags(wasm_exec_env_t exec_env,
@@ -95,13 +127,6 @@ static int32_t wasi_fd_fdstat_set_flags(wasm_exec_env_t exec_env,
                                         int32_t b)
 {
     SPDLOG_DEBUG_SGX("S - fd_fdstat_set_flags");
-    return 0;
-}
-
-static int32_t doFileStat(uint32_t fd,
-                          const std::string& relativePath,
-                          __wasi_filestat_t* statWasm)
-{
     return 0;
 }
 
@@ -122,12 +147,33 @@ static int32_t wasi_fd_prestat_dir_name(wasm_exec_env_t exec_env,
     return 0;
 }
 
-static int32_t wasi_fd_prestat_get(wasm_exec_env_t exec_env,
+// To run fd_prestat_get we need to:
+// 1. Validate the pointer passed by the WASM application
+// 2. Get the information for the file descriptor
+// We do step 1 inside the enclave, and do an OCall for step 2
+static int32_t wasi_fd_prestat_get(wasm_exec_env_t execEnv,
                                    int32_t fd,
                                    wasi_prestat_app_t* prestatWasm)
 {
-    SPDLOG_DEBUG_SGX("S - fd_prestat_get");
-    return 0;
+    SPDLOG_DEBUG_SGX("S - wasi_fd_prestat_get");
+    GET_EXECUTING_MODULE_AND_CHECK(execEnv);
+
+    if (!module->validateNativePointer(prestatWasm, sizeof(wasi_prestat_app_t)))
+    {
+        SPDLOG_ERROR_SGX("Pointer provided by WASM is not a valid pointer");
+        return __WASI_EBADF;
+    }
+
+    int returnValue;
+    sgx_status_t sgxReturnValue;
+    if ((sgxReturnValue = ocallWasiFdPrestatGet(&returnValue,
+                                                fd,
+                                                &(prestatWasm->pr_type),
+                                                &(prestatWasm->pr_name_len))) != SGX_SUCCESS) {
+        SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
+    }
+
+    return returnValue;
 }
 
 static int32_t wasi_fd_read(wasm_exec_env_t exec_env,
@@ -157,6 +203,12 @@ static int wasi_fd_seek(wasm_exec_env_t execEnv, int a, int64 b, int c, int d)
     return 0;
 }
 
+// To implement fd_write we need to:
+// 1. Validate the wasm pointers
+// 2. Translate the wasm iovecs into native iovecs
+// 3. Do the actual writing to the fd
+// 4. Return the bytes written by populating the return pointer
+// We do steps 1 and 2 inside the enclave, and we do an OCall for step 3
 static int wasi_fd_write(wasm_exec_env_t execEnv,
                          int32_t fd,
                          iovec_app_t* ioVecBuffWasm,
@@ -164,7 +216,32 @@ static int wasi_fd_write(wasm_exec_env_t execEnv,
                          int32_t* bytesWritten)
 {
     SPDLOG_DEBUG_SGX("S - wasi_fd_write %i", fd);
-    return 0;
+    GET_EXECUTING_MODULE_AND_CHECK(execEnv);
+
+    // Check pointers
+    module->validateNativePointer(reinterpret_cast<void*>(ioVecBuffWasm),
+                                  sizeof(iovec_app_t) * ioVecCountWasm);
+    module->validateNativePointer(bytesWritten, sizeof(int32_t));
+
+    // Translate the wasm iovecs into native iovecs and serialise to transfer
+    // as an OCall
+    uint8_t* ioVecBases[ioVecCountWasm];
+    size_t ioVecLens[ioVecCountWasm];
+    for (int i = 0; i < ioVecCountWasm; i++) {
+        module->validateWasmOffset(ioVecBuffWasm[i].buffOffset,
+                                   sizeof(char) * ioVecBuffWasm[i].buffLen);
+
+        ioVecBases[i] = module->wamrWasmPointerToNative(ioVecBuffWasm[i].buffOffset);
+        ioVecLens[i] = ioVecBuffWasm[i].buffLen;
+    }
+
+    return ocallWasiFdWrite(fd,
+                            ioVecBases,
+                            ioVecCountWasm * sizeof(uint8_t*),
+                            ioVecLens,
+                            ioVecCountWasm * sizeof(size_t),
+                            ioVecCountWasm,
+                            bytesWritten);
 }
 
 static int32_t wasi_path_create_directory(wasm_exec_env_t exec_env,

@@ -5,13 +5,23 @@
 enclave{
     include "/usr/local/code/faasm/include/enclave/error.h"
     include "/build/faasm/_deps/wamr_ext-src/core/iwasm/include/wasm_export.h"
+    include "/build/faasm/_deps/wamr_ext-src/core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/include/wasmtime_ssp.h"
     include "sgx_report.h"
 
     from "sgx_tstdc.edl" import *;
     from "sgx_pthread.edl" import *;
 #if(FAASM_SGX_WAMR_WASI_LIBC)
+// I think we can remove this
     from "sgx_wamr.edl" import *;
 #endif
+
+    // We need to copy this from include/wamr/types.h as the Eder8r can not
+    // work out the transitive includes there
+    union iovec_app_t
+    {
+        uint32_t buffOffset;
+        uint32_t buffLen;
+    };
 
     trusted{
         public faasm_sgx_status_t ecallCreateReport(
@@ -35,6 +45,11 @@ enclave{
                                 uint32_t faasletId,
                                 uint32_t argc,
             [in, count=argc]    char** argv
+        );
+
+        public faasm_sgx_status_t ecallRunInternalTest(
+                            uint32_t faasletId,
+            [in, string]    const char* testCase
         );
 
         public faasm_sgx_status_t ecallCryptoChecks(void);
@@ -80,6 +95,29 @@ enclave{
                                     unsigned int bufferSize
         );
 
-        // int32_t ocallSbrk(int32_t increment);
+        // ----- WASI Filesystem Calls -----
+
+        int32_t ocallWasiFdFdstatGet(
+                    int32_t fd,
+            [out]   uint8_t* wasiFileType,
+            [out]   uint64_t* rightsBase,
+            [out]   uint64_t* rightsInheriting
+        );
+
+        int32_t ocallWasiFdPrestatGet(
+                    int32_t fd,
+            [out]   uint8_t* prType,
+            [out]   uint32_t* nameLen
+        );
+
+        int32_t ocallWasiFdWrite(
+                                            int32_t fd,
+            [in, size=ioVecBasesSize]       uint8_t** ioVecBases,
+                                            int32_t ioVecBasesSize,
+            [in, size=ioVecLensSize]        uint8_t** ioVecLens,
+                                            int32_t ioVecLensSize,
+                                            int32_t ioVecCountWasm,
+            [out]                           int32_t* bytesWritten
+        );
     };
 };

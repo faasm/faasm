@@ -109,7 +109,7 @@ static int32_t wasi_fd_fdstat_get(wasm_exec_env_t exec_env,
     WAMRWasmModule* module = getExecutingWAMRModule();
     storage::FileSystem& fs = module->getFileSystem();
     std::string path = fs.getPathForFd(fd);
-    SPDLOG_DEBUG("S - fd_fdstat_get {} ({})", fd, path);
+    SPDLOG_DEBUG("S - wasi_fd_fdstat_get {} ({})", fd, path);
 
     if (!fs.fileDescriptorExists(fd)) {
         return __WASI_EBADF;
@@ -335,14 +335,14 @@ static int32_t wasi_fd_write(wasm_exec_env_t exec_env,
     storage::FileSystem& fileSystem = module->getFileSystem();
     std::string path = fileSystem.getPathForFd(fd);
 
-    SPDLOG_DEBUG("S - fd_write {} ({})", fd, path);
+    SPDLOG_DEBUG("S - wasi_fd_write {} ({})", fd, path);
 
     // Check pointers
     module->validateNativePointer(reinterpret_cast<void*>(ioVecBuffWasm),
                                   sizeof(iovec_app_t) * ioVecCountWasm);
     module->validateNativePointer(bytesWritten, sizeof(int32_t));
 
-    // Translate the app iovecs into native iovecs
+    // Translate the wasm iovecs into native iovecs
     std::vector<::iovec> ioVecBuffNative(ioVecCountWasm, (::iovec){});
     for (int i = 0; i < ioVecCountWasm; i++) {
         module->validateWasmOffset(ioVecBuffWasm[i].buffOffset,

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <wamr/types.h>
+
 #include <iwasm/include/wasm_export.h>
 #include <sgx.h>
 #include <sgx_defs.h>
@@ -67,6 +69,27 @@ extern "C"
                               uint8_t* buffer,
                               unsigned int bufferSize);
 
-    extern sgx_status_t SGX_CDECL ocallSbrk(int32_t* returnValue,
-                                            int32_t increment);
+    // ----- WASI Filesystem Calls -----
+
+    extern sgx_status_t SGX_CDECL
+    ocallWasiFdFdstatGet(int32_t* returnValue,
+                         int32_t fd,
+                         uint8_t* wasiFileType,
+                         uint64_t* rightsBase,
+                         uint64_t* rightsInheriting);
+
+    extern sgx_status_t SGX_CDECL
+    ocallWasiFdPrestatGet(int32_t* returnValue,
+                          int32_t fd,
+                          uint8_t* prType,
+                          uint32_t* nameLen);
+
+    extern int32_t SGX_CDECL
+    ocallWasiFdWrite(int32_t fd,
+                     uint8_t** ioVecBases,
+                     int32_t ioVecBasesSize,
+                     size_t* ioVecLens,
+                     int32_t ioVecLensSize,
+                     int32_t ioVecCountWasm,
+                     int32_t* bytesWritten);
 }

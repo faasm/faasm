@@ -19,6 +19,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     execSgxFunction(msg);
 }
 
+// TODO: this is not chaining by name?
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test executing chaining by name with SGX",
                  "[sgx]")

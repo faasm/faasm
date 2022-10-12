@@ -25,7 +25,7 @@ static int32_t pthread_once_wrapper(wasm_exec_env_t exec_env,
                                     int32_t b)
 {
     // Trace logging as this may be called a lot
-    SPDLOG_DEBUG_SGX("S - pthread_once");
+    // SPDLOG_DEBUG_SGX("S - pthread_once");
     return 0;
 }
 
@@ -39,13 +39,14 @@ static int32_t pthread_mutex_init_wrapper(wasm_exec_env_t execEnv,
 
 static int32_t pthread_mutex_lock_wrapper(wasm_exec_env_t execEnv, int32_t a)
 {
-    SPDLOG_DEBUG_SGX("S - pthread_mutex_lock_wrapper");
+    // SPDLOG_DEBUG_SGX("S - pthread_mutex_lock_wrapper");
     return 0;
 }
 
 static int32_t pthread_mutex_unlock_wrapper(wasm_exec_env_t execEnv, int32_t a)
 {
-    SPDLOG_DEBUG_SGX("S - pthread_unmutex_lock_wrapper");
+    // TODO(csegarragonz): add SPDLOG_TRACE_SGX
+    // SPDLOG_DEBUG_SGX("S - pthread_unmutex_unlock_wrapper");
     return 0;
 }
 

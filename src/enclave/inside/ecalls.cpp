@@ -11,6 +11,13 @@
 #include <sgx_trts.h>
 #include <sgx_utils.h>
 
+// TODO: move elsewhere
+#define REQUIRE(cond) \
+    if (!(cond)) { \
+        SPDLOG_ERROR_SGX("Error testing assertion!"); \
+        return FAASM_SGX_INTERNAL_TEST_ERROR; \
+    } \
+
 // Implementation of the ECalls API
 extern "C"
 {
@@ -44,9 +51,6 @@ extern "C"
             ocallLogError("Error initialising WAMR globally");
             return FAASM_SGX_WAMR_RTE_INIT_FAILED;
         }
-
-        // Register native symbols
-        sgx::initialiseSGXWAMRNatives();
 
         return FAASM_SGX_SUCCESS;
     }
@@ -120,6 +124,54 @@ extern "C"
         if (returnValue != 0) {
             SPDLOG_ERROR_SGX("Error trying to call function. Return value: %i", returnValue);
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
+        }
+
+        return FAASM_SGX_SUCCESS;
+    }
+
+    // TODO: switch on the test case
+    faasm_sgx_status_t ecallRunInternalTest(uint32_t faasletId,
+                                            const char* testCase)
+    {
+        std::shared_ptr<wasm::EnclaveWasmModule> module = nullptr;
+
+        // Acquire a lock just to get the module
+        {
+            std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
+            if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
+                SPDLOG_ERROR_SGX("Faaslet not bound to any module.");
+                return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
+            }
+
+            module = wasm::moduleMap[faasletId];
+        }
+
+        // TODO: probably move the function body elsewhere
+        if (std::string(testCase) == "sbrk") {
+            SPDLOG_DEBUG_SGX("Running test: %s", testCase);
+
+            size_t initialSize = module->getMemorySizeBytes();
+            REQUIRE(module->getCurrentBrk() == initialSize);
+
+            uint32_t growA = 5 * WASM_BYTES_PER_PAGE;
+            uint32_t growB = 20 * WASM_BYTES_PER_PAGE;
+
+            module->growMemory(growA);
+            size_t sizeA = module->getMemorySizeBytes();
+            REQUIRE(sizeA > initialSize);
+            REQUIRE(sizeA == initialSize + growA);
+            REQUIRE(module->getCurrentBrk() == sizeA);
+
+            module->growMemory(growB);
+            size_t sizeB = module->getMemorySizeBytes();
+            REQUIRE(sizeB > initialSize + growA);
+            REQUIRE(sizeB == initialSize + growA + growB);
+            REQUIRE(module->getCurrentBrk() == sizeB);
+
+            // Lastly, run the function to verify that the heap has not been
+            // corrupted
+            char **argvIn = (char *[]){"function.wasm"};
+            REQUIRE(module->callFunction(1, argvIn) == 0);
         }
 
         return FAASM_SGX_SUCCESS;

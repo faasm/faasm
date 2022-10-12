@@ -1,4 +1,5 @@
 #include <enclave/inside/EnclaveWasmModule.h>
+#include <enclave/inside/native.h>
 #include <enclave/inside/ocalls.h>
 #include <wasm/WasmCommon.h>
 
@@ -11,11 +12,23 @@ namespace wasm {
 std::unordered_map<uint32_t, std::shared_ptr<EnclaveWasmModule>> moduleMap;
 std::mutex moduleMapMutex;
 
+static bool wamrInitialised = false;
+
 // Define the WAMR's heap buffer
 static uint8_t wamrHeapBuffer[WAMR_HEAP_BUFFER_SIZE];
 
 bool EnclaveWasmModule::initialiseWAMRGlobally()
 {
+    // We want to initialise WAMR's globals once for all modules, but we know
+    // we have taken a lock outside the enclave, so we don't need to take a
+    // lock again here
+    if (wamrInitialised) {
+        return true;
+    }
+
+    // Set WAMR log level
+    bh_log_set_verbose_level(4);
+
     // Initialise the WAMR runtime
     RuntimeInitArgs wamrRteArgs;
     memset(&wamrRteArgs, 0x0, sizeof(wamrRteArgs));
@@ -23,11 +36,14 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     wamrRteArgs.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
     wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
 
-    // Debug logging
-    bh_log_set_verbose_level(4);
 
-    // Returns true if success, false otherwise
-    return wasm_runtime_full_init(&wamrRteArgs);
+    // Initialise WAMR runtime
+    bool success = wasm_runtime_full_init(&wamrRteArgs);
+
+    // Register native symbols
+    sgx::initialiseSGXWAMRNatives();
+
+    return success;
 }
 
 EnclaveWasmModule::EnclaveWasmModule() {}
@@ -214,7 +230,7 @@ uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
         return currentBrk.load(std::memory_order_release);
     }
 
-    std::unique_lock<std::mutex> lock(moduleMapMutex);
+    std::unique_lock<std::mutex> lock(moduleMutex);
 
     uint32_t oldBytes = getMemorySizeBytes();
     uint32_t oldBrk = currentBrk.load(std::memory_order_acquire);
@@ -270,6 +286,8 @@ uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
     */
 
     uint32_t pageChange = newPages - oldPages;
+    if (true)
+        return oldBrk;
     bool success = wasm_runtime_enlarge_memory(moduleInstance, pageChange);
     if (!success) {
         SPDLOG_ERROR_SGX("Failed to grow memory (page change: %i)", pageChange);

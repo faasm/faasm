@@ -37,6 +37,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
         return;
     }
 
+    // Set WAMR's log level
     bh_log_set_verbose_level(4);
 
     // Initialise WAMR runtime
@@ -157,8 +158,10 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
     currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
+
     // Set up thread stacks
-    createThreadStacks();
+    // createThreadStacks();
+    threadStacks.push_back(-1);
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
@@ -307,26 +310,11 @@ void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
       wasmEnvironment.getVars(), envOffsetsWasm, envBuffWasm);
 }
 
-void WAMRWasmModule::validateWasmOffset(uint32_t wasmOffset, size_t size)
-{
-    if (!wasm_runtime_validate_app_addr(moduleInstance, wasmOffset, size)) {
-        SPDLOG_ERROR("WASM offset outside WAMR module instance memory"
-                     "(offset: {}, size: {})",
-                     wasmOffset,
-                     size);
-        throw std::runtime_error("Offset outside WAMR's memory");
-    }
-}
-
 uint8_t* WAMRWasmModule::wasmPointerToNative(uint32_t wasmPtr)
 {
-    void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
-    if (nativePtr == nullptr) {
-        SPDLOG_ERROR("WASM offset {} is out of the WAMR module's address space",
-                     wasmPtr);
-        throw std::runtime_error("Offset out of WAMR memory");
-    }
-    return static_cast<uint8_t*>(nativePtr);
+    // We call the mixin method directly to share the implementation with the
+    // EnclaveWasmModule
+    return wamrWasmPointerToNative(wasmPtr);
 }
 
 bool WAMRWasmModule::doGrowMemory(uint32_t pageChange)

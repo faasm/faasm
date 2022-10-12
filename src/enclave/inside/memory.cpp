@@ -17,6 +17,9 @@ static int32_t __sbrk_wrapper(wasm_exec_env_t execEnv, int32_t increment)
         module->shrinkMemory(-1 * increment);
         return oldBrk;
     }
+    return 0;
+    // TODO(csegarragonz): after growMemory we run into an out-of-bounds
+    // exception
     return module->growMemory(increment);
 }
 

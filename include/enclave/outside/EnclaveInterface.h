@@ -38,7 +38,11 @@ class EnclaveInterface final : public WasmModule
 
     uint8_t* getMemoryBase() override;
 
-  private:
     uint32_t interfaceId = 0;
+
+  private:
+    // uint32_t interfaceId = 0;
 };
+
+EnclaveInterface* getExecutingEnclaveInterface();
 }
