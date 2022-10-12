@@ -11,15 +11,14 @@ list(PREPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/conan.cmake")
   message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-  file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/v0.16.1/conan.cmake"
+  file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/0.18.1/conan.cmake"
                 "${CMAKE_CURRENT_BINARY_DIR}/conan.cmake"
-                EXPECTED_HASH SHA256=396e16d0f5eabdc6a14afddbcfff62a54a7ee75c6da23f32f7a31bc85db23484
                 TLS_VERIFY ON)
 endif()
 
 include(${CMAKE_CURRENT_BINARY_DIR}/conan.cmake)
 
-conan_check(VERSION 1.43.0 REQUIRED)
+conan_check(VERSION 1.52.0 REQUIRED)
 
 # Enable revisions in the conan config
 execute_process(COMMAND ${CONAN_CMD} config set general.revisions_enabled=1
@@ -30,11 +29,11 @@ endif()
 
 conan_cmake_configure(
     REQUIRES
-        "catch2/2.13.7@#31c8cd08e3c957a9eac8cb1377cf5863"
+        "catch2/2.13.9@#8793d3e6287d3684201418de556d98fe"
         # These two dependencies are only needed to perform remote attestation
         # of SGX enclaves using Microsoft Azure's Attestation Service
-        "jwt-cpp/0.6.0@#cd6b5c1318b29f4becaf807b23f7bb44"
-        "picojson/cci.20210117@#2af3ad146959275c97a6957b87b9073f"
+        "jwt-cpp/0.6.0@#798a2fe39d8117c9adcce95c84b8f5b9"
+        "picojson/cci.20210117@#5222abc0ebb33013a382941847cb53a9"
     GENERATORS
         cmake_find_package
         cmake_paths
