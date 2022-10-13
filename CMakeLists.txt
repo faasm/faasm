@@ -132,12 +132,12 @@ if (FAASM_STATIC_LIBS)
     set(FAABRIC_STATIC_LIBS ON CACHE BOOL "Faabric static")
     function(faasm_public_lib lib_name)
         add_library(${lib_name} STATIC ${ARGN})
-        target_link_libraries(${lib_name} PRIVATE faasm::common_deps)
+        target_link_libraries(${lib_name} PUBLIC faasm::common_deps)
         add_library(faasm::${lib_name} ALIAS ${lib_name})
     endfunction()
     function(faasm_private_lib lib_name)
         add_library(${lib_name} STATIC ${ARGN})
-        target_link_libraries(${lib_name} PRIVATE faasm::common_deps)
+        target_link_libraries(${lib_name} PUBLIC faasm::common_deps)
         add_library(faasm::${lib_name} ALIAS ${lib_name})
     endfunction()
 else ()
@@ -145,12 +145,12 @@ else ()
     function(faasm_public_lib lib_name)
         add_library(${lib_name} SHARED ${ARGN})
         target_link_options(${lib_name} PRIVATE "-fuse-ld=lld")
-        target_link_libraries(${lib_name} PRIVATE faasm::common_deps)
+        target_link_libraries(${lib_name} PUBLIC faasm::common_deps)
         add_library(faasm::${lib_name} ALIAS ${lib_name})
     endfunction()
     function(faasm_private_lib lib_name)
         add_library(${lib_name} STATIC ${ARGN})
-        target_link_libraries(${lib_name} PRIVATE faasm::common_deps)
+        target_link_libraries(${lib_name} PUBLIC faasm::common_deps)
         target_compile_options(${lib_name} PRIVATE "-fPIC")
         add_library(faasm::${lib_name} ALIAS ${lib_name})
     endfunction()
@@ -207,6 +207,9 @@ target_include_directories(faasm_common_deps INTERFACE
     # Faasm
     ${FAASM_INCLUDE_DIR}
     ${FAASM_PYTHON_LIB_DIR}
+)
+target_compile_definitions(faasm_common_deps INTERFACE
+    BOOST_NO_TYPEID=1 # Prevent odd crashes within asio implementation
 )
 
 # Faasm SGX support
