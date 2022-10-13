@@ -296,13 +296,6 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     return returnValue;
 }
 
-void WAMRWasmModule::writeStringToWasmMemory(const std::string& strHost,
-                                             char* strWasm)
-{
-    validateNativePointer(strWasm, strHost.size());
-    std::copy(strHost.begin(), strHost.end(), strWasm);
-}
-
 void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
                                               char* envBuffWasm)
 {

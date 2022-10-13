@@ -53,6 +53,13 @@ SGX_ALLOWED_FUNCS = [
     ["demo", "chain_named_c"],
     # Environment
     ["demo", "argc_argv_test"],
+    ["demo", "exit"],
+    # Filesystem
+    ["demo", "filedescriptor"],
+    ["demo", "fread"],
+    ["demo", "fstat"],
+    # Ported libs
+    ["imagemagick", "main"],
 ]
 
 

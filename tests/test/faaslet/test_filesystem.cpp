@@ -82,11 +82,13 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test fstat",
-                 "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fstat", "[faaslet]")
 {
     auto req = setUpContext("demo", "fstat");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -94,11 +96,13 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test file operations",
-                 "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test file operations", "[faaslet]")
 {
     auto req = setUpContext("demo", "file");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -106,11 +110,13 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test file descriptors",
-                 "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test file descriptors", "[faaslet]")
 {
     auto req = setUpContext("demo", "filedescriptor");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -118,5 +124,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 }

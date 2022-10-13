@@ -40,14 +40,15 @@ struct WAMRModuleMixin
 
     // ---- Native address - WASM offset translation and bound-checks ----
 
-    // Validate that a memory range defined by a pointer and a size is a valid
-    // offset in the module's WASM linear memory.
-    // bool validateNativePointer(void* nativePtr, size_t size);
-    bool validateNativePointer(void* nativePtr, int size)
+    // Validate that a native address (i.e. pointer) points inside WASM's
+    // linear memory
+    void validateNativePointer(void* nativePtr, int size)
     {
         auto moduleInstance = this->underlying().getModuleInstance();
-        return wasm_runtime_validate_native_addr(
-          moduleInstance, nativePtr, size);
+        if (!(wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size)))
+        {
+            throw std::runtime_error("Native pointer is not in WASM's memory");
+        }
     }
 
     // Convert a native pointer to the corresponding offset in the WASM linear
@@ -77,6 +78,14 @@ struct WAMRModuleMixin
             throw std::runtime_error("Offset out of WAMR memory");
         }
         return static_cast<uint8_t*>(nativePtr);
+    }
+
+    // Helper method to write one string to a buffer in the WASM linear memory
+    void writeStringToWasmMemory(const std::string& strHost,
+                                 char* strWasm)
+    {
+        validateNativePointer(strWasm, strHost.size());
+        std::copy(strHost.begin(), strHost.end(), strWasm);
     }
 
     // Helper function to write a string array to a buffer in the WASM linear

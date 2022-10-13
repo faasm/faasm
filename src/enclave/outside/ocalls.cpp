@@ -83,8 +83,54 @@ extern "C"
     void ocallLogWamr(const char* msg) { printf("%s", msg); }
 
     // ---------------------------------------
+    // Env Filesystem calls
+    // ---------------------------------------
+
+    uint32_t doWasiDup(uint32_t fd)
+    {
+        storage::FileSystem& fs = wasm::getExecutingEnclaveInterface()->getFileSystem();
+        return fs.dup(fd);
+    }
+
+    uint32_t ocallDup(uint32_t fd)
+    {
+        return doWasiDup(fd);
+    }
+
+    // ---------------------------------------
     // WASI Filesystem calls
     // ---------------------------------------
+
+    int32_t doFileStat(uint32_t fd,
+                       const std::string& relativePath,
+                       uint8_t* wasiFiletype,
+                       uint64_t* st_dev,
+                       uint64_t* st_ino,
+                       uint64_t* st_nlink,
+                       uint64_t* st_size,
+                       uint64_t* st_atim,
+                       uint64_t* st_mtim,
+                       uint64_t* st_ctim)
+    {
+        wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
+        storage::FileSystem& fs = ei->getFileSystem();
+        storage::FileDescriptor& fileDesc = fs.getFileDescriptor(fd);
+        storage::Stat statNative = fileDesc.stat(relativePath);
+        if (statNative.failed) {
+            return statNative.wasiErrno;
+        }
+
+        *st_dev = statNative.st_dev;
+        *st_ino = statNative.st_ino;
+        *wasiFiletype = statNative.wasiFiletype;
+        *st_nlink = statNative.st_nlink;
+        *st_size = statNative.st_size;
+        *st_atim = statNative.st_atim;
+        *st_mtim = statNative.st_mtim;
+        *st_ctim = statNative.st_ctim;
+
+        return __WASI_ESUCCESS;
+    }
 
     int32_t ocallWasiFdFdstatGet(int32_t fd,
                                  uint8_t* wasiFileType,
@@ -108,6 +154,45 @@ extern "C"
         return __WASI_ESUCCESS;
     }
 
+    int32_t ocallWasiFdFilestatGet(int32_t fd,
+                                   uint8_t* wasiFiletype,
+                                   uint64_t* st_dev,
+                                   uint64_t* st_ino,
+                                   uint64_t* st_nlink,
+                                   uint64_t* st_size,
+                                   uint64_t* st_atim,
+                                   uint64_t* st_mtim,
+                                   uint64_t* st_ctim)
+    {
+        return doFileStat(fd,
+                          "",
+                          wasiFiletype,
+                          st_dev,
+                          st_ino,
+                          st_nlink,
+                          st_size,
+                          st_atim,
+                          st_mtim,
+                          st_ctim);
+    }
+
+    int32_t ocallWasiFdPrestatDirName(int32_t fd,
+                                      char* path,
+                                      int32_t pathLen)
+    {
+        wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
+        storage::FileSystem& fs = ei->getFileSystem();
+        if (!fs.fileDescriptorExists(fd)) {
+            SPDLOG_ERROR("Fd {} does not exist in filesystem", fd);
+            return __WASI_EBADF;
+        }
+
+        storage::FileDescriptor& fileDesc = fs.getFileDescriptor(fd);
+        std::strncpy(path, fileDesc.getPath().c_str(), pathLen);
+
+        return __WASI_ESUCCESS;
+    }
+
     int32_t ocallWasiFdPrestatGet(int32_t fd,
                                   uint8_t* prType,
                                   uint32_t* nameLen)
@@ -126,7 +211,54 @@ extern "C"
         return __WASI_ESUCCESS;
     }
 
-    // TODO: this is not working
+    int32_t ocallWasiFdRead(int32_t fd,
+                            uint8_t** ioVecBases,
+                            int32_t ioVecBasesSize,
+                            size_t* ioVecLens,
+                            int32_t ioVecLensSize,
+                            int32_t ioVecCountWasm,
+                            int32_t* bytesRead)
+    {
+        wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
+        storage::FileSystem& fileSystem = ei->getFileSystem();
+        std::string path = fileSystem.getPathForFd(fd);
+        storage::FileDescriptor fileDesc = fileSystem.getFileDescriptor(fd);
+
+        // Build a ioVec vector from the serialised arguments
+        std::vector<::iovec> ioVecNative(ioVecCountWasm, (::iovec){});
+        for (int i = 0; i < ioVecCountWasm; i++) {
+            ioVecNative[i] = {
+                .iov_base = ioVecBases[i],
+                .iov_len = ioVecLens[i],
+            };
+        }
+
+        // Do the read
+        *bytesRead =
+          ::readv(fileDesc.getLinuxFd(), ioVecNative.data(), ioVecCountWasm);
+
+        // Copy the contents from the vector back to the pointers for
+        // serialisation
+        for (int i = 0; i < ioVecCountWasm; i++) {
+            ioVecBases[i] = reinterpret_cast<uint8_t*>(ioVecNative[i].iov_base);
+            ioVecLens[i] = reinterpret_cast<size_t>(ioVecNative[i].iov_base);
+        }
+
+        return __WASI_ESUCCESS;
+    }
+
+    int32_t ocallWasiFdSeek(int32_t fd,
+                            int64_t offset,
+                            int32_t whence,
+                            __wasi_filesize_t* newOffset)
+    {
+        wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
+        storage::FileSystem& fs = ei->getFileSystem();
+        storage::FileDescriptor& fileDesc = fs.getFileDescriptor(fd);
+        auto wasiErrno = fileDesc.seek(offset, whence, newOffset);
+        return wasiErrno;
+    }
+
     int32_t ocallWasiFdWrite(int32_t fd,
                              uint8_t** ioVecBases,
                              int32_t ioVecBasesSize,
@@ -164,6 +296,99 @@ extern "C"
         bool isStd = fd <= 2;
         if (isStd && conf.captureStdout == "on") {
             ei->captureStdout(ioVecNative.data(), ioVecCountWasm);
+        }
+
+        return __WASI_ESUCCESS;
+    }
+
+    int32_t ocallWasiPathFilestatGet(int32_t fd,
+                                     char* path,
+                                     int32_t pathLen,
+                                     uint8_t* wasiFiletype,
+                                     uint64_t* st_dev,
+                                     uint64_t* st_ino,
+                                     uint64_t* st_nlink,
+                                     uint64_t* st_size,
+                                     uint64_t* st_atim,
+                                     uint64_t* st_mtim,
+                                     uint64_t* st_ctim)
+    {
+        return doFileStat(fd,
+                          std::string(path, pathLen),
+                          wasiFiletype,
+                          st_dev,
+                          st_ino,
+                          st_nlink,
+                          st_size,
+                          st_atim,
+                          st_mtim,
+                          st_ctim);
+    }
+
+    int32_t ocallWasiPathOpen(int32_t fdNative,
+                              int32_t lookupFlags,
+                              char* path,
+                              int32_t pathLen,
+                              int32_t openFlags,
+                              int64_t rightsBase,
+                              int64_t rightsInheriting,
+                              int32_t fdFlags,
+                              int32_t* fdWasm)
+    {
+        wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
+        storage::FileSystem& fileSystem = ei->getFileSystem();
+        std::string pathStr(path, pathLen);
+        *fdWasm = fileSystem.openFileDescriptor(fdNative,
+                                                pathStr,
+                                                rightsBase,
+                                                rightsInheriting,
+                                                lookupFlags,
+                                                openFlags,
+                                                fdFlags);
+
+        if (*fdWasm < 0) {
+            return -1 * *fdWasm;
+        }
+
+        return __WASI_ESUCCESS;
+    }
+
+    int32_t ocallWasiPathRename(int32_t oldFd,
+                                char* oldPath,
+                                int32_t oldPathLen,
+                                int32_t newFd,
+                                char* newPath,
+                                int32_t newPathLen)
+    {
+        wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
+        std::string newPathStr(newPath, newPathLen);
+        std::string oldPathStr(oldPath, oldPathLen);
+
+        storage::FileSystem& fs = ei->getFileSystem();
+        storage::FileDescriptor& oldFileDesc = fs.getFileDescriptor(oldFd);
+        storage::FileDescriptor& newFileDesc = fs.getFileDescriptor(newFd);
+
+        const std::string& fullNewPath = newFileDesc.absPath(newPathStr);
+        bool success = oldFileDesc.rename(fullNewPath, oldPathStr);
+        if (!success) {
+            return oldFileDesc.getWasiErrno();
+        }
+
+        return __WASI_ESUCCESS;
+    }
+
+    int32_t ocallWasiPathUnlinkFile(int32_t fd,
+                                    char* path,
+                                    int32_t pathLen)
+    {
+        wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
+        storage::FileSystem& fs = ei->getFileSystem();
+        std::string pathStr(path, pathLen);
+        storage::FileDescriptor& fileDesc = fs.getFileDescriptor(fd);
+        bool success = fileDesc.unlink(pathStr);
+
+        if (!success) {
+            return fileDesc.getWasiErrno();
         }
 
         return __WASI_ESUCCESS;

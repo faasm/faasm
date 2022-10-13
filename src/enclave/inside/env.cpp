@@ -53,9 +53,16 @@ static int wasi_args_sizes_get(wasm_exec_env_t execEnv,
 
 static void wasi_proc_exit(wasm_exec_env_t execEnv, int returnCode)
 {
-    SPDLOG_DEBUG_SGX("S - proc_exit");
+    SPDLOG_DEBUG_SGX("S - proc_exit %i", returnCode);
 
-    // TODO - implement
+    std::shared_ptr<wasm::EnclaveWasmModule> module = wasm::getExecutingEnclaveWasmModule(execEnv);
+    if (module == nullptr) {
+        SPDLOG_ERROR_SGX("Can't find executing module");
+        returnCode = 1;
+    }
+    std::string resStr = WAMR_EXIT_PREFIX;
+    resStr += std::to_string(returnCode);
+    wasm_runtime_set_exception(module->getModuleInstance(), resStr.c_str());
 }
 
 static NativeSymbol wasiNs[] = {

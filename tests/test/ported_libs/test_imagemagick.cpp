@@ -64,5 +64,9 @@ TEST_CASE_METHOD(ImageMagickTestFixture, "Test executing ImageMagick", "[libs]")
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 }

@@ -30,6 +30,9 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     uint32_t callFunction(uint32_t argcIn, char** argvIn);
 
+    // TODO: remove duplication with WAMRWasmModule
+    int executeWasmFunction(const std::string& funcName);
+
     WASMModuleInstanceCommon* getModuleInstance();
 
     // ---- argc/arv ----

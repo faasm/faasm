@@ -30,8 +30,6 @@ class WAMRWasmModule final
     int32_t executeFunction(faabric::Message& msg) override;
 
     // ----- Helper functions -----
-    void writeStringToWasmMemory(const std::string& strHost, char* strWasm);
-
     void writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm, char* envBuffWasm);
 
     // ----- Address translation and validation -----

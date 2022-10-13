@@ -37,6 +37,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,

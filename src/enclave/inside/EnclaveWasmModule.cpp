@@ -99,6 +99,18 @@ bool EnclaveWasmModule::loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize)
 
 uint32_t EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
 {
+    int returnValue = 0;
+    // First, run wasm initialuiisers
+    returnValue = executeWasmFunction(WASM_CTORS_FUNC_NAME);
+    if (returnValue != 0) {
+        SPDLOG_ERROR_SGX("Error executing WASM ctors function");
+        throw std::runtime_error("Error executing WASM ctors function");
+    }
+
+    // Second, run the entrypoint in the WASM module
+    prepareArgcArgv(argcIn, argvIn);
+    executeWasmFunction(ENTRY_FUNC_NAME);
+    /*
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, ENTRY_FUNC_NAME, nullptr);
 
@@ -135,7 +147,70 @@ uint32_t EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
     } else {
         SPDLOG_DEBUG_SGX("Success calling WASM function");
     }
+    */
 
+    return returnValue;
+}
+
+// TODO(csegarragonz): merge this with the implementation in WAMRWasmModule
+int EnclaveWasmModule::executeWasmFunction(const std::string& funcName)
+{
+    SPDLOG_DEBUG_SGX("WAMR executing function from string %s", funcName.c_str());
+
+    WASMFunctionInstanceCommon* func =
+      wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
+    if (func == nullptr) {
+        SPDLOG_ERROR_SGX("Did not find function %s", funcName.c_str());
+        throw std::runtime_error("Did not find named wasm function");
+    }
+
+    // Note, for some reason WAMR sets the return value in the argv array you
+    // pass it, therefore we should provide a single integer argv even though
+    // it's not actually used
+    std::vector<uint32_t> argv = { 0 };
+
+    // Invoke the function
+    bool success = aot_create_exec_env_and_call_function(
+      reinterpret_cast<AOTModuleInstance*>(moduleInstance),
+      reinterpret_cast<AOTFunctionInstance*>(func),
+      0,
+      argv.data());
+
+    uint32_t returnValue = argv[0];
+
+    // Check function result
+    if (!success || returnValue != 0) {
+        std::string errorMessage(
+          ((AOTModuleInstance*)moduleInstance)->cur_exception);
+
+        // Strip the prefix that WAMR puts on internally to exceptions
+        errorMessage = errorMessage.substr(std::string(WAMR_INTERNAL_EXCEPTION_PREFIX).size(), errorMessage.size());
+        SPDLOG_ERROR_SGX("Error message: %s", errorMessage.c_str());
+
+        // If we have set the exit code in the host interface (through
+        // wasi_proc_exit) then we remove the prefix to parse the return
+        // value
+        if (errorMessage.rfind(WAMR_EXIT_PREFIX, 0) != std::string::npos) {
+            std::string returnValueString = errorMessage.substr(std::string(WAMR_EXIT_PREFIX).size(), errorMessage.size());
+            int parsedReturnValue = std::stoi(returnValueString);
+
+            SPDLOG_ERROR_SGX("Caught WAMR exit code %i (from %s)",
+                             parsedReturnValue,
+                             errorMessage.c_str());
+            return parsedReturnValue;
+        }
+
+        // SPDLOG_ERROR_SGX("Caught wasm runtime exception: %s", errorMessage.c_str());
+
+        // Ensure return value is not zero if not successful
+        if (returnValue == 0) {
+            returnValue = 1;
+        }
+
+        return returnValue;
+    }
+
+    SPDLOG_DEBUG_SGX("WAMR finished executing %s", funcName.c_str());
     return returnValue;
 }
 
