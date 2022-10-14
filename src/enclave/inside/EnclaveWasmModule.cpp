@@ -36,7 +36,6 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     wamrRteArgs.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
     wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
 
-
     // Initialise WAMR runtime
     bool success = wasm_runtime_full_init(&wamrRteArgs);
 
@@ -59,21 +58,18 @@ bool EnclaveWasmModule::loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize)
     std::vector<uint8_t> wasmBytes((uint8_t*)wasmOpCodePtr,
                                    (uint8_t*)wasmOpCodePtr + wasmOpCodeSize);
 
-    wasmModule = wasm_runtime_load(wasmBytes.data(),
-                                   wasmBytes.size(),
-                                   errorBuffer,
-                                   WAMR_ERROR_BUFFER_SIZE);
+    wasmModule = wasm_runtime_load(
+      wasmBytes.data(), wasmBytes.size(), errorBuffer, WAMR_ERROR_BUFFER_SIZE);
 
     if (wasmModule == nullptr) {
         return false;
     }
 
-    moduleInstance =
-      wasm_runtime_instantiate(wasmModule,
-                               WAMR_STACK_SIZE,
-                               WAMR_HEAP_SIZE,
-                               errorBuffer,
-                               WAMR_ERROR_BUFFER_SIZE);
+    moduleInstance = wasm_runtime_instantiate(wasmModule,
+                                              WAMR_STACK_SIZE,
+                                              WAMR_HEAP_SIZE,
+                                              errorBuffer,
+                                              WAMR_ERROR_BUFFER_SIZE);
 
     // Sense-check the module after instantiation
     auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
@@ -81,15 +77,17 @@ bool EnclaveWasmModule::loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize)
       ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
 
     if (aotMem->num_bytes_per_page != WASM_BYTES_PER_PAGE) {
-        SPDLOG_ERROR_SGX("WAMR module bytes per page wrong, %i != %i, overriding",
-                         aotMem->num_bytes_per_page,
-                         WASM_BYTES_PER_PAGE);
+        SPDLOG_ERROR_SGX(
+          "WAMR module bytes per page wrong, %i != %i, overriding",
+          aotMem->num_bytes_per_page,
+          WASM_BYTES_PER_PAGE);
         throw std::runtime_error("WAMR module bytes per page wrong");
     }
 
     if (moduleInstance == nullptr) {
         std::string errorMsg = std::string(errorBuffer);
-        SPDLOG_ERROR_SGX("Failed to instantiate WAMR module: \n%s", errorMsg.c_str());
+        SPDLOG_ERROR_SGX("Failed to instantiate WAMR module: \n%s",
+                         errorMsg.c_str());
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
     currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
@@ -109,45 +107,7 @@ uint32_t EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
 
     // Second, run the entrypoint in the WASM module
     prepareArgcArgv(argcIn, argvIn);
-    executeWasmFunction(ENTRY_FUNC_NAME);
-    /*
-    WASMFunctionInstanceCommon* func =
-      wasm_runtime_lookup_function(moduleInstance, ENTRY_FUNC_NAME, nullptr);
-
-    prepareArgcArgv(argcIn, argvIn);
-
-    // Set dummy argv to capture return value
-    std::vector<uint32_t> argv = { 0 };
-
-    bool success =
-      aot_create_exec_env_and_call_function((AOTModuleInstance*)moduleInstance,
-                                            (AOTFunctionInstance*)func,
-                                            0x0,
-                                            argv.data());
-
-    uint32_t returnValue = argv[0];
-
-    if (!success || returnValue != 0) {
-        std::string errorMessage(
-          ((AOTModuleInstance*)moduleInstance)->cur_exception);
-
-        // Strip the prefix that WAMR puts on internally
-        std::string strippedErrorMessage = errorMessage;
-        size_t pos = strippedErrorMessage.find(WAMR_INTERNAL_EXCEPTION_PREFIX);
-        if (pos != std::string::npos) {
-            strippedErrorMessage.erase(pos, strlen(WAMR_INTERNAL_EXCEPTION_PREFIX));
-        }
-
-        SPDLOG_ERROR_SGX("Caught WASM runtime exception: %s",
-                         strippedErrorMessage.c_str());
-
-        if (returnValue == 0) {
-            returnValue = 1;
-        }
-    } else {
-        SPDLOG_DEBUG_SGX("Success calling WASM function");
-    }
-    */
+    returnValue = executeWasmFunction(ENTRY_FUNC_NAME);
 
     return returnValue;
 }
@@ -155,7 +115,8 @@ uint32_t EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
 // TODO(csegarragonz): merge this with the implementation in WAMRWasmModule
 int EnclaveWasmModule::executeWasmFunction(const std::string& funcName)
 {
-    SPDLOG_DEBUG_SGX("WAMR executing function from string %s", funcName.c_str());
+    SPDLOG_DEBUG_SGX("WAMR executing function from string %s",
+                     funcName.c_str());
 
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
@@ -184,14 +145,17 @@ int EnclaveWasmModule::executeWasmFunction(const std::string& funcName)
           ((AOTModuleInstance*)moduleInstance)->cur_exception);
 
         // Strip the prefix that WAMR puts on internally to exceptions
-        errorMessage = errorMessage.substr(std::string(WAMR_INTERNAL_EXCEPTION_PREFIX).size(), errorMessage.size());
+        errorMessage = errorMessage.substr(
+          std::string(WAMR_INTERNAL_EXCEPTION_PREFIX).size(),
+          errorMessage.size());
         SPDLOG_ERROR_SGX("Error message: %s", errorMessage.c_str());
 
         // If we have set the exit code in the host interface (through
         // wasi_proc_exit) then we remove the prefix to parse the return
         // value
         if (errorMessage.rfind(WAMR_EXIT_PREFIX, 0) != std::string::npos) {
-            std::string returnValueString = errorMessage.substr(std::string(WAMR_EXIT_PREFIX).size(), errorMessage.size());
+            std::string returnValueString = errorMessage.substr(
+              std::string(WAMR_EXIT_PREFIX).size(), errorMessage.size());
             int parsedReturnValue = std::stoi(returnValueString);
 
             SPDLOG_ERROR_SGX("Caught WAMR exit code %i (from %s)",
@@ -200,7 +164,8 @@ int EnclaveWasmModule::executeWasmFunction(const std::string& funcName)
             return parsedReturnValue;
         }
 
-        // SPDLOG_ERROR_SGX("Caught wasm runtime exception: %s", errorMessage.c_str());
+        // SPDLOG_ERROR_SGX("Caught wasm runtime exception: %s",
+        // errorMessage.c_str());
 
         // Ensure return value is not zero if not successful
         if (returnValue == 0) {
@@ -275,7 +240,7 @@ uint32_t EnclaveWasmModule::getCurrentBrk() const
 
 uint32_t EnclaveWasmModule::shrinkMemory(size_t nBytes)
 {
-    if (!isWasmPageAligned((int32_t) nBytes)) {
+    if (!isWasmPageAligned((int32_t)nBytes)) {
         SPDLOG_ERROR_SGX("Shrink size not page aligned %li", nBytes);
         throw std::runtime_error("New break not page aligned");
     }

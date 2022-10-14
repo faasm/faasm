@@ -1,8 +1,8 @@
 #include <enclave/inside/EnclaveWasmModule.h>
 #include <enclave/inside/native.h>
 #include <enclave/inside/ocalls.h>
-#include <wamr/types.h>
 #include <wamr/WAMRModuleMixin.h>
+#include <wamr/types.h>
 #include <wasm/WasmEnvironment.h>
 
 #include <string>
@@ -13,11 +13,6 @@
 #define PATH_MAX 4096
 
 namespace sgx {
-uint32_t doWasiDup(uint32_t fd)
-{
-    return 0;
-}
-
 static uint32_t __wasi_fd_dup_wrapper(wasm_exec_env_t execEnv,
                                       uint32_t fd,
                                       uint32_t* resFd)
@@ -97,12 +92,22 @@ uint32_t getFaasmFilesystemApi(NativeSymbol** nativeSymbols)
 
 // ---------- WASI symbols ----------
 
+static uint32_t wasi_fd_allocate(wasm_exec_env_t exec_env,
+                                 __wasi_fd_t fd,
+                                 __wasi_filesize_t offset,
+                                 __wasi_filesize_t len)
+{
+    SPDLOG_DEBUG_SGX("wasi_fd_allocate %i", fd);
+    throw std::runtime_error("wasi_fd_allocate not implemented");
+}
+
 static int32_t wasi_fd_close(wasm_exec_env_t execEnv, int32_t fd)
 {
     // We ignore closing for now
     SPDLOG_DEBUG_SGX("S - wasi_fd_close %i", fd);
 
-    return __WASI_ESUCCESS;;
+    return __WASI_ESUCCESS;
+    ;
 }
 
 // For fd_fdstat_get we need to:
@@ -124,11 +129,9 @@ static int32_t wasi_fd_fdstat_get(wasm_exec_env_t execEnv,
     uint64_t rightsInheriting;
     int32_t returnValue;
     sgx_status_t sgxReturnValue;
-    if ((sgxReturnValue = ocallWasiFdFdstatGet(&returnValue,
-                                                    fd,
-                                                    &wasiFileType,
-                                                    &rightsBase,
-                                                    &rightsInheriting)) != SGX_SUCCESS) {
+    if ((sgxReturnValue = ocallWasiFdFdstatGet(
+           &returnValue, fd, &wasiFileType, &rightsBase, &rightsInheriting)) !=
+        SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
@@ -171,11 +174,23 @@ static int32_t wasi_fd_filestat_get(wasm_exec_env_t execEnv,
                                                  &(statWasm->st_size),
                                                  &(statWasm->st_atim),
                                                  &(statWasm->st_mtim),
-                                                 &(statWasm->st_ctim))) != SGX_SUCCESS) {
+                                                 &(statWasm->st_ctim))) !=
+        SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
     return returnValue;
+}
+
+static uint32_t wasi_fd_pread(wasm_exec_env_t exec_env,
+                              __wasi_fd_t fd,
+                              iovec_app_t* iovecWasm,
+                              uint32_t iovecLen,
+                              __wasi_filesize_t offset,
+                              uint32_t* nReadWasm)
+{
+    SPDLOG_DEBUG_SGX("S - fd_pread %i", fd);
+    throw std::runtime_error("fd_pread not implemented");
 }
 
 // To run fd_prestat_dir_name we need to:
@@ -195,10 +210,8 @@ static int32_t wasi_fd_prestat_dir_name(wasm_exec_env_t execEnv,
     int returnValue;
     sgx_status_t sgxReturnValue;
     char retPath[pathLen];
-    if ((sgxReturnValue = ocallWasiFdPrestatDirName(&returnValue,
-                                                    fd,
-                                                    retPath,
-                                                    pathLen)) != SGX_SUCCESS) {
+    if ((sgxReturnValue = ocallWasiFdPrestatDirName(
+           &returnValue, fd, retPath, pathLen)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
@@ -225,11 +238,23 @@ static int32_t wasi_fd_prestat_get(wasm_exec_env_t execEnv,
     if ((sgxReturnValue = ocallWasiFdPrestatGet(&returnValue,
                                                 fd,
                                                 &(prestatWasm->pr_type),
-                                                &(prestatWasm->pr_name_len))) != SGX_SUCCESS) {
+                                                &(prestatWasm->pr_name_len))) !=
+        SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
     return returnValue;
+}
+
+static uint32_t wasi_fd_pwrite(wasm_exec_env_t exec_env,
+                               __wasi_fd_t fd,
+                               const iovec_app_t* iovecWasm,
+                               uint32_t iovecLen,
+                               __wasi_filesize_t offset,
+                               uint32_t* nWrittenWasm)
+{
+    SPDLOG_DEBUG_SGX("S - fd_pwrite {}");
+    throw std::runtime_error("fd_pwrite not implemented");
 }
 
 // To implement fd_read we need to:
@@ -261,7 +286,8 @@ static int32_t wasi_fd_read(wasm_exec_env_t execEnv,
         module->validateWasmOffset(ioVecBuffWasm[i].buffOffset,
                                    sizeof(char) * ioVecBuffWasm[i].buffLen);
 
-        ioVecBases[i] = module->wamrWasmPointerToNative(ioVecBuffWasm[i].buffOffset);
+        ioVecBases[i] =
+          module->wamrWasmPointerToNative(ioVecBuffWasm[i].buffOffset);
         ioVecLens[i] = ioVecBuffWasm[i].buffLen;
     }
 
@@ -304,11 +330,31 @@ static int wasi_fd_seek(wasm_exec_env_t execEnv,
 
     int returnValue;
     sgx_status_t sgxReturnValue;
-    if ((sgxReturnValue = ocallWasiFdSeek(&returnValue,
-                                          fd,
-                                          offset,
-                                          whence,
-                                          newOffset)) != SGX_SUCCESS) {
+    if ((sgxReturnValue = ocallWasiFdSeek(
+           &returnValue, fd, offset, whence, newOffset)) != SGX_SUCCESS) {
+    }
+
+    return returnValue;
+}
+
+static uint32_t wasi_fd_sync(wasm_exec_env_t exec_env, __wasi_fd_t fd)
+{
+    SPDLOG_DEBUG_SGX("S - wasi_fd_sync %i", fd);
+    throw std::runtime_error("fd_sync not implemented");
+}
+
+static int32_t wasi_fd_tell(wasm_exec_env_t execEnv,
+                            int32_t fd,
+                            int32_t* resOffset)
+{
+    SPDLOG_DEBUG_SGX("S - wasi_fd_tell %i", fd);
+    GET_EXECUTING_MODULE_AND_CHECK(execEnv);
+    module->validateNativePointer(resOffset, sizeof(int32_t));
+
+    int32_t returnValue;
+    sgx_status_t sgxReturnValue;
+    if ((sgxReturnValue = ocallWasiFdTell(&returnValue, fd, resOffset)) !=
+        SGX_SUCCESS) {
     }
 
     return returnValue;
@@ -343,7 +389,8 @@ static int wasi_fd_write(wasm_exec_env_t execEnv,
         module->validateWasmOffset(ioVecBuffWasm[i].buffOffset,
                                    sizeof(char) * ioVecBuffWasm[i].buffLen);
 
-        ioVecBases[i] = module->wamrWasmPointerToNative(ioVecBuffWasm[i].buffOffset);
+        ioVecBases[i] =
+          module->wamrWasmPointerToNative(ioVecBuffWasm[i].buffOffset);
         ioVecLens[i] = ioVecBuffWasm[i].buffLen;
     }
 
@@ -382,9 +429,9 @@ static int32_t wasi_path_filestat_get(wasm_exec_env_t execEnv,
                                       int32_t pathLen,
                                       __wasi_filestat_t* statWasm)
 {
-    SPDLOG_DEBUG_SGX("S - wasi_path_filestat_get %i", fd);
     GET_EXECUTING_MODULE_AND_CHECK(execEnv);
     module->validateNativePointer(path, pathLen);
+    SPDLOG_DEBUG_SGX("S - wasi_path_filestat_get %i (%s)", fd, path);
 
     int32_t returnValue;
     sgx_status_t sgxReturnValue;
@@ -399,12 +446,25 @@ static int32_t wasi_path_filestat_get(wasm_exec_env_t execEnv,
                                                    &(statWasm->st_size),
                                                    &(statWasm->st_atim),
                                                    &(statWasm->st_mtim),
-                                                   &(statWasm->st_ctim))) != SGX_SUCCESS) {
+                                                   &(statWasm->st_ctim))) !=
+        SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
-    SPDLOG_DEBUG_SGX("Return value: %i", returnValue);
     return returnValue;
+}
+
+static uint32_t wasi_path_filestat_set_times(wasm_exec_env_t exec_env,
+                                             __wasi_fd_t fd,
+                                             __wasi_lookupflags_t flags,
+                                             const char* path,
+                                             uint32_t pathLen,
+                                             __wasi_timestamp_t stAtim,
+                                             __wasi_timestamp_t stMtim,
+                                             __wasi_fstflags_t fstflags)
+{
+    SPDLOG_DEBUG_SGX("wasi_path_filestat_set_times %i", fd);
+    throw std::runtime_error("wasi_path_filestat_set_times not implemented");
 }
 
 static int32_t wasi_path_link(wasm_exec_env_t exec_env,
@@ -419,7 +479,6 @@ static int32_t wasi_path_link(wasm_exec_env_t exec_env,
     SPDLOG_DEBUG_SGX("S - wasi_path_link");
     throw std::runtime_error("wasi_path_link not implemented");
 }
-
 
 // To do path_open we need to:
 // 1. Validate the provided pointers
@@ -436,12 +495,12 @@ static int32_t wasi_path_open(wasm_exec_env_t execEnv,
                               int32_t fdFlags,
                               int32_t* fdWasm)
 {
-    SPDLOG_DEBUG_SGX("S - wasi_path_open %i", fdNative);
     GET_EXECUTING_MODULE_AND_CHECK(execEnv);
 
     // Validate WASM pointers
     module->validateNativePointer(path, pathLen);
     module->validateNativePointer(fdWasm, sizeof(int32_t));
+    SPDLOG_DEBUG_SGX("S - wasi_path_open %i (%s)", fdNative, path);
 
     int32_t returnValue;
     sgx_status_t sgxReturnValue;
@@ -461,16 +520,30 @@ static int32_t wasi_path_open(wasm_exec_env_t execEnv,
     return returnValue;
 }
 
-static int32_t wasi_path_readlink(wasm_exec_env_t exec_env,
-                                  uint32_t fd,
-                                  const char* path,
-                                  uint32_t pathLen,
+static int32_t wasi_path_readlink(wasm_exec_env_t execEnv,
+                                  int32_t fd,
+                                  char* path,
+                                  int32_t pathLen,
                                   char* buf,
-                                  uint32_t bufLen,
-                                  uint32_t* bufApp)
+                                  int32_t bufLen,
+                                  int32_t* resBytesUsed)
 {
-    SPDLOG_DEBUG_SGX("S - path_readlink");
-    return 0;
+    GET_EXECUTING_MODULE_AND_CHECK(execEnv);
+
+    // Validate WASM pointers
+    module->validateNativePointer(path, pathLen);
+    module->validateNativePointer(resBytesUsed, sizeof(int32_t));
+    SPDLOG_DEBUG_SGX("S - wasi_path_readlink %i (%s)", fd, path);
+
+    int32_t returnValue;
+    sgx_status_t sgxReturnValue;
+    if ((sgxReturnValue = ocallWasiPathReadlink(
+           &returnValue, fd, path, pathLen, buf, bufLen, resBytesUsed)) !=
+        SGX_SUCCESS) {
+        SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
+    }
+
+    return returnValue;
 }
 
 static int32_t wasi_path_remove_directory(wasm_exec_env_t exec_env,
@@ -479,7 +552,7 @@ static int32_t wasi_path_remove_directory(wasm_exec_env_t exec_env,
                                           char* c)
 {
     SPDLOG_DEBUG_SGX("S - path_remove_directory");
-    return 0;
+    throw std::runtime_error("path_remove_directory not implemented");
 }
 
 static int32_t wasi_path_rename(wasm_exec_env_t execEnv,
@@ -536,10 +609,8 @@ static int32_t wasi_path_unlink_file(wasm_exec_env_t execEnv,
 
     int32_t returnValue;
     sgx_status_t sgxReturnValue;
-    if ((sgxReturnValue = ocallWasiPathUnlinkFile(&returnValue,
-                                                  fd,
-                                                  path,
-                                                  pathLen)) != SGX_SUCCESS) {
+    if ((sgxReturnValue = ocallWasiPathUnlinkFile(
+           &returnValue, fd, path, pathLen)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
@@ -547,18 +618,24 @@ static int32_t wasi_path_unlink_file(wasm_exec_env_t execEnv,
 }
 
 static NativeSymbol wasiNs[] = {
+    REG_WASI_NATIVE_FUNC(fd_allocate, "(iII)i"),
     REG_WASI_NATIVE_FUNC(fd_close, "(i)i"),
     REG_WASI_NATIVE_FUNC(fd_fdstat_get, "(ii)i"),
     REG_WASI_NATIVE_FUNC(fd_fdstat_set_flags, "(ii)i"),
     REG_WASI_NATIVE_FUNC(fd_filestat_get, "(i*)i"),
+    REG_WASI_NATIVE_FUNC(fd_pread, "(i*iI*)i"),
     REG_WASI_NATIVE_FUNC(fd_prestat_dir_name, "(i*~)i"),
     REG_WASI_NATIVE_FUNC(fd_prestat_get, "(i*)i"),
     REG_WASI_NATIVE_FUNC(fd_read, "(i*i*)i"),
     REG_WASI_NATIVE_FUNC(fd_readdir, "(i*~I*)i"),
+    REG_WASI_NATIVE_FUNC(fd_pwrite, "(i*iI*)i"),
     REG_WASI_NATIVE_FUNC(fd_seek, "(iIi*)i"),
+    REG_WASI_NATIVE_FUNC(fd_sync, "(i)i"),
+    REG_WASI_NATIVE_FUNC(fd_tell, "(i*)i"),
     REG_WASI_NATIVE_FUNC(fd_write, "(iiii)i"),
     REG_WASI_NATIVE_FUNC(path_create_directory, "(i*~)i"),
     REG_WASI_NATIVE_FUNC(path_filestat_get, "(ii*~*)i"),
+    REG_WASI_NATIVE_FUNC(path_filestat_set_times, "(ii*~IIi)i"),
     REG_WASI_NATIVE_FUNC(path_link, "(ii*~i*~)i"),
     REG_WASI_NATIVE_FUNC(path_open, "(ii*~iIIi*)i"),
     REG_WASI_NATIVE_FUNC(path_readlink, "(i*~*~*)i"),

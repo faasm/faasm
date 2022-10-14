@@ -36,8 +36,8 @@ WAMR_ALLOWED_FUNCS = [
     ["demo", "fcntl"],
     ["demo", "file"],
     ["demo", "filedescriptor"],
-    ["demo", "fstat"],
     ["demo", "fread"],
+    ["demo", "fstat"],
     ["demo", "shared_file"],
     # Input output
     ["demo", "check_input"],
@@ -54,10 +54,14 @@ SGX_ALLOWED_FUNCS = [
     # Environment
     ["demo", "argc_argv_test"],
     ["demo", "exit"],
+    ["demo", "getenv"],
     # Filesystem
+    ["demo", "fcntl"],
+    ["demo", "file"],
     ["demo", "filedescriptor"],
     ["demo", "fread"],
     ["demo", "fstat"],
+    ["demo", "shared_file"],
     # Ported libs
     ["imagemagick", "main"],
 ]

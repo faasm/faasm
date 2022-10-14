@@ -2,9 +2,9 @@
 
 #include <conf/FaasmConfig.h>
 #ifndef FAASM_SGX_DISABLED_MODE
+#include <enclave/outside/EnclaveInterface.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
-#include <enclave/outside/EnclaveInterface.h>
 #endif
 
 #include "faasm_fixtures.h"
@@ -18,12 +18,14 @@ class SgxTestFixture
     ~SgxTestFixture() { sgx::tearDownEnclave(); }
 };
 
-class SgxInternalTestFixture : public SgxTestFixture, public ExecutorContextTestFixture
+class SgxInternalTestFixture
+  : public SgxTestFixture
+  , public ExecutorContextTestFixture
 {
   public:
-      SgxInternalTestFixture() {}
+    SgxInternalTestFixture() {}
 
-      ~SgxInternalTestFixture() {}
+    ~SgxInternalTestFixture() {}
 };
 
 TEST_CASE("Test enclave set up and tear down", "[.][sgx]")
@@ -47,9 +49,7 @@ TEST_CASE_METHOD(SgxTestFixture, "Test SGX crypto checks", "[.][sgx]")
     REQUIRE_NOTHROW(sgx::checkSgxCrypto());
 }
 
-TEST_CASE_METHOD(SgxInternalTestFixture,
-                 "Test SGX-WAMR sbrk",
-                 "[sgx]")
+TEST_CASE_METHOD(SgxInternalTestFixture, "Test SGX-WAMR sbrk", "[sgx]")
 {
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     const std::string originalVm = conf.wasmVm;
@@ -66,7 +66,8 @@ TEST_CASE_METHOD(SgxInternalTestFixture,
                            &returnValue,
                            enclaveInterface.interfaceId,
                            "sbrk");
-    sgx::processECallErrors("Error running internal test: sbrk", sgxReturnValue, returnValue);
+    sgx::processECallErrors(
+      "Error running internal test: sbrk", sgxReturnValue, returnValue);
     REQUIRE(returnValue == FAASM_SGX_SUCCESS);
 }
 }

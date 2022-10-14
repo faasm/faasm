@@ -4,19 +4,19 @@
 
 #include <memory>
 
-#include "wasm_export.h"
 #include "bh_platform.h"
+#include "wasm_export.h"
 
 #include <sgx_report.h>
 #include <sgx_trts.h>
 #include <sgx_utils.h>
 
 // TODO: move elsewhere
-#define REQUIRE(cond) \
-    if (!(cond)) { \
-        SPDLOG_ERROR_SGX("Error testing assertion!"); \
-        return FAASM_SGX_INTERNAL_TEST_ERROR; \
-    } \
+#define REQUIRE(cond)                                                          \
+    if (!(cond)) {                                                             \
+        SPDLOG_ERROR_SGX("Error testing assertion!");                          \
+        return FAASM_SGX_INTERNAL_TEST_ERROR;                                  \
+    }
 
 // Implementation of the ECalls API
 extern "C"
@@ -122,7 +122,8 @@ extern "C"
         // chaining on the same enclave
         uint32_t returnValue = module->callFunction(argc, argv);
         if (returnValue != 0) {
-            SPDLOG_ERROR_SGX("Error trying to call function. Return value: %i", returnValue);
+            SPDLOG_ERROR_SGX("Error trying to call function. Return value: %i",
+                             returnValue);
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
 
@@ -170,7 +171,7 @@ extern "C"
 
             // Lastly, run the function to verify that the heap has not been
             // corrupted
-            char **argvIn = (char *[]){"function.wasm"};
+            char** argvIn = (char*[]){ "function.wasm" };
             REQUIRE(module->callFunction(1, argvIn) == 0);
         }
 

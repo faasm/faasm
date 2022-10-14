@@ -95,6 +95,19 @@ enclave{
                                     unsigned int bufferSize
         );
 
+        // ----- WASI Env Calls -----
+
+        int32_t ocallWasiEnvironGet(
+            [in, out, size=bufLen]  char* envBuf,
+                                    int32_t bufLen,
+            [out]                   int32_t* bytesWritten
+        );
+
+        int32_t ocallWasiEnvironSizesGet(
+            [in, out]   int32_t* envCountWasm,
+            [in, out]   int32_t* envBufferSizeWasm
+        );
+
         // ----- Env Filesystem Calls -----
 
         uint32_t ocallDup(uint32_t fd);
@@ -149,6 +162,11 @@ enclave{
             [out]   uint64_t* newOffset
         );
 
+        int32_t ocallWasiFdTell(
+                    int32_t fd,
+            [out]   int32_t* resOffset
+        );
+
         int32_t ocallWasiFdWrite(
                                         int32_t fd,
             [in, size=ioVecBasesSize]   uint8_t** ioVecBases,
@@ -185,6 +203,15 @@ enclave{
             [out]               int32_t* fdWasm
         );
 
+        int32_t ocallWasiPathReadlink(
+                                    int32_t fd,
+            [in, size=pathLen]      char* path,
+                                    int32_t pathLen,
+            [in, out, size=bufLen]  char* buf,
+                                    int32_t bufLen,
+            [out]                   int32_t* resBytesUsed
+        );
+
         int32_t ocallWasiPathRename(
                                     int32_t oldFd,
             [in, size=oldPathLen]   char* oldPath,
@@ -198,6 +225,14 @@ enclave{
                                 int32_t fd,
             [in, size=pathLen]  char* path,
                                 int32_t pathLen
+        );
+
+        // ---- WASI Timing OCalls
+
+        int32_t ocallWasiClockTimeGet(
+                    int32_t clockId,
+                    int64_t precision,
+            [out]   int32_t* result
         );
     };
 };

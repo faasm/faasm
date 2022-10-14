@@ -57,13 +57,17 @@ TEST_CASE_METHOD(ImageMagickTestFixture, "Test executing ImageMagick", "[libs]")
 {
     auto req = setUpContext("imagemagick", "main");
     faabric::Message& msg = req->mutable_messages()->at(0);
-    msg.set_cmdline(fmt::format("faasm://{} -flip faasm://{}",
+    msg.set_cmdline(fmt::format("faasm://{} {} faasm://{}",
                                 relativeSharedFilePathIn,
+                                "-flip",
+                                // "-mean-shift 7x7+10%",
                                 relativeSharedFilePathOut));
 
+    /*
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+    */
 
 #ifndef FAASM_SGX_DISABLED_MODE
     SECTION("SGX") { execSgxFunction(msg); }

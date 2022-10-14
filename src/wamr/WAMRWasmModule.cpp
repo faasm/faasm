@@ -113,8 +113,10 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     {
         faabric::util::UniqueLock lock(wamrGlobalsMutex);
         SPDLOG_TRACE("WAMR loading {} wasm bytes\n", wasmBytes.size());
-        wasmModule = wasm_runtime_load(
-          wasmBytes.data(), wasmBytes.size(), errorBuffer, WAMR_ERROR_BUFFER_SIZE);
+        wasmModule = wasm_runtime_load(wasmBytes.data(),
+                                       wasmBytes.size(),
+                                       errorBuffer,
+                                       WAMR_ERROR_BUFFER_SIZE);
 
         if (wasmModule == nullptr) {
             std::string errorMsg = std::string(errorBuffer);
@@ -129,8 +131,11 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 void WAMRWasmModule::bindInternal(faabric::Message& msg)
 {
     // Instantiate module
-    moduleInstance = wasm_runtime_instantiate(
-      wasmModule, WAMR_STACK_SIZE, WAMR_HEAP_SIZE, errorBuffer, WAMR_ERROR_BUFFER_SIZE);
+    moduleInstance = wasm_runtime_instantiate(wasmModule,
+                                              WAMR_STACK_SIZE,
+                                              WAMR_HEAP_SIZE,
+                                              errorBuffer,
+                                              WAMR_ERROR_BUFFER_SIZE);
 
     // Sense-check the module
     auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
@@ -147,9 +152,12 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     // Sense-check the memory layout
     /*
     auto* aotWasmModule = reinterpret_cast<AOTModule*>(wasmModule);
-    auto heapBaseGlobalIdx = aotWasmModule->aux_heap_base_global_index - aotWasmModule->import_global_count;
-    uint8_t* heapBaseGlobalAddr = (uint8_t*) aotModule->global_data.ptr + aotWasmModule->globals[heapBaseGlobalIdx].data_offset;
-    SPDLOG_INFO("__heap_base: Idx: {} - Global Addr: {}", heapBaseGlobalIdx, heapBaseGlobalAddr);
+    auto heapBaseGlobalIdx = aotWasmModule->aux_heap_base_global_index -
+    aotWasmModule->import_global_count; uint8_t* heapBaseGlobalAddr = (uint8_t*)
+    aotModule->global_data.ptr +
+    aotWasmModule->globals[heapBaseGlobalIdx].data_offset;
+    SPDLOG_INFO("__heap_base: Idx: {} - Global Addr: {}", heapBaseGlobalIdx,
+    heapBaseGlobalAddr);
     */
 
     if (moduleInstance == nullptr) {

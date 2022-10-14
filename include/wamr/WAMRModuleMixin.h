@@ -15,7 +15,7 @@
 #define WAMR_ERROR_BUFFER_SIZE 256
 #define WAMR_STACK_SIZE STACK_SIZE
 #define WAMR_HEAP_BUFFER_SIZE (16 * WAMR_HEAP_SIZE)
-#define WAMR_HEAP_SIZE STACK_SIZE
+#define WAMR_HEAP_SIZE (STACK_SIZE * 8)
 
 /*
  * This mixin implements common methods shared between the WAMRWasmModule class
@@ -45,8 +45,8 @@ struct WAMRModuleMixin
     void validateNativePointer(void* nativePtr, int size)
     {
         auto moduleInstance = this->underlying().getModuleInstance();
-        if (!(wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size)))
-        {
+        if (!(wasm_runtime_validate_native_addr(
+              moduleInstance, nativePtr, size))) {
             throw std::runtime_error("Native pointer is not in WASM's memory");
         }
     }
@@ -73,7 +73,8 @@ struct WAMRModuleMixin
     uint8_t* wamrWasmPointerToNative(uint32_t wasmPtr)
     {
         auto moduleInstance = this->underlying().getModuleInstance();
-        void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
+        void* nativePtr =
+          wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
         if (nativePtr == nullptr) {
             throw std::runtime_error("Offset out of WAMR memory");
         }
@@ -81,8 +82,7 @@ struct WAMRModuleMixin
     }
 
     // Helper method to write one string to a buffer in the WASM linear memory
-    void writeStringToWasmMemory(const std::string& strHost,
-                                 char* strWasm)
+    void writeStringToWasmMemory(const std::string& strHost, char* strWasm)
     {
         validateNativePointer(strWasm, strHost.size());
         std::copy(strHost.begin(), strHost.end(), strWasm);

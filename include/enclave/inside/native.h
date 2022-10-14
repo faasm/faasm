@@ -59,4 +59,6 @@ uint32_t getFaasmSignalApi(NativeSymbol** nativeSymbols);
 uint32_t getFaasmWasiEnvApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmWasiFilesystemApi(NativeSymbol** nativeSymbols);
+
+uint32_t getFaasmWasiTimingApi(NativeSymbol** nativeSymbols);
 }

@@ -186,7 +186,7 @@ static uint32_t wasi_fd_pread(wasm_exec_env_t exec_env,
                               __wasi_filesize_t offset,
                               uint32_t* nReadWasm)
 {
-    SPDLOG_DEBUG("S - fd_pread {}");
+    SPDLOG_DEBUG("S - fd_pread {}", fd);
     throw std::runtime_error("fd_pread not implemented");
 }
 
@@ -396,7 +396,8 @@ static int32_t wasi_path_filestat_get(wasm_exec_env_t exec_env,
     module->validateNativePointer(path, pathLen);
     std::string pathStr(path, pathLen);
 
-    SPDLOG_DEBUG("S - wasi_path_filestat_get {} ({})", fd, pathStr, path, pathLen);
+    SPDLOG_DEBUG(
+      "S - wasi_path_filestat_get {} ({})", fd, pathStr, path, pathLen);
 
     return doFileStat(fd, pathStr, statWasm);
 }
@@ -474,7 +475,7 @@ static int32_t wasi_path_readlink(wasm_exec_env_t exec_env,
     module->validateNativePointer(path, pathLen);
     const std::string pathStr(path, pathLen);
 
-    SPDLOG_DEBUG("S - path_readlink {} {} {}", fd, pathStr, pathLen);
+    SPDLOG_DEBUG("S - wasi_path_readlink {} {} {}", fd, pathStr, pathLen);
 
     storage::FileDescriptor& fileDesc =
       module->getFileSystem().getFileDescriptor(fd);

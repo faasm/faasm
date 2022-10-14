@@ -27,5 +27,6 @@ void initialiseSGXWAMRNatives()
 
     doWasiSymbolRegistration(getFaasmWasiEnvApi);
     doWasiSymbolRegistration(getFaasmWasiFilesystemApi);
+    doWasiSymbolRegistration(getFaasmWasiTimingApi);
 }
 }

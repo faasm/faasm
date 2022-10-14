@@ -83,19 +83,59 @@ extern "C"
     void ocallLogWamr(const char* msg) { printf("%s", msg); }
 
     // ---------------------------------------
+    // WASI Environment calls
+    // ---------------------------------------
+
+    int32_t ocallWasiEnvironGet(char* envBuf,
+                                int32_t bufLen,
+                                int32_t* bytesWritten)
+    {
+        std::vector<std::string> envVec =
+          wasm::getExecutingEnclaveInterface()->getWasmEnvironment().getVars();
+        int32_t lengthCount = 0;
+        int32_t offset = 0;
+        for (std::string& envVar : envVec) {
+            lengthCount += envVar.size() + 1;
+            if (lengthCount > bufLen) {
+                SPDLOG_ERROR("Env. var. length greater than capacity: {} > {}",
+                             lengthCount,
+                             bufLen);
+                throw std::runtime_error(
+                  "Env. var. length greater than capacity");
+            }
+            strncpy(envBuf + offset, envVar.c_str(), envVar.size() + 1);
+            offset += envVar.size() + 1;
+        }
+
+        *bytesWritten = lengthCount;
+
+        return __WASI_ESUCCESS;
+    }
+
+    int32_t ocallWasiEnvironSizesGet(int32_t* envCountWasm,
+                                     int32_t* envBufferSizeWasm)
+    {
+        auto wasmEnv =
+          wasm::getExecutingEnclaveInterface()->getWasmEnvironment();
+
+        *envCountWasm = wasmEnv.getEnvCount();
+        *envBufferSizeWasm = wasmEnv.getEnvBufferSize();
+
+        return __WASI_ESUCCESS;
+    }
+
+    // ---------------------------------------
     // Env Filesystem calls
     // ---------------------------------------
 
     uint32_t doWasiDup(uint32_t fd)
     {
-        storage::FileSystem& fs = wasm::getExecutingEnclaveInterface()->getFileSystem();
+        storage::FileSystem& fs =
+          wasm::getExecutingEnclaveInterface()->getFileSystem();
         return fs.dup(fd);
     }
 
-    uint32_t ocallDup(uint32_t fd)
-    {
-        return doWasiDup(fd);
-    }
+    uint32_t ocallDup(uint32_t fd) { return doWasiDup(fd); }
 
     // ---------------------------------------
     // WASI Filesystem calls
@@ -176,9 +216,7 @@ extern "C"
                           st_ctim);
     }
 
-    int32_t ocallWasiFdPrestatDirName(int32_t fd,
-                                      char* path,
-                                      int32_t pathLen)
+    int32_t ocallWasiFdPrestatDirName(int32_t fd, char* path, int32_t pathLen)
     {
         wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
         storage::FileSystem& fs = ei->getFileSystem();
@@ -259,6 +297,19 @@ extern "C"
         return wasiErrno;
     }
 
+    int32_t ocallWasiFdTell(int32_t* returnValue,
+                            int32_t fd,
+                            int32_t* resOffset)
+    {
+        wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
+        storage::FileDescriptor& fileDesc =
+          ei->getFileSystem().getFileDescriptor(fd);
+
+        *resOffset = fileDesc.tell();
+
+        return __WASI_ESUCCESS;
+    }
+
     int32_t ocallWasiFdWrite(int32_t fd,
                              uint8_t** ioVecBases,
                              int32_t ioVecBasesSize,
@@ -284,8 +335,9 @@ extern "C"
         storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
         ssize_t n = fileDesc.write(ioVecNative, ioVecCountWasm);
         if (n < 0) {
-            SPDLOG_ERROR(
-              "writev failed on fd {}: {}", fileDesc.getLinuxFd(), strerror(errno));
+            SPDLOG_ERROR("writev failed on fd {}: {}",
+                         fileDesc.getLinuxFd(),
+                         strerror(errno));
         }
 
         // Write number of bytes to wasm
@@ -353,6 +405,23 @@ extern "C"
         return __WASI_ESUCCESS;
     }
 
+    int32_t ocallWasiPathReadlink(int32_t fd,
+                                  char* path,
+                                  int32_t pathLen,
+                                  char* buf,
+                                  int32_t bufLen,
+                                  int32_t* resBytesUsed)
+    {
+        wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
+        storage::FileSystem& fs = ei->getFileSystem();
+        storage::FileDescriptor& fileDesc = fs.getFileDescriptor(fd);
+
+        std::string pathStr(path, pathLen);
+        *resBytesUsed = fileDesc.readLink(pathStr, buf, bufLen);
+
+        return __WASI_ESUCCESS;
+    }
+
     int32_t ocallWasiPathRename(int32_t oldFd,
                                 char* oldPath,
                                 int32_t oldPathLen,
@@ -377,9 +446,7 @@ extern "C"
         return __WASI_ESUCCESS;
     }
 
-    int32_t ocallWasiPathUnlinkFile(int32_t fd,
-                                    char* path,
-                                    int32_t pathLen)
+    int32_t ocallWasiPathUnlinkFile(int32_t fd, char* path, int32_t pathLen)
     {
         wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
         storage::FileSystem& fs = ei->getFileSystem();
@@ -390,6 +457,54 @@ extern "C"
         if (!success) {
             return fileDesc.getWasiErrno();
         }
+
+        return __WASI_ESUCCESS;
+    }
+
+    // ---------------------------------------
+    // Env Filesystem calls
+    // ---------------------------------------
+
+    // TODO: remove duplication
+    int32_t ocallWasiClockTimeGet(int32_t clockId,
+                                  int64_t precision,
+                                  int32_t* result)
+    {
+        timespec ts{};
+
+        // This switch statement is duplicated in src/wavm/timing.cpp the reason
+        // being that, even though the constants should be the same, they are
+        // defined in runtime-specific headers. Instead of mixing them up, we
+        // keep the code duplicated
+        int linuxClockId;
+        switch (clockId) {
+            case __WASI_CLOCK_REALTIME:
+                linuxClockId = CLOCK_REALTIME;
+                break;
+            case __WASI_CLOCK_MONOTONIC:
+                linuxClockId = CLOCK_MONOTONIC;
+                break;
+            case __WASI_CLOCK_PROCESS_CPUTIME_ID:
+                linuxClockId = CLOCK_PROCESS_CPUTIME_ID;
+                break;
+            case __WASI_CLOCK_THREAD_CPUTIME_ID:
+                linuxClockId = CLOCK_THREAD_CPUTIME_ID;
+                break;
+            default:
+                SPDLOG_ERROR("Unknown clock ID: {}", clockId);
+                throw std::runtime_error("Unknown clock ID");
+        }
+
+        int retVal = clock_gettime(linuxClockId, &ts);
+        if (retVal < 0) {
+            if (EINVAL) {
+                return __WASI_EINVAL;
+            }
+            SPDLOG_ERROR("Unexpected clock error: {}", retVal);
+            throw std::runtime_error("Unexpected clock error");
+        }
+
+        *result = faabric::util::timespecToNanos(&ts);
 
         return __WASI_ESUCCESS;
     }

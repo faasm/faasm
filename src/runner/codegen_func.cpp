@@ -12,7 +12,9 @@
 
 using namespace boost::filesystem;
 
-void codegenForFunc(const std::string& user, const std::string& func, bool clean=false)
+void codegenForFunc(const std::string& user,
+                    const std::string& func,
+                    bool clean = false)
 {
     codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
     storage::FileLoader& loader = storage::getFileLoader();
