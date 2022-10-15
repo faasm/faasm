@@ -58,9 +58,13 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     option.opt_level = 3;
     option.size_level = 3;
     option.output_format = AOT_FORMAT_FILE;
-    option.bounds_checks = 2;
+    option.bounds_checks = 0;
+    //  If bounds_chekcs is set to 1, WAMR fails with an out of bounds memory
+    //  access!
+    // option.bounds_checks = 1;
     option.is_jit_mode = false;
     option.enable_simd = false;
+    option.enable_bulk_memory = false;
 
     if (isSgx) {
         option.size_level = 1;

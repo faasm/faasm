@@ -29,6 +29,8 @@ static bool wamrInitialised = false;
 // so it may cause performance issues under high churn of short-lived functions.
 static std::mutex wamrGlobalsMutex;
 
+static uint8_t wamrHeapBuffer[WAMR_HEAP_BUFFER_SIZE];
+
 void WAMRWasmModule::initialiseWAMRGlobally()
 {
     faabric::util::UniqueLock lock(wamrGlobalsMutex);
@@ -40,8 +42,18 @@ void WAMRWasmModule::initialiseWAMRGlobally()
     // Set WAMR's log level
     bh_log_set_verbose_level(4);
 
+    // Initialise the WAMR runtime
+    RuntimeInitArgs wamrRteArgs;
+    memset(&wamrRteArgs, 0x0, sizeof(wamrRteArgs));
+    wamrRteArgs.mem_alloc_type = Alloc_With_Pool;
+    wamrRteArgs.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
+     wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
+
     // Initialise WAMR runtime
-    bool success = wasm_runtime_init();
+    bool success = wasm_runtime_full_init(&wamrRteArgs);
+
+    // Initialise WAMR runtime
+    // bool success = wasm_runtime_init();
     if (!success) {
         throw std::runtime_error("Failed to initialise WAMR");
     }

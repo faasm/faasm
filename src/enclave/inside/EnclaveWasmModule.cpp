@@ -30,17 +30,14 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     bh_log_set_verbose_level(4);
 
     // Initialise the WAMR runtime
-    /*
     RuntimeInitArgs wamrRteArgs;
     memset(&wamrRteArgs, 0x0, sizeof(wamrRteArgs));
     wamrRteArgs.mem_alloc_type = Alloc_With_Pool;
     wamrRteArgs.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
      wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
-    */
 
     // Initialise WAMR runtime
-   //  bool success = wasm_runtime_full_init(&wamrRteArgs);
-    bool success = wasm_runtime_init();
+    bool success = wasm_runtime_full_init(&wamrRteArgs);
 
     // Register native symbols
     sgx::initialiseSGXWAMRNatives();
@@ -310,8 +307,8 @@ uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
     }
 
     uint32_t pageChange = newPages - oldPages;
-    // bool success = wasm_runtime_enlarge_memory(moduleInstance, pageChange);
-    bool success = true;
+    bool success = wasm_runtime_enlarge_memory(moduleInstance, pageChange);
+    // bool success = true;
     if (!success) {
         SPDLOG_ERROR_SGX("Failed to grow memory (page change: %i)", pageChange);
         throw std::runtime_error("Failed to grow memory");
@@ -322,7 +319,6 @@ uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
                      newPages,
                      maxPages);
 
-    /*
     size_t newMemorySize = getMemorySizeBytes();
     currentBrk.store(newMemorySize, std::memory_order_release);
 
@@ -333,8 +329,6 @@ uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
           newBytes);
         throw std::runtime_error("Memory growth discrepancy");
     }
-    */
-    currentBrk.store(newBytes, std::memory_order_release);
 
     return oldBrk;
 }
