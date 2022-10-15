@@ -71,7 +71,10 @@ set(ENCLAVE_TRUSTED_SRC
     funcs.cpp
     memory.cpp
     native.cpp
+    process.cpp
     pthread.cpp
+    signals.cpp
+    timing.cpp
     ${ENCLAVE_TRUSTED_HEADERS}
 )
 

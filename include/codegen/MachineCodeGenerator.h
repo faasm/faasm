@@ -14,7 +14,7 @@ class MachineCodeGenerator
 
     MachineCodeGenerator(storage::FileLoader& loaderIn);
 
-    void codegenForFunction(faabric::Message& msg);
+    void codegenForFunction(faabric::Message& msg, bool clean = false);
 
     void codegenForSharedObject(const std::string& inputPath);
 

@@ -18,6 +18,7 @@
 #include <conf/FaasmConfig.h>
 #include <storage/SharedFiles.h>
 #include <threads/ThreadState.h>
+#include <wasm/WasmCommon.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wavm/IRModuleCache.h>
@@ -488,6 +489,10 @@ void WAVMWasmModule::doBindToFunctionInternal(faabric::Message& msg,
           dataEnd);
         throw std::runtime_error("Wasm memory layout not as expected");
     }
+    SPDLOG_ERROR(
+      "Appears stack is not at bottom (__heap_base={} __data_end={})",
+      heapBase,
+      dataEnd);
 
     SPDLOG_DEBUG("heap_top={} initial_pages={} initial_table={}",
                  getMemorySizeBytes(),

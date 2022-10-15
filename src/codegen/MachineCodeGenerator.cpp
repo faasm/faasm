@@ -56,7 +56,7 @@ std::vector<uint8_t> MachineCodeGenerator::doCodegen(
     }
 }
 
-void MachineCodeGenerator::codegenForFunction(faabric::Message& msg)
+void MachineCodeGenerator::codegenForFunction(faabric::Message& msg, bool clean)
 {
     std::vector<uint8_t> bytes = loader.loadFunctionWasm(msg);
 
@@ -78,7 +78,9 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg)
         throw std::runtime_error("Unrecognised WASM VM");
     }
 
-    if ((!oldHash.empty()) && newHash == oldHash) {
+    // If we run the machine code generator with the 'clean' flag, we ignore
+    // previously recorded hashes
+    if (!clean && (!oldHash.empty()) && newHash == oldHash) {
         // Even if we skip the code generation step, we want to sync the latest
         // object file
         if (conf.wasmVm == "wamr" || conf.wasmVm == "sgx") {

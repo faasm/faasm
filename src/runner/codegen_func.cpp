@@ -12,7 +12,9 @@
 
 using namespace boost::filesystem;
 
-void codegenForFunc(const std::string& user, const std::string& func)
+void codegenForFunc(const std::string& user,
+                    const std::string& func,
+                    bool clean = false)
 {
     codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
     storage::FileLoader& loader = storage::getFileLoader();
@@ -29,7 +31,7 @@ void codegenForFunc(const std::string& user, const std::string& func)
                 func,
                 conf::getFaasmConfig().wasmVm);
 
-    gen.codegenForFunction(msg);
+    gen.codegenForFunction(msg, clean);
 }
 
 int main(int argc, char* argv[])
@@ -47,6 +49,17 @@ int main(int argc, char* argv[])
                     func,
                     conf.wasmVm);
         codegenForFunc(user, func);
+    } else if (argc == 4) {
+        std::string user = argv[1];
+        std::string func = argv[2];
+        bool clean = std::string(argv[3]) == "--clean";
+
+        SPDLOG_INFO("Running codegen for function {}/{} (WASM VM: {})",
+                    user,
+                    func,
+                    conf.wasmVm,
+                    clean);
+        codegenForFunc(user, func, clean);
     } else if (argc == 2) {
         std::string user = argv[1];
 

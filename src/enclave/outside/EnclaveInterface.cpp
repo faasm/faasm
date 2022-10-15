@@ -2,6 +2,7 @@
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
 #include <faabric/util/gids.h>
+#include <faabric/util/logging.h>
 #include <wasm/WasmExecutionContext.h>
 
 #include <faabric/util/func.h>
@@ -24,12 +25,17 @@ EnclaveInterface::~EnclaveInterface()
     unbindFunction();
 }
 
+EnclaveInterface* getExecutingEnclaveInterface()
+{
+    return reinterpret_cast<EnclaveInterface*>(getExecutingModule());
+}
+
 // ----- Module lifecycle -----
 void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
 {
     // Set up filesystem
-    storage::FileSystem fs;
-    fs.prepareFilesystem();
+    // TODO(csegarragonz): do we need to prepare anything inside the enclave?
+    filesystem.prepareFilesystem();
 
     // Load AoT
     storage::FileLoader& functionLoader = storage::getFileLoader();
@@ -86,8 +92,10 @@ int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
     // Convert to vector of char pointers for easier serialisation
     std::vector<char*> cArgv;
     cArgv.resize(argv.size());
+    SPDLOG_INFO("argc: {}", argc);
     for (int i = 0; i < argv.size(); i++) {
         cArgv.at(i) = const_cast<char*>(argv.at(i).c_str());
+        SPDLOG_INFO("argv: {}", cArgv.at(i));
     }
 
     // Set execution context

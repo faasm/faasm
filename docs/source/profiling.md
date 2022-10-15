@@ -98,7 +98,7 @@ There is a task in the Faasm CLI for creating
 [Flame graphs](https://github.com/brendangregg/FlameGraph) which automatically
 include the disassembled WebAssembly function names.
 
-Note that this requires the custom LLVM build described above.
+Note that this requires the custom [LLVM build](profiling-webassembly-code-with-`perf`).
 
 ```
 # Make sure you can run and disassemble the functions
@@ -106,7 +106,7 @@ inv dev.cc func_runner
 inv dev.cc func_sym
 
 # Run the flame graph task (which will run perf, replace symbols etc.)
-inv flame demo echo --reps=5000 --data="foobar"
+inv prof.flame demo echo --reps=5000 --data="foobar"
 
 # Open the flame graph in your browser
 firefox flame.svg
@@ -117,12 +117,12 @@ by searching (Ctrl+F) for `wasm`.
 
 If you want to do custom set-up of a specific function, you can write an adapted
 version of the `func_runner`, to run your function, then pass it in as a
-command to `inv flame`:
+command to `inv prof.flame`:
 
 ```
 inv dev.cc my_runner
 
-inv flame <user> <func> --cmd="my_runner <args>"
+inv prof.flame <user> <func> --cmd="my_runner <args>"
 
 firefox flame.svg
 ```
@@ -136,7 +136,7 @@ LLVM JIT libraries, which don't include the perf events that we need.
 To rebuild LLVM with the right flags, you can run:
 
 ```bash
-./bin/build_llvm_perf.sh
+inv prof.build-llvm-perf [--clean]
 ```
 
 Now you can rebuild the parts of Faasm you're profiling, e.g.

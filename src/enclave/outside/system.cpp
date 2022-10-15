@@ -3,14 +3,16 @@
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/getSgxSupport.h>
 #include <enclave/outside/system.h>
+#include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 
 #include <boost/filesystem/operations.hpp>
 #include <sgx_urts.h>
 #include <string>
 
-// Global enclave ID
-sgx_enclave_id_t globalEnclaveId = 0;
+// Global enclave ID and mutex protecting it
+static sgx_enclave_id_t globalEnclaveId = 0;
+static std::mutex enclaveGlobalMutex;
 
 #define ERROR_PRINT_CASE(enumVal)                                              \
     case (enumVal): {                                                          \
@@ -24,8 +26,13 @@ sgx_enclave_id_t getGlobalEnclaveId()
     return globalEnclaveId;
 }
 
+// This method lazily initialises two global resources: the enclave and the
+// WAMR runtime inside the enclave. This method is called every time we
+// instantiate a Faaslet running WASM code inside SGX. We take one conservative
+// lock in the outermost scope, and initialise both resources
 void checkSgxSetup()
 {
+    faabric::util::UniqueLock lock(enclaveGlobalMutex);
 
     // Skip set-up if enclave already exists
     if (globalEnclaveId != 0) {
@@ -80,7 +87,6 @@ void checkSgxSetup()
 
 void tearDownEnclave()
 {
-
     SPDLOG_DEBUG("Destroying enclave {}", globalEnclaveId);
 
     sgx_status_t sgxReturnValue = sgx_destroy_enclave(globalEnclaveId);

@@ -47,6 +47,10 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
 
     SECTION("WAMR") { execWamrFunction(req->mutable_messages()->at(0)); }
 
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(req->mutable_messages()->at(0)); }
+#endif
+
     // Check file has been synced locally
     REQUIRE(boost::filesystem::exists(fullPath));
 

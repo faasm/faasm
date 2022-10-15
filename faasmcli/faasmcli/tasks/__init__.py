@@ -9,11 +9,11 @@ from . import disas
 from . import docker_tasks
 from . import docs
 from . import files
-from . import flame
 from . import flush
 from . import git
 from . import k8s
 from . import network
+from . import prof
 from . import python
 from . import redis
 from . import run
@@ -31,11 +31,11 @@ ns = Collection(
     disas,
     docs,
     files,
-    flame,
     flush,
     git,
     k8s,
     network,
+    prof,
     python,
     redis,
     run,

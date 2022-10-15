@@ -4,9 +4,10 @@ from invoke import task
 from copy import copy
 from os import environ
 from os.path import join
+from shutil import rmtree
 
 from faasmcli.util.codegen import find_codegen_func, find_codegen_shared_lib
-from faasmcli.util.env import FAASM_RUNTIME_ROOT
+from faasmcli.util.env import FAASM_MACHINE_CODE_DIR, FAASM_RUNTIME_ROOT
 
 LIB_FAKE_FILES = [
     join(FAASM_RUNTIME_ROOT, "lib", "fake", "libfakeLibA.so"),
@@ -19,7 +20,9 @@ WAMR_ALLOWED_FUNCS = [
     ["demo", "chain_named_a"],
     ["demo", "chain_named_b"],
     ["demo", "chain_named_c"],
+    # Cross-compiled libraries
     ["ffmpeg", "check"],
+    ["imagemagick", "main"],
     # Environment
     ["demo", "argc_argv_test"],
     ["demo", "exit"],
@@ -33,8 +36,8 @@ WAMR_ALLOWED_FUNCS = [
     ["demo", "fcntl"],
     ["demo", "file"],
     ["demo", "filedescriptor"],
-    ["demo", "fstat"],
     ["demo", "fread"],
+    ["demo", "fstat"],
     ["demo", "shared_file"],
     # Input output
     ["demo", "check_input"],
@@ -50,11 +53,22 @@ SGX_ALLOWED_FUNCS = [
     ["demo", "chain_named_c"],
     # Environment
     ["demo", "argc_argv_test"],
+    ["demo", "exit"],
+    ["demo", "getenv"],
+    # Filesystem
+    ["demo", "fcntl"],
+    ["demo", "file"],
+    ["demo", "filedescriptor"],
+    ["demo", "fread"],
+    ["demo", "fstat"],
+    ["demo", "shared_file"],
+    # Ported libs
+    ["imagemagick", "main"],
 ]
 
 
 @task(default=True)
-def codegen(ctx, user, function):
+def codegen(ctx, user, function, clean=False):
     """
     Generates machine code for the given function
     """
@@ -66,12 +80,14 @@ def codegen(ctx, user, function):
     )
 
     binary = find_codegen_func()
-    run(
-        "{} {} {}".format(binary, user, function),
-        shell=True,
-        env=env,
-        check=True,
-    )
+    codegen_cmd = [
+        binary,
+        user,
+        function,
+        "--clean" if clean else "",
+    ]
+    codegen_cmd = " ".join(codegen_cmd)
+    run(codegen_cmd, shell=True, env=env, check=True)
 
 
 @task
@@ -117,6 +133,7 @@ def local(ctx):
     _do_codegen_user("demo")
     _do_codegen_user("errors")
     _do_codegen_user("ffmpeg")
+    _do_codegen_user("imagemagick")
     _do_codegen_user("mpi")
     _do_codegen_user("omp")
     _do_codegen_user("python")

@@ -45,7 +45,10 @@ endif()
 # Set target platform details
 set(WAMR_BUILD_PLATFORM "linux-sgx")
 set(WAMR_BUILD_TARGET X86_64)
-set(WAMR_BUILD_SPEC_TEST)
+set(WAMR_BUILD_SPEC_TEST 0)
+
+# Top-level Faasm flag for WAMR
+add_definitions(-DWAMR_FAASM=1)
 
 # Set AOT mode, disable JIT
 set(WAMR_BUILD_AOT 1)
@@ -54,8 +57,17 @@ set(WAMR_BUILD_LAZY_JIT 0)
 
 # Set libraries
 set(WAMR_BUILD_LIBC_BUILTIN 1)
-set(WAMR_BUILD_LIBC_WASI 0)
+set(WAMR_BUILD_LIBC_WASI 1)
 set(WAMR_BUILD_LIB_PTHREAD 0)
+
+# WAMR features
+set(WAMR_BUILD_SIMD 0)
+set(WAMR_BUILD_BULK_MEMORY 0)
+set(WAMR_DISABLE_HW_BOUND_CHECK 1)
+set(WAMR_BUILD_MULTI_MODULE 1)
+
+# Debug flags
+set(WAMR_BUILD_DUMP_CALL_STACK 1)
 
 # Let WAMR do the including and importing of the sources
 include(${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)

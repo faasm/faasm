@@ -34,6 +34,11 @@ extern "C"
                                           uint32_t argc,
                                           char** argv);
 
+    extern sgx_status_t ecallRunInternalTest(sgx_enclave_id_t enclaveId,
+                                             faasm_sgx_status_t* retVal,
+                                             uint32_t faasletId,
+                                             const char* testCase);
+
     extern sgx_status_t ecallCryptoChecks(sgx_enclave_id_t enclaveId,
                                           faasm_sgx_status_t* retVal);
 }

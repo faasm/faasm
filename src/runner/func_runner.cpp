@@ -40,9 +40,9 @@ int doRunner(int argc, char* argv[])
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
 
     // Set timeout to ensure longer functions can finish
-    conf.boundTimeout = 120000;
-    conf.globalMessageTimeout = 120000;
-    faasmConf.chainedCallTimeout = 120000;
+    conf.boundTimeout = 120000 * 1e3;
+    conf.globalMessageTimeout = 120000 * 1e3;
+    faasmConf.chainedCallTimeout = 120000 * 1e3;
 
     // Make sure we have enough space for chained calls
     int nThreads = std::min<int>(faabric::util::getUsableCores(), 10);
