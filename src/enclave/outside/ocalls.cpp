@@ -80,7 +80,7 @@ extern "C"
 
     void ocallLogError(const char* msg) { SPDLOG_ERROR("[enclave] {}", msg); }
 
-    void ocallLogWamr(const char* msg) { printf("%s", msg); }
+    int ocallLogWamr(const char* msg) { printf("%s", msg); return 0; }
 
     // ---------------------------------------
     // WASI Environment calls

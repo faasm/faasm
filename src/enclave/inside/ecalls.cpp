@@ -21,9 +21,6 @@
 // Implementation of the ECalls API
 extern "C"
 {
-    typedef void (*os_print_function_t)(const char* message);
-    extern void os_set_print_function(os_print_function_t pf);
-
     faasm_sgx_status_t ecallCreateReport(const sgx_target_info_t* qeTarget,
                                          const sgx_report_data_t* heldData,
                                          sgx_report_t* report)

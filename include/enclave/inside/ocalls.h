@@ -41,11 +41,11 @@ extern "C"
 #ifdef FAASM_SGX_DEBUG
     void ocallLogDebug(const char* msg) { ; };
 
-    void ocallLogWamr(const char* msg) { ; }
+    int ocallLogWamr(const char* msg) { ; }
 #else
     void ocallLogDebug(const char* msg);
 
-    void ocallLogWamr(const char* msg);
+    int ocallLogWamr(const char* msg);
 #endif
 
     extern sgx_status_t SGX_CDECL ocallFaasmReadInput(int* returnValue,
