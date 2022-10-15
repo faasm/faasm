@@ -30,17 +30,22 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     bh_log_set_verbose_level(4);
 
     // Initialise the WAMR runtime
+    /*
     RuntimeInitArgs wamrRteArgs;
     memset(&wamrRteArgs, 0x0, sizeof(wamrRteArgs));
     wamrRteArgs.mem_alloc_type = Alloc_With_Pool;
     wamrRteArgs.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
-    wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
+     wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
+    */
 
     // Initialise WAMR runtime
-    bool success = wasm_runtime_full_init(&wamrRteArgs);
+   //  bool success = wasm_runtime_full_init(&wamrRteArgs);
+    bool success = wasm_runtime_init();
 
     // Register native symbols
     sgx::initialiseSGXWAMRNatives();
+
+    wamrInitialised = true;
 
     return success;
 }
@@ -98,7 +103,7 @@ bool EnclaveWasmModule::loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize)
 uint32_t EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
 {
     int returnValue = 0;
-    // First, run wasm initialuiisers
+    // First, run wasm initialisers
     returnValue = executeWasmFunction(WASM_CTORS_FUNC_NAME);
     if (returnValue != 0) {
         SPDLOG_ERROR_SGX("Error executing WASM ctors function");
@@ -300,35 +305,13 @@ uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
     }
 
     // If we can reclaim old memory, just bump the break
-    /* For the moment we don't reclaim old memory in SGX
     if (newBrk <= oldBytes) {
-        SPDLOG_DEBUG_SGX(
-          "MEM - Growing memory using already provisioned %i + %li <= %i",
-          oldBrk,
-          nBytes,
-          oldBytes);
-
-        currentBrk = newBrk;
-
-        // Make sure permissions on memory are open
-        size_t newTop = faabric::util::getRequiredHostPages(currentBrk);
-        size_t newStart = faabric::util::getRequiredHostPagesRoundDown(oldBrk);
-        newTop *= faabric::util::HOST_PAGE_SIZE;
-        newStart *= faabric::util::HOST_PAGE_SIZE;
-        SPDLOG_TRACE("Reclaiming memory {}-{}", newStart, newTop);
-
-        uint8_t* memBase = getMemoryBase();
-        faabric::util::claimVirtualMemory(
-          { memBase + newStart, memBase + newTop });
-
-        return oldBrk;
+        SPDLOG_ERROR_SGX("We don't reclaim memory inside SGX");
     }
-    */
 
     uint32_t pageChange = newPages - oldPages;
-    if (true)
-        return oldBrk;
-    bool success = wasm_runtime_enlarge_memory(moduleInstance, pageChange);
+    // bool success = wasm_runtime_enlarge_memory(moduleInstance, pageChange);
+    bool success = true;
     if (!success) {
         SPDLOG_ERROR_SGX("Failed to grow memory (page change: %i)", pageChange);
         throw std::runtime_error("Failed to grow memory");
@@ -339,6 +322,7 @@ uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
                      newPages,
                      maxPages);
 
+    /*
     size_t newMemorySize = getMemorySizeBytes();
     currentBrk.store(newMemorySize, std::memory_order_release);
 
@@ -349,6 +333,8 @@ uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
           newBytes);
         throw std::runtime_error("Memory growth discrepancy");
     }
+    */
+    currentBrk.store(newBytes, std::memory_order_release);
 
     return oldBrk;
 }

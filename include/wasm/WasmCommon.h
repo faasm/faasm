@@ -35,6 +35,7 @@
 #define ENTRY_FUNC_NAME "_start"
 
 // TODO(csegarragonz): read this from the environment
+// TODO: also, this number is not correct
 #define MAX_WASM_MEM (1024L * 1024L * 1024L * 4L)
 
 namespace wasm {
