@@ -34,19 +34,20 @@
 // to the outside (untrusted) Faasm runtime. OCalls in SGX terminology.
 extern "C"
 {
+    // ----- Logging -----
+
     extern sgx_status_t SGX_CDECL ocallLogError(const char* msg);
 
 // In enclave release mode (i.e NDEBUG set) we disable debug logging, and
 // prevent it from doing an ocall (hence the different signature).
+// TODO: isn't this the other way around?
 #ifdef FAASM_SGX_DEBUG
-    void ocallLogDebug(const char* msg) { ; };
-
-    int ocallLogWamr(const char* msg) { ; }
+    void ocallLogDebug(const char* msg) { ; }
 #else
     void ocallLogDebug(const char* msg);
-
-    int ocallLogWamr(const char* msg);
 #endif
+
+    // ----- Faasm API -----
 
     extern sgx_status_t SGX_CDECL ocallFaasmReadInput(int* returnValue,
                                                       uint8_t* buffer,

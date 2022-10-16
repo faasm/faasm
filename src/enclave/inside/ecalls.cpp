@@ -40,8 +40,6 @@ extern "C"
 
     faasm_sgx_status_t ecallInitWamr(void)
     {
-        os_set_print_function(ocallLogWamr);
-
         // Initialise WAMR once for all modules
         ocallLogDebug("Initialising WAMR runtime");
         if (!wasm::EnclaveWasmModule::initialiseWAMRGlobally()) {
