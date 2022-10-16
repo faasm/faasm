@@ -253,11 +253,10 @@ extern "C"
     }
 
     int32_t ocallWasiFdRead(int32_t fd,
-                            uint8_t** ioVecBases,
+                            uint8_t* ioVecBases,
                             int32_t ioVecBasesSize,
-                            size_t* ioVecLens,
-                            int32_t ioVecLensSize,
-                            int32_t ioVecCountWasm,
+                            int32_t* ioVecOffsets,
+                            int32_t ioVecCount,
                             int32_t* bytesRead)
     {
         wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
@@ -266,24 +265,29 @@ extern "C"
         storage::FileDescriptor fileDesc = fileSystem.getFileDescriptor(fd);
 
         // Build a ioVec vector from the serialised arguments
-        std::vector<::iovec> ioVecNative(ioVecCountWasm, (::iovec){});
-        for (int i = 0; i < ioVecCountWasm; i++) {
+        std::vector<::iovec> ioVecNative(ioVecCount, (::iovec){});
+        for (int i = 0; i < ioVecCount; i++) {
             ioVecNative[i] = {
-                .iov_base = ioVecBases[i],
-                .iov_len = ioVecLens[i],
+                .iov_base = ioVecBases + ioVecOffsets[i],
+                .iov_len =
+                    i + 1 < ioVecCount ?
+                    (size_t) (ioVecOffsets[i+1] - ioVecOffsets[i]) :
+                    (size_t) (ioVecBasesSize - ioVecOffsets[i]),
             };
         }
 
         // Do the read
         *bytesRead =
-          ::readv(fileDesc.getLinuxFd(), ioVecNative.data(), ioVecCountWasm);
+          ::readv(fileDesc.getLinuxFd(), ioVecNative.data(), ioVecCount);
 
         // Copy the contents from the vector back to the pointers for
         // serialisation
-        for (int i = 0; i < ioVecCountWasm; i++) {
+        /*
+        for (int i = 0; i < ioVecCount; i++) {
             ioVecBases[i] = reinterpret_cast<uint8_t*>(ioVecNative[i].iov_base);
             ioVecLens[i] = reinterpret_cast<size_t>(ioVecNative[i].iov_base);
         }
+        */
 
         return __WASI_ESUCCESS;
     }

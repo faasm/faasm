@@ -278,17 +278,19 @@ static int32_t wasi_fd_read(wasm_exec_env_t execEnv,
     module->validateNativePointer(bytesRead, sizeof(int32_t));
 
     // Translate the wasm iovecs into native iovecs and serialise to transfer
-    // as an OCall. Here we use that an iovec_app_t is a struct with a
-    // uint8_t pointer and a size_t length
-    uint8_t* ioVecBases[ioVecCountWasm];
-    size_t ioVecLens[ioVecCountWasm];
+    // as an OCall. For a detailed explanation of the serialisation, read the
+    // comment in wasi_fd_write
+    size_t totalBasesSize = 0;
     for (int i = 0; i < ioVecCountWasm; i++) {
-        module->validateWasmOffset(ioVecBuffWasm[i].buffOffset,
-                                   sizeof(char) * ioVecBuffWasm[i].buffLen);
+        totalBasesSize += ioVecBuffWasm[i].buffLen;
+    }
 
-        ioVecBases[i] =
-          module->wamrWasmPointerToNative(ioVecBuffWasm[i].buffOffset);
-        ioVecLens[i] = ioVecBuffWasm[i].buffLen;
+    uint8_t ioVecBases[totalBasesSize];
+    int32_t offset = 0;
+    int32_t ioVecOffsets[ioVecCountWasm];
+    for (int i = 0; i < ioVecCountWasm; i++) {
+        ioVecOffsets[i] = offset;
+        offset += ioVecBuffWasm[i].buffLen;
     }
 
     int returnValue;
@@ -296,12 +298,24 @@ static int32_t wasi_fd_read(wasm_exec_env_t execEnv,
     if ((sgxReturnValue = ocallWasiFdRead(&returnValue,
                                           fd,
                                           ioVecBases,
-                                          ioVecCountWasm * sizeof(uint8_t*),
-                                          ioVecLens,
-                                          ioVecCountWasm * sizeof(size_t),
+                                          totalBasesSize,
+                                          ioVecOffsets,
                                           ioVecCountWasm,
                                           bytesRead)) != SGX_SUCCESS) {
     }
+
+    // Copy the return values into the wasm iovec buffer
+    offset = 0;
+    for (int i = 0; i < ioVecCountWasm; i++) {
+        module->validateWasmOffset(ioVecBuffWasm[i].buffOffset,
+                                   sizeof(char) * ioVecBuffWasm[i].buffLen);
+        memcpy(module->wamrWasmPointerToNative(ioVecBuffWasm[i].buffOffset),
+               ioVecBases + offset,
+               ioVecBuffWasm[i].buffLen);
+        offset += ioVecBuffWasm[i].buffLen;
+    }
+
+
 
     return returnValue;
 }
@@ -382,14 +396,15 @@ static int wasi_fd_write(wasm_exec_env_t execEnv,
 
     // Translate the wasm iovecs into native iovecs and serialise to transfer
     // as an OCall. Here we use that an iovec_app_t is a struct with a
-    // uint8_t pointer and a size_t length
+    // uint8_t pointer and a size_t length. To serialise it, we copy the
+    // contents of each base into a flattened array, and record the offset
+    // each one starts at. Using these offsets we can reconstruct the length
     size_t totalBasesSize = 0;
     for (int i = 0; i < ioVecCountWasm; i++) {
         totalBasesSize += ioVecBuffWasm[i].buffLen;
     }
 
     uint8_t ioVecBases[totalBasesSize];
-    // size_t ioVecLens[ioVecCountWasm];
     int32_t offset = 0;
     int32_t ioVecOffsets[ioVecCountWasm];
     for (int i = 0; i < ioVecCountWasm; i++) {

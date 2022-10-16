@@ -139,11 +139,10 @@ enclave{
 
         int32_t ocallWasiFdRead(
                                             int32_t fd,
-            [in, out, size=ioVecBasesSize]  uint8_t** ioVecBases,
+            [in, out, count=ioVecBasesSize] uint8_t* ioVecBases, // out?
                                             int32_t ioVecBasesSize,
-            [in, out, size=ioVecLensSize]   uint8_t** ioVecLens,
-                                            int32_t ioVecLensSize,
-                                            int32_t ioVecCountWasm,
+            [in, out, count=ioVecCount]     int32_t* ioVecOffsets, // in?
+                                            int32_t ioVecCount,
             [out]                           int32_t* bytesRead
         );
 
