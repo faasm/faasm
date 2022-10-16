@@ -315,8 +315,6 @@ static int32_t wasi_fd_read(wasm_exec_env_t execEnv,
         offset += ioVecBuffWasm[i].buffLen;
     }
 
-
-
     return returnValue;
 }
 

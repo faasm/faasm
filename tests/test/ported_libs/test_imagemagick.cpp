@@ -63,10 +63,8 @@ TEST_CASE_METHOD(ImageMagickTestFixture, "Test executing ImageMagick", "[libs]")
                                 // "-mean-shift 7x7+10%",
                                 relativeSharedFilePathOut));
 
-    /*
     SECTION("WAVM") { execFunction(msg); }
 
-    */
     SECTION("WAMR") { execWamrFunction(msg); }
 
 #ifndef FAASM_SGX_DISABLED_MODE

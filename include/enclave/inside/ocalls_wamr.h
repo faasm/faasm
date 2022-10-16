@@ -12,5 +12,4 @@
  * are used in WAMR as callbacks for things like `printf` or `vprintf`
  */
 
-extern sgx_status_t SGX_CDECL
-ocallLogWamr(int* retVal, const char* msg);
+extern sgx_status_t SGX_CDECL ocallLogWamr(int* retVal, const char* msg);

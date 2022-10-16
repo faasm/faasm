@@ -80,10 +80,7 @@ extern "C"
 
     void ocallLogError(const char* msg) { SPDLOG_ERROR("[enclave] {}", msg); }
 
-    int ocallLogWamr(const char* msg)
-    {
-        return printf("%s", msg);
-    }
+    int ocallLogWamr(const char* msg) { return printf("%s", msg); }
 
     // ---------------------------------------
     // WASI Environment calls
@@ -269,25 +266,15 @@ extern "C"
         for (int i = 0; i < ioVecCount; i++) {
             ioVecNative[i] = {
                 .iov_base = ioVecBases + ioVecOffsets[i],
-                .iov_len =
-                    i + 1 < ioVecCount ?
-                    (size_t) (ioVecOffsets[i+1] - ioVecOffsets[i]) :
-                    (size_t) (ioVecBasesSize - ioVecOffsets[i]),
+                .iov_len = i + 1 < ioVecCount
+                             ? (size_t)(ioVecOffsets[i + 1] - ioVecOffsets[i])
+                             : (size_t)(ioVecBasesSize - ioVecOffsets[i]),
             };
         }
 
         // Do the read
         *bytesRead =
           ::readv(fileDesc.getLinuxFd(), ioVecNative.data(), ioVecCount);
-
-        // Copy the contents from the vector back to the pointers for
-        // serialisation
-        /*
-        for (int i = 0; i < ioVecCount; i++) {
-            ioVecBases[i] = reinterpret_cast<uint8_t*>(ioVecNative[i].iov_base);
-            ioVecLens[i] = reinterpret_cast<size_t>(ioVecNative[i].iov_base);
-        }
-        */
 
         return __WASI_ESUCCESS;
     }
@@ -333,10 +320,9 @@ extern "C"
         for (int i = 0; i < ioVecCount; i++) {
             ioVecNative[i] = {
                 .iov_base = ioVecBases + ioVecOffsets[i],
-                .iov_len =
-                    i + 1 < ioVecCount ?
-                    (size_t) (ioVecOffsets[i+1] - ioVecOffsets[i]) :
-                    (size_t) (ioVecBasesSize - ioVecOffsets[i]),
+                .iov_len = i + 1 < ioVecCount
+                             ? (size_t)(ioVecOffsets[i + 1] - ioVecOffsets[i])
+                             : (size_t)(ioVecBasesSize - ioVecOffsets[i]),
             };
         }
 

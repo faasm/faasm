@@ -34,7 +34,7 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     memset(&wamrRteArgs, 0x0, sizeof(wamrRteArgs));
     wamrRteArgs.mem_alloc_type = Alloc_With_Pool;
     wamrRteArgs.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
-     wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
+    wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
 
     // Initialise WAMR runtime
     bool success = wasm_runtime_full_init(&wamrRteArgs);
