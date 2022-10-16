@@ -15,14 +15,6 @@ enclave{
     from "sgx_wamr.edl" import *;
 #endif
 
-    // We need to copy this from include/wamr/types.h as the Eder8r can not
-    // work out the transitive includes there
-    union iovec_app_t
-    {
-        uint32_t buffOffset;
-        uint32_t buffLen;
-    };
-
     trusted{
         public faasm_sgx_status_t ecallCreateReport(
             [in]    const sgx_target_info_t* qeTarget,
@@ -169,11 +161,10 @@ enclave{
 
         int32_t ocallWasiFdWrite(
                                         int32_t fd,
-            [in, size=ioVecBasesSize]   uint8_t** ioVecBases,
+            [in, count=ioVecBasesSize]  uint8_t* ioVecBases,
                                         int32_t ioVecBasesSize,
-            [in, size=ioVecLensSize]    uint8_t** ioVecLens,
-                                        int32_t ioVecLensSize,
-                                        int32_t ioVecCountWasm,
+            [in, count=ioVecCount]      int32_t* ioVecOffsets,
+                                        int32_t ioVecCount,
             [out]                       int32_t* bytesWritten
         );
 

@@ -143,11 +143,10 @@ extern "C"
 
     extern sgx_status_t SGX_CDECL ocallWasiFdWrite(int32_t* returnValue,
                                                    int32_t fd,
-                                                   uint8_t** ioVecBases,
+                                                   uint8_t* ioVecBases,
                                                    int32_t ioVecBasesSize,
-                                                   size_t* ioVecLens,
-                                                   int32_t ioVecLensSize,
-                                                   int32_t ioVecCountWasm,
+                                                   int32_t* ioVecOffsets,
+                                                   int32_t ioVecCount,
                                                    int32_t* bytesWritten);
 
     extern sgx_status_t SGX_CDECL

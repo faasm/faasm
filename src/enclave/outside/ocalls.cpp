@@ -314,11 +314,10 @@ extern "C"
     }
 
     int32_t ocallWasiFdWrite(int32_t fd,
-                             uint8_t** ioVecBases,
+                             uint8_t* ioVecBases,
                              int32_t ioVecBasesSize,
-                             size_t* ioVecLens,
-                             int32_t ioVecLensSize,
-                             int32_t ioVecCountWasm,
+                             int32_t* ioVecOffsets,
+                             int32_t ioVecCount,
                              int32_t* bytesWritten)
     {
         wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
@@ -326,17 +325,20 @@ extern "C"
         std::string path = fileSystem.getPathForFd(fd);
 
         // Build a ioVec vector from the serialised arguments
-        std::vector<::iovec> ioVecNative(ioVecCountWasm, (::iovec){});
-        for (int i = 0; i < ioVecCountWasm; i++) {
+        std::vector<::iovec> ioVecNative(ioVecCount, (::iovec){});
+        for (int i = 0; i < ioVecCount; i++) {
             ioVecNative[i] = {
-                .iov_base = ioVecBases[i],
-                .iov_len = ioVecLens[i],
+                .iov_base = ioVecBases + ioVecOffsets[i],
+                .iov_len =
+                    i + 1 < ioVecCount ?
+                    (size_t) (ioVecOffsets[i+1] - ioVecOffsets[i]) :
+                    (size_t) (ioVecBasesSize - ioVecOffsets[i]),
             };
         }
 
         // Do the write
         storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
-        ssize_t n = fileDesc.write(ioVecNative, ioVecCountWasm);
+        ssize_t n = fileDesc.write(ioVecNative, ioVecCount);
         if (n < 0) {
             SPDLOG_ERROR("writev failed on fd {}: {}",
                          fileDesc.getLinuxFd(),
@@ -350,7 +352,7 @@ extern "C"
         conf::FaasmConfig& conf = conf::getFaasmConfig();
         bool isStd = fd <= 2;
         if (isStd && conf.captureStdout == "on") {
-            ei->captureStdout(ioVecNative.data(), ioVecCountWasm);
+            ei->captureStdout(ioVecNative.data(), ioVecCount);
         }
 
         return __WASI_ESUCCESS;
