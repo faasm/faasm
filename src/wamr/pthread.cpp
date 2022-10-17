@@ -124,6 +124,12 @@ static int32_t pthread_equal_wrapper(wasm_exec_env_t exec_env,
     return 0;
 }
 
+static int32_t pthread_self_wrapper(wasm_exec_env_t exec_env)
+{
+    SPDLOG_DEBUG("S - pthread_self");
+    return 0;
+}
+
 static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(pthread_create, "(iiii)i"),
     REG_NATIVE_FUNC(pthread_join, "(ii)i"),
@@ -140,6 +146,7 @@ static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(pthread_mutexattr_init, "(i)i"),
     REG_NATIVE_FUNC(pthread_mutexattr_destroy, "(i)i"),
     REG_NATIVE_FUNC(pthread_equal, "(ii)i"),
+    REG_NATIVE_FUNC(pthread_self, "()i"),
 };
 
 uint32_t getFaasmPthreadApi(NativeSymbol** nativeSymbols)

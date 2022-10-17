@@ -122,7 +122,6 @@ static int32_t wasi_fd_fdstat_get(wasm_exec_env_t exec_env,
     storage::Stat statNative = fileDesc.stat();
 
     if (statNative.failed) {
-        SPDLOG_ERROR("Failed stat: {}", statNative.wasiErrno);
         return statNative.wasiErrno;
     }
 

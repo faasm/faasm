@@ -51,6 +51,20 @@ static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env,
     call.set_outputdata(outBuff, outLen);
 }
 
+static int32_t __faasm_chain_name_wrapper(wasm_exec_env_t execEnv,
+                                          const char* name,
+                                          const uint8_t* input,
+                                          unsigned int inputSize)
+{
+    // TODO - fix first name
+    SPDLOG_DEBUG("S - faasm_chain_name {} -> {}", name, name);
+
+    std::vector<uint8_t> inputData(input, input + inputSize);
+
+    uint32_t ret = makeChainedCall(name, 0, nullptr, inputData);
+    return ret;
+}
+
 /**
  * Chain a function by function pointer
  */
@@ -81,6 +95,7 @@ static int32_t __faasm_await_call_wrapper(wasm_exec_env_t exec_env,
 static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__faasm_write_output, "($i)"),
     REG_NATIVE_FUNC(__faasm_read_input, "($i)i"),
+    REG_NATIVE_FUNC(__faasm_chain_name, "($$i)i"),
     REG_NATIVE_FUNC(__faasm_chain_ptr, "(i$i)i"),
     REG_NATIVE_FUNC(__faasm_await_call, "(i)i"),
 };
