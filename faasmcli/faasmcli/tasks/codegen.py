@@ -54,7 +54,7 @@ SGX_ALLOWED_FUNCS = [
 
 
 @task(default=True)
-def codegen(ctx, user, function):
+def codegen(ctx, user, function, clean=False):
     """
     Generates machine code for the given function
     """
@@ -66,12 +66,14 @@ def codegen(ctx, user, function):
     )
 
     binary = find_codegen_func()
-    run(
-        "{} {} {}".format(binary, user, function),
-        shell=True,
-        env=env,
-        check=True,
-    )
+    codegen_cmd = [
+        binary,
+        user,
+        function,
+        "--clean" if clean else "",
+    ]
+    codegen_cmd = " ".join(codegen_cmd)
+    run(codegen_cmd, shell=True, env=env, check=True)
 
 
 @task
