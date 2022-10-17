@@ -1,15 +1,9 @@
 #pragma once
 
 #include <wamr/WAMRModuleMixin.h>
+#include <wasm/WasmCommon.h>
 #include <wasm/WasmModule.h>
 #include <wasm_runtime_common.h>
-
-#define ERROR_BUFFER_SIZE 256
-#define STACK_SIZE_KB 8192
-#define HEAP_SIZE_KB 8192
-
-#define WAMR_INTERNAL_EXCEPTION_PREFIX "Exception: "
-#define WAMR_EXIT_PREFIX "wamr_exit_code_"
 
 namespace wasm {
 
@@ -36,14 +30,9 @@ class WAMRWasmModule final
     int32_t executeFunction(faabric::Message& msg) override;
 
     // ----- Helper functions -----
-    void writeStringToWasmMemory(const std::string& strHost, char* strWasm);
-
     void writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm, char* envBuffWasm);
 
     // ----- Address translation and validation -----
-
-    // Check if WASM offset belongs to WASM memory
-    void validateWasmOffset(uint32_t wasmOffset, size_t size);
 
     // Convert relative address to absolute address (pointer to memory)
     uint8_t* wasmPointerToNative(uint32_t wasmPtr) override;
@@ -62,7 +51,7 @@ class WAMRWasmModule final
     std::vector<std::string> getArgv();
 
   private:
-    char errorBuffer[ERROR_BUFFER_SIZE];
+    char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
 
     std::vector<uint8_t> wasmBytes;
     WASMModuleCommon* wasmModule;

@@ -1,5 +1,6 @@
 #include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
+#include <wasm/WasmCommon.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 
@@ -24,24 +25,6 @@
 #include <sys/uio.h>
 
 namespace wasm {
-
-bool isWasmPageAligned(int32_t offset)
-{
-    if (offset & (WASM_BYTES_PER_PAGE - 1)) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
-size_t getNumberOfWasmPagesForBytes(size_t nBytes)
-{
-    // Round up to nearest page
-    size_t pageCount =
-      (size_t(nBytes) + WASM_BYTES_PER_PAGE - 1) / WASM_BYTES_PER_PAGE;
-
-    return pageCount;
-}
 
 uint32_t roundUpToWasmPageAligned(uint32_t nBytes)
 {
@@ -709,7 +692,7 @@ uint32_t WasmModule::growMemory(size_t nBytes)
 
     // If we can reclaim old memory, just bump the break
     if (newBrk <= oldBytes) {
-        SPDLOG_TRACE(
+        SPDLOG_DEBUG(
           "MEM - Growing memory using already provisioned {} + {} <= {}",
           oldBrk,
           nBytes,
@@ -737,7 +720,7 @@ uint32_t WasmModule::growMemory(size_t nBytes)
         throw std::runtime_error("Failed to grow memory");
     }
 
-    SPDLOG_TRACE("Growing memory from {} to {} pages (max {})",
+    SPDLOG_DEBUG("Growing memory from {} to {} pages (max {})",
                  oldPages,
                  newPages,
                  maxPages);

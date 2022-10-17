@@ -30,9 +30,9 @@ set(WAMR_BUILD_BULK_MEMORY 0)
 
 # We must enable WAMR hardware bounds check here, otherwise WAMR uses malloc to
 # allocate memory, which is not page-aligned. This seems like a blunt instrument
-# to solve a smal problem, but this parameter is deeply embedded in the WAMR
+# to solve a small problem, but this parameter is deeply embedded in the WAMR
 # code, and it's difficult to change it surgically.
-set(WAMR_DISABLE_HW_BOUND_CHECK 0)
+set(WAMR_DISABLE_HW_BOUND_CHECK 1)
 # This definition prevents a buffer underflow during code generation
 add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
 

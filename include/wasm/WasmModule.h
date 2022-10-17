@@ -9,7 +9,6 @@
 #include <storage/FileSystem.h>
 #include <threads/ThreadState.h>
 #include <wasm/WasmCommon.h>
-#include <wasm/WasmEnvironment.h>
 
 #include <atomic>
 #include <exception>
@@ -29,8 +28,6 @@ enum ThreadRequestType
     PTHREAD = 1,
     OPENMP = 2,
 };
-
-bool isWasmPageAligned(int32_t offset);
 
 class WasmModule
 {
@@ -223,8 +220,6 @@ class WasmModule
 };
 
 // Convenience functions
-size_t getNumberOfWasmPagesForBytes(size_t nBytes);
-
 uint32_t roundUpToWasmPageAligned(uint32_t nBytes);
 
 size_t getPagesForGuardRegion();
