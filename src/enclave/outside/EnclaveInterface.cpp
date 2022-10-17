@@ -92,10 +92,8 @@ int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
     // Convert to vector of char pointers for easier serialisation
     std::vector<char*> cArgv;
     cArgv.resize(argv.size());
-    SPDLOG_INFO("argc: {}", argc);
     for (int i = 0; i < argv.size(); i++) {
         cArgv.at(i) = const_cast<char*>(argv.at(i).c_str());
-        SPDLOG_INFO("argv: {}", cArgv.at(i));
     }
 
     // Set execution context

@@ -26,9 +26,6 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
         return true;
     }
 
-    // Set WAMR log level
-    bh_log_set_verbose_level(4);
-
     // Initialise the WAMR runtime
     RuntimeInitArgs wamrRteArgs;
     memset(&wamrRteArgs, 0x0, sizeof(wamrRteArgs));
