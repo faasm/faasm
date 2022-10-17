@@ -1,3 +1,4 @@
+#include <conf/FaasmConfig.h>
 #include <enclave/error.h>
 #include <enclave/outside/attestation/attestation.h>
 #include <enclave/outside/ecalls.h>
