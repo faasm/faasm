@@ -20,6 +20,8 @@ static int32_t __sbrk_wrapper(wasm_exec_env_t exec_env, int32_t increment)
         module->shrinkMemory(-1 * increment);
         return oldBrk;
     } else {
+        // Commenting the following line out fixes the filesystem tests
+        // return 0;
         return module->growMemory(increment);
     }
 }

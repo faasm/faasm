@@ -335,7 +335,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     storage::FileSystem& fileSystem = getExecutingWAVMModule()->getFileSystem();
     std::string path = fileSystem.getPathForFd(fd);
 
-    SPDLOG_TRACE("S - fd_write - {} {} {} {} ({})",
+    SPDLOG_DEBUG("S - fd_write - {} {} {} {} ({})",
                  fd,
                  iovecsPtr,
                  iovecCount,

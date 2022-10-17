@@ -2,6 +2,7 @@
 #include "SharedFiles.h"
 
 #include <conf/FaasmConfig.h>
+#include <storage/FileDescriptor.h>
 
 #include <WASI/WASIPrivate.h>
 #include <boost/filesystem.hpp>
@@ -31,7 +32,13 @@ void FileSystem::createPreopenedFileDescriptor(int fd, const std::string& path)
     // Open the descriptor as a directory
     storage::FileDescriptor fileDesc;
     fileDesc.setPath(path);
-    fileDesc.setActualRights(DIRECTORY_RIGHTS, INHERITING_DIRECTORY_RIGHTS);
+    // TODO: this may differ between WAVM and WAMR!!!
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    // if (conf.wasmVm == "wavm") {
+        fileDesc.setActualRights(DIRECTORY_RIGHTS, INHERITING_DIRECTORY_RIGHTS);
+    // } else {
+        // fileDesc.setActualRights(WAMR_WASI_DIRECTORY_RIGHTS, WAMR_WASI_INHERITING_DIRECTORY_RIGHTS);
+    // }
 
     bool success = fileDesc.pathOpen(0, __WASI_O_DIRECTORY, 0);
 

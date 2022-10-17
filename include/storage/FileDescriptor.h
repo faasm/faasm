@@ -18,6 +18,35 @@
     (__WASI_RIGHT_FD_READDIR | __WASI_RIGHT_FD_READ | __WASI_RIGHT_FD_SEEK |   \
      __WASI_RIGHT_FD_TELL | __WASI_RIGHT_PATH_OPEN)
 
+// Only allow directory operations on directories. Directories can only
+// yield file descriptors to other directories and files.
+#define WAMR_WASI_DIRECTORY_RIGHTS                                          \
+  (__WASI_RIGHT_FD_FDSTAT_SET_FLAGS | __WASI_RIGHT_FD_SYNC |           \
+   __WASI_RIGHT_FD_ADVISE | __WASI_RIGHT_PATH_CREATE_DIRECTORY |       \
+   __WASI_RIGHT_PATH_CREATE_FILE | __WASI_RIGHT_PATH_LINK_SOURCE |     \
+   __WASI_RIGHT_PATH_LINK_TARGET | __WASI_RIGHT_PATH_OPEN |            \
+   __WASI_RIGHT_FD_READDIR | __WASI_RIGHT_PATH_READLINK |              \
+   __WASI_RIGHT_PATH_RENAME_SOURCE | __WASI_RIGHT_PATH_RENAME_TARGET | \
+   __WASI_RIGHT_PATH_FILESTAT_GET |                                    \
+   __WASI_RIGHT_PATH_FILESTAT_SET_SIZE |                               \
+   __WASI_RIGHT_PATH_FILESTAT_SET_TIMES |                              \
+   __WASI_RIGHT_FD_FILESTAT_GET | __WASI_RIGHT_FD_FILESTAT_SET_TIMES | \
+   __WASI_RIGHT_PATH_SYMLINK | __WASI_RIGHT_PATH_UNLINK_FILE |         \
+   __WASI_RIGHT_PATH_REMOVE_DIRECTORY |                                \
+   __WASI_RIGHT_POLL_FD_READWRITE)
+#define WAMR_WASI_INHERITING_DIRECTORY_RIGHTS \
+  (WAMR_WASI_DIRECTORY_RIGHTS | WAMR_WASI_RIGHTS_REGULAR_FILE)
+
+// Operations that apply to regular files.
+#define WAMR_WASI_RIGHTS_REGULAR_FILE \
+  (__WASI_RIGHT_FD_DATASYNC | __WASI_RIGHT_FD_READ |                       \
+   __WASI_RIGHT_FD_SEEK | __WASI_RIGHT_FD_FDSTAT_SET_FLAGS |               \
+   __WASI_RIGHT_FD_SYNC | __WASI_RIGHT_FD_TELL | __WASI_RIGHT_FD_WRITE |   \
+   __WASI_RIGHT_FD_ADVISE | __WASI_RIGHT_FD_ALLOCATE |                     \
+   __WASI_RIGHT_FD_FILESTAT_GET | __WASI_RIGHT_FD_FILESTAT_SET_SIZE |      \
+   __WASI_RIGHT_FD_FILESTAT_SET_TIMES | __WASI_RIGHT_POLL_FD_READWRITE)
+#define RIGHTS_REGULAR_FILE_INHERITING 0
+
 // The root fd comes after stdin, stdout and stderr
 #define DEFAULT_ROOT_FD 4
 
