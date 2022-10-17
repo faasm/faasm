@@ -14,6 +14,8 @@
 // that this logging is very costly as it does an ocall to print the message,
 // as a consequence we no-op it at compile time for release builds
 
+// In enclave release mode (i.e NDEBUG set) we disable debug logging
+#ifdef FAASM_SGX_DEBUG
 #define SPDLOG_DEBUG_SGX(...)                                                  \
     {                                                                          \
         size_t __bufferSize = 512;                                             \
@@ -21,6 +23,9 @@
         snprintf(__buffer, __bufferSize, __VA_ARGS__);                         \
         ocallLogDebug(__buffer);                                               \
     }
+#else
+#define SPDLOG_DEBUG_SGX(...) ;
+#endif
 
 #define SPDLOG_ERROR_SGX(...)                                                  \
     {                                                                          \
@@ -38,14 +43,7 @@ extern "C"
 
     extern sgx_status_t SGX_CDECL ocallLogError(const char* msg);
 
-// In enclave release mode (i.e NDEBUG set) we disable debug logging, and
-// prevent it from doing an ocall (hence the different signature).
-// TODO: isn't this the other way around?
-#ifdef FAASM_SGX_DEBUG
-    void ocallLogDebug(const char* msg) { ; }
-#else
     void ocallLogDebug(const char* msg);
-#endif
 
     // ----- Faasm API -----
 
