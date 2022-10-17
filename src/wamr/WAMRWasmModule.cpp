@@ -39,9 +39,6 @@ void WAMRWasmModule::initialiseWAMRGlobally()
         return;
     }
 
-    // Set WAMR's log level
-    bh_log_set_verbose_level(4);
-
     // Initialise the WAMR runtime
     RuntimeInitArgs wamrRteArgs;
     memset(&wamrRteArgs, 0x0, sizeof(wamrRteArgs));
@@ -52,8 +49,6 @@ void WAMRWasmModule::initialiseWAMRGlobally()
     // Initialise WAMR runtime
     bool success = wasm_runtime_full_init(&wamrRteArgs);
 
-    // Initialise WAMR runtime
-    // bool success = wasm_runtime_init();
     if (!success) {
         throw std::runtime_error("Failed to initialise WAMR");
     }
@@ -168,7 +163,10 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     }
     currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
 
-    // Set up thread stacks
+    // 17/10/2022 - We move WAMR from HW bound checks to using mmap+mprotect
+    // to using malloc. This breaks the current threading approach where we
+    // use mprotect to create guard regions. Given that threading is not
+    // supported in WAMR anyway, we avoid creating thread stacks altogether.
     // createThreadStacks();
     threadStacks.push_back(-1);
 }
