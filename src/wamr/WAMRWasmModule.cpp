@@ -77,26 +77,6 @@ WAMRWasmModule::WAMRWasmModule(int threadPoolSizeIn)
     initialiseWAMRGlobally();
 }
 
-static void initWasi(AOTModule* module)
-{
-    SPDLOG_DEBUG("WAMR module initialising WASI sub-module");
-
-    WASIArguments* wasiArgs = &(module)->wasi_args;
-
-    if (wasiArgs == nullptr) {
-        SPDLOG_ERROR("Error initialising WASI arguments");
-        throw std::runtime_error("Error initialising WASI arguments");
-    }
-
-    // int dirCount = 1;
-    // char* dirList[1] = { "/" };
-    char* dirList[2]; // = (const char *[]){ "/" };
-    dirList[0] = (char*) std::string("/").c_str();
-    dirList[1] = (char*) std::string("/tmp").c_str();
-    wasiArgs->dir_list = (const char**) dirList;
-    wasiArgs->dir_count = 2;
-}
-
 WAMRWasmModule::~WAMRWasmModule()
 {
     SPDLOG_TRACE(
@@ -157,10 +137,6 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
             throw std::runtime_error("Failed to load WAMR module");
         }
     }
-
-    // Iniitialise the WASI module. It is important to initialise it before
-    // we instantiate the module
-    // initWasi((AOTModule*) wasmModule);
 
     bindInternal(msg);
 }

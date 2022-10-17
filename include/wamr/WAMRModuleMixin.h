@@ -40,8 +40,8 @@ struct WAMRModuleMixin
 
     // ---- Native address - WASM offset translation and bound-checks ----
 
-    // Validate that a native address (i.e. pointer) points inside WASM's
-    // linear memory
+    // Validate that a memory range defined by a pointer and a size is a valid
+    // offset in the module's WASM linear memory.
     void validateNativePointer(void* nativePtr, int size)
     {
         auto moduleInstance = this->underlying().getModuleInstance();
@@ -122,25 +122,4 @@ struct WAMRModuleMixin
         writeStringArrayToMemory(
           this->underlying().getArgv(), argvOffsetsWasm, argvBuffWasm);
     }
-
-    // ---- Filesystem helper functions ----
-
-    /* Unfortunately, the header <sys/uio.h> is not available inside the enclave
-    std::vector<::iovec> wasmIovecsToNativeIovecs(iovec_app_t* ioVecBuffWasm,
-                                                  int32_t iovecCountWasm)
-    {
-    }
-    */
 };
-
-/*
- * TODO: if I do this, it will have to be in a different file
-template<typename T>
-struct WAMRWasiModuleMixin
-{
-    // Returns a reference to the underlying module instance: either a
-    // WAMRWasmModule or an EnclaveWasmModule
-    T& underlying() { return static_cast<T&>(*this); }
-
-};
-*/
