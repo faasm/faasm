@@ -107,9 +107,16 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test WAMR sbrk", "[wamr]")
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture,
-                 "Test executing chain function with WAMR",
+                 "Test executing chain function by pointer with WAMR",
                  "[wamr]")
 {
     executeWithWamrPool("demo", "chain", 10000);
+}
+
+TEST_CASE_METHOD(FunctionExecTestFixture,
+                 "Test executing chain function by name with WAMR",
+                 "[wamr]")
+{
+    executeWithWamrPool("demo", "chain_named_a", 10000);
 }
 }
