@@ -77,6 +77,7 @@ void checkSgxSetup()
 
 #ifdef FAASM_SGX_HARDWARE_MODE
     // Attest enclave only in hardware mode
+    // conf::FaasmConfig& conf = conf::getFaasmConfig();
     // 06/04/2022 - For the moment, the enclave held data is a dummy placeholder
     // until we decide if we are going to use it or not.
     std::vector<uint8_t> enclaveHeldData{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
