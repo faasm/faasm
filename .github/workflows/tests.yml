@@ -108,6 +108,10 @@ jobs:
     container:
       image: faasm/cli:0.8.15
     steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
         with:
@@ -145,6 +149,10 @@ jobs:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
     steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
         with:
@@ -215,8 +223,6 @@ jobs:
     if: github.event.pull_request.draft == false
     needs: [cpp-funcs, py-funcs, conan-cache]
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     env:
       CGROUP_MODE: off
       HOST_TYPE: ci
@@ -235,6 +241,10 @@ jobs:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
     steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
         with:
@@ -308,8 +318,10 @@ jobs:
     env:
         CONAN_CACHE_MOUNT_SOURCE: ~/.conan
     steps:
-      - name: "Check out code"
+      - name: "Checkout code"
         uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
         with:
