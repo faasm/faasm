@@ -41,7 +41,8 @@ class EnclaveInterface final : public WasmModule
     uint32_t interfaceId = 0;
 
   private:
-    // uint32_t interfaceId = 0;
+    // ID of the enclave associated with this interface
+    sgx_enclave_id_t enclaveId;
 };
 
 EnclaveInterface* getExecutingEnclaveInterface();

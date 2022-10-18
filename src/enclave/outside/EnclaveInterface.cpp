@@ -14,10 +14,9 @@ namespace wasm {
 EnclaveInterface::EnclaveInterface()
   : interfaceId(faabric::util::generateGid())
 {
-    checkSgxSetup();
+    enclaveId = checkSgxSetup();
 
-    SPDLOG_DEBUG("Created enclave interface for enclave {}",
-                 sgx::getGlobalEnclaveId());
+    SPDLOG_DEBUG("Created enclave interface for enclave {}", enclaveId);
 }
 
 EnclaveInterface::~EnclaveInterface()
@@ -46,7 +45,7 @@ void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
     // Load the wasm module
     // Note - loading and instantiating happen in the same ecall
     faasm_sgx_status_t returnValue;
-    sgx_status_t status = ecallLoadModule(sgx::getGlobalEnclaveId(),
+    sgx_status_t status = ecallLoadModule(enclaveId,
                                           &returnValue,
                                           (void*)wasmBytes.data(),
                                           (uint32_t)wasmBytes.size(),
@@ -70,7 +69,7 @@ bool EnclaveInterface::unbindFunction()
 
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue =
-      ecallUnloadModule(sgx::getGlobalEnclaveId(), &returnValue, interfaceId);
+      ecallUnloadModule(enclaveId, &returnValue, interfaceId);
     processECallErrors("Error trying to unload module from enclave",
                        sgxReturnValue,
                        returnValue);
@@ -83,8 +82,7 @@ int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
 
     std::string funcStr = faabric::util::funcToString(msg, true);
 
-    SPDLOG_DEBUG(
-      "Entering enclave {} to execute {}", sgx::getGlobalEnclaveId(), funcStr);
+    SPDLOG_DEBUG("Entering enclave {} to execute {}", enclaveId, funcStr);
 
     // Prepare argc/argv to be passed to the enclave.
     std::vector<std::string> argv = faabric::util::getArgvForMessage(msg);
@@ -102,7 +100,7 @@ int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue = ecallCallFunction(
-      sgx::getGlobalEnclaveId(), &returnValue, interfaceId, argc, &cArgv[0]);
+      enclaveId, &returnValue, interfaceId, argc, &cArgv[0]);
     processECallErrors(
       "Error running function inside enclave", sgxReturnValue, returnValue);
 
