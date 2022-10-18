@@ -75,6 +75,7 @@ int doRunner(int argc, char* argv[])
     if (hasInput) {
         std::string inputData = argv[3];
         msg.set_inputdata(inputData);
+        msg.set_cmdline(fmt::format("{}", argv[3]));
 
         SPDLOG_INFO("Adding input data: {}", inputData);
     }
