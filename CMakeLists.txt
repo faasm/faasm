@@ -6,6 +6,8 @@ option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 
 if (FAASM_STATIC_LIBS)
     set(BUILD_SHARED_LIBS FALSE CACHE BOOL "" FORCE)
+    # Resolve mixed RTTI linking issues when using static libraries
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>)
 endif ()
 
 # Performance functionality
