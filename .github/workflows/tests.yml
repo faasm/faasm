@@ -31,6 +31,9 @@ jobs:
         with:
           submodules: true
       # Formatting checks
+      - name: "Test"
+        run: ./bin/inv_wrapper.sh -l
+      # Formatting checks
       - name: "Code formatting check"
         run: ./bin/inv_wrapper.sh format-code
 
