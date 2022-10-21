@@ -144,6 +144,12 @@ configuration:
 - **CMake** - TBD
 - **Bash** - TBD
 
+To format code locally, or to check for formatting errors, you can run:
+
+```bash
+inv format-code [--check]
+```
+
 ## Networking
 
 If you want to switch on network isolation you need to set up network
