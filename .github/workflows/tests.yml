@@ -29,6 +29,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: true
+        # We need to set the safe git directory as formatting relies on git-ls
+        # See actions/checkout#766
+      - name: "Set the GH workspace as a safe git directory"
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       # Formatting checks
       - name: "Code formatting check"
         run: ./bin/inv_wrapper.sh format-code
