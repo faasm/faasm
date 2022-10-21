@@ -234,6 +234,11 @@ jobs:
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
+<<<<<<< HEAD
+=======
+        with:
+           directory: /usr/local/code/faasm
+>>>>>>> ef79d994 (gha: more workflow fixes)
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
