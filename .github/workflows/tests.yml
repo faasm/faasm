@@ -147,8 +147,6 @@ jobs:
         uses: faasm/conan-cache-action@v1
         with:
            directory: /usr/local/code/faasm
-      - name: "Update faabric submodule"
-        run: git submodule update faabric
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -310,10 +308,6 @@ jobs:
         uses: faasm/conan-cache-action@v1
         with:
           directory: ${{ github.workspace }}
-      - name: "Update faabric submodule"
-        run: git submodule update --init faabric
-      - name: "Update cpp client submodule"
-        run: git submodule update --init clients/cpp
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
