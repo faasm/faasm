@@ -34,6 +34,9 @@ jobs:
       - name: "Set the GH workspace as a safe git directory"
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       # Formatting checks
+      - name: "Test"
+        run: ./bin/inv_wrapper.sh -l
+      # Formatting checks
       - name: "Code formatting check"
         run: ./bin/inv_wrapper.sh format-code
 
