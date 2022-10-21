@@ -112,8 +112,6 @@ jobs:
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
-        with:
-           directory: /usr/local/code/faasm
       - name: "Build dev dependencies to be shared by all runs"
         run: ./bin/inv_wrapper.sh dev.cmake --build Debug
 
