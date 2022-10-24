@@ -272,13 +272,9 @@ jobs:
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
-      # Codegen build without sanitisers
-      - name: "Build codegen - CMake"
-        run: ./bin/inv_wrapper.sh dev.cmake --build Debug
-      - name: "Build codegen - Codegen Func"
-        run: ./bin/inv_wrapper.sh dev.cc codegen_func
-      - name: "Build codegen - Codegen Shared Obj"
-        run: ./bin/inv_wrapper.sh dev.cc codegen_shared_obj
+      # Code build (Debug required for tests)
+      - name: "Build dev tools"
+        run: ./bin/inv_wrapper.sh dev.tools --build Debug --sgx Simulation --clean
       # Environment set-up
       - name: "Run codegen"
         run: ./bin/inv_wrapper.sh codegen.local
@@ -286,9 +282,6 @@ jobs:
         run: ./bin/inv_wrapper.sh python.codegen
       - name: "Clear existing pyc files"
         run: ./bin/inv_wrapper.sh python.clear-runtime-pyc
-      # Code build (Debug required for tests)
-      - name: "Build dev tools"
-        run: ./bin/inv_wrapper.sh dev.tools --build Debug --sgx Simulation
       # Test run
       - name: "Run the tests"
         run: /build/faasm/bin/tests
