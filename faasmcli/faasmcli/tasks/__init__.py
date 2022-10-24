@@ -11,6 +11,7 @@ from . import docs
 from . import files
 from . import flame
 from . import flush
+from . import format_code
 from . import git
 from . import k8s
 from . import network
@@ -33,6 +34,7 @@ ns = Collection(
     files,
     flame,
     flush,
+    format_code,
     git,
     k8s,
     network,
