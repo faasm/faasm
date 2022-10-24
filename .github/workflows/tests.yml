@@ -109,12 +109,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: faasm/cli:0.8.15
-    defaults:
-      run:
-        working-directory: /usr/local/code/faasm
     steps:
-      - name: "Checkout code"
-        run: pwd && git fetch origin ${GITHUB_REF}:ci-branch && git checkout --force ci-branch && git submodule update --init
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
 
@@ -147,16 +142,9 @@ jobs:
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
-    defaults:
-      run:
-        working-directory: /usr/local/code/faasm
     steps:
-      - name: "Checkout code"
-        run: pwd && git fetch origin ${GITHUB_REF}:ci-branch && git checkout --force ci-branch && git submodule update --init
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
-        with:
-           directory: /usr/local/code/faasm
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -238,9 +226,6 @@ jobs:
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
-    defaults:
-      run:
-        working-directory: /usr/local/code/faasm
     steps:
       - name: "Checkout code"
         run: pwd && git fetch origin ${GITHUB_REF}:ci-branch && git checkout --force ci-branch && git submodule update --init
@@ -302,9 +287,6 @@ jobs:
   dist-tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ github.workspace }}
     env:
         CONAN_CACHE_MOUNT_SOURCE: ~/.conan
     steps:
