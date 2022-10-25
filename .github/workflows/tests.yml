@@ -54,7 +54,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cpp-sysroot:0.1.7
+      image: faasm/cpp-sysroot:0.1.9
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
