@@ -152,8 +152,6 @@ jobs:
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
-        with:
-           directory: /usr/local/code/faasm
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -240,8 +238,6 @@ jobs:
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
-        with:
-           directory: /usr/local/code/faasm
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -306,8 +302,6 @@ jobs:
         uses: actions/checkout@v3
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
-        with:
-          directory: ${{ github.workspace }}
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
