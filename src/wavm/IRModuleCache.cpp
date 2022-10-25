@@ -203,6 +203,10 @@ IR::Module& IRModuleCache::getMainModule(const std::string& user,
             }
 
             // Force maximum size
+            if (module.memories.defs.empty()) {
+                SPDLOG_ERROR("WASM module ({}) does not define any memories", key);
+                throw std::runtime_error("WASM module does not define any memories");
+            }
             module.memories.defs[0].type.size.max = (U64)MAX_MEMORY_PAGES;
 
             // Typescript modules don't seem to define a table
