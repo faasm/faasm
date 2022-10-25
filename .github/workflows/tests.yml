@@ -63,6 +63,7 @@ jobs:
         # TODO: do we need this? if so, why?
       - name: "Build TensorFlow Lite"
         run: ./bin/inv_wrapper.sh tensorflow
+        working-directory: ${{ github.workspace }}/clients/cpp
       - name: "Build C++ functions"
         run: ./bin/inv_wrapper.sh func.local
         working-directory: ${{ github.workspace }}/clients/cpp
@@ -71,7 +72,6 @@ jobs:
         working-directory: ${{ github.workspace }}/clients/cpp
       - name: "Build libfake"
         run: ./bin/inv_wrapper.sh libfake
-        working-directory: ${{ github.workspace }}/clients/cpp
         working-directory: ${{ github.workspace }}/clients/cpp
       - name: "Upload cpp wasm"
         uses: actions/upload-artifact@v3.1.0
