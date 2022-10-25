@@ -187,7 +187,7 @@ jobs:
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
       - name: "Configure machine code cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.11
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
@@ -275,7 +275,7 @@ jobs:
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
       - name: "Configure machine code cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.11
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
@@ -314,7 +314,7 @@ jobs:
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
       - name: "Configure S3 cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.11
         with:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
@@ -344,7 +344,7 @@ jobs:
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
       - name: "Configure S3 cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.11
         with:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
