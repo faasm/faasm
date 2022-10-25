@@ -58,6 +58,9 @@ target_compile_options(wamrlib PRIVATE
 # Faasm-specific configuration
 # -----------------------------
 
+# WAMR's Cmake script globally turns off RTTI
+list(REMOVE_ITEM CMAKE_CXX_FLAGS "-fno-rtti")
+
 target_include_directories(wamrlib PUBLIC
     ${PLATFORM_SHARED_DIR}
 )
