@@ -60,6 +60,9 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
+        # TODO: do we need this? if so, why?
+      - name: "Build TensorFlow Lite"
+        run: ./bin/inv_wrapper.sh tensorflow
       - name: "Build C++ functions"
         run: ./bin/inv_wrapper.sh func.local
         working-directory: ${{ github.workspace }}/clients/cpp
