@@ -1,0 +1,2 @@
+# Silence UB in cpprestsdk after version upgrade
+vptr:include/cpprest/astreambuf.h

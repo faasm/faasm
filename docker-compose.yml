@@ -132,7 +132,7 @@ services:
       - ASAN_OPTIONS=halt_on_error=1:quarantine_size_mb=16
       - LSAN_OPTIONS=suppressions=/usr/local/code/faasm/leak-sanitizer-ignorelist.txt
       - TSAN_OPTIONS="halt_on_error=1 suppressions=/usr/local/code/faasm/thread-sanitizer-ignorelist.txt history_size=0 flush_memory_ms=5000"
-      - UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1
+      - UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1:supressions=ub-sanitizer-ignorelist.txt
       - WASM_VM=${WASM_VM:-wavm}
       - SGX_AESM_ADDR=1
       - AZ_ATTESTATION_PROVIDER_URL=https://faasmattprov.eus2.attest.azure.net
