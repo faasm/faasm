@@ -54,14 +54,17 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cpp-sysroot:0.1.7
+      image: faasm/cpp-sysroot:0.1.10
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
       - name: "Build C++ functions"
         run: ./bin/inv_wrapper.sh func.local
+        working-directory: ${{ github.workspace }}/clients/cpp
+      - name: "Build libfake"
+        run: ./bin/inv_wrapper.sh libfake
         working-directory: ${{ github.workspace }}/clients/cpp
       - name: "Build libfake"
         run: ./bin/inv_wrapper.sh libfake
@@ -112,6 +115,8 @@ jobs:
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
+      - name: "Build Conan dependencies to be shared by all runs"
+        run: ./bin/inv_wrapper.sh dev.cmake --build Debug --clean
 
   tests:
     if: github.event.pull_request.draft == false
@@ -178,7 +183,7 @@ jobs:
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
       - name: "Configure machine code cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.11
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
@@ -231,8 +236,6 @@ jobs:
         run: pwd && git fetch origin ${GITHUB_REF}:ci-branch && git checkout --force ci-branch && git submodule update --init
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
-        with:
-           directory: /usr/local/code/faasm
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -266,7 +269,7 @@ jobs:
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
       - name: "Configure machine code cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.11
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
@@ -296,15 +299,13 @@ jobs:
           submodules: true
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
-        with:
-          directory: ${{ github.workspace }}
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
       - name: "Configure S3 cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.11
         with:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
@@ -334,7 +335,7 @@ jobs:
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
       - name: "Configure S3 cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.11
         with:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
