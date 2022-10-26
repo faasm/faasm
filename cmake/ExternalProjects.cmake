@@ -110,8 +110,8 @@ FetchContent_Declare(wavm_ext
 )
 
 FetchContent_Declare(wamr_ext
-    GIT_REPOSITORY "https://github.com/auto-ndp/wasm-micro-runtime"
-    GIT_TAG "ccea98fbf95435a9012b38e0fc906f358c0e36cc"
+    GIT_REPOSITORY "https://github.com/faasm/wasm-micro-runtime"
+    GIT_TAG "b06de10d165ca0bf3d616fdf3ba4e44d08dc33e1"
 )
 
 # WAMR and WAVM both link to LLVM
