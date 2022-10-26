@@ -232,8 +232,6 @@ jobs:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
     steps:
-      - name: "Checkout code"
-        run: pwd && git fetch origin ${GITHUB_REF}:ci-branch && git checkout --force ci-branch && git submodule update --init
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
       - name: "Ping redis"
