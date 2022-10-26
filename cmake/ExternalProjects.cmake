@@ -103,8 +103,8 @@ add_library(AWS::s3 ALIAS aws_ext_s3_lib)
 # Tightly-coupled dependencies
 set(FETCHCONTENT_QUIET OFF)
 FetchContent_Declare(wavm_ext
-    GIT_REPOSITORY "https://github.com/auto-ndp/WAVM.git"
-    GIT_TAG "ed1f2171516f0bb0b78b53dfc645a5fbe4f1a590"
+    GIT_REPOSITORY "https://github.com/faasm/WAVM.git"
+    GIT_TAG "751bcb6639b70589dde940466520d61a63931d59"
     CMAKE_ARGS "-DDLL_EXPORT= \
         -DDLL_IMPORT="
 )
