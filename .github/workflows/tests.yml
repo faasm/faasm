@@ -54,16 +54,12 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cpp-sysroot:0.1.9
+      image: faasm/cpp-sysroot:0.1.10
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
         with:
           submodules: recursive
-        # TODO: do we need this? if so, why?
-      - name: "Build TensorFlow Lite"
-        run: ./bin/inv_wrapper.sh tensorflow
-        working-directory: ${{ github.workspace }}/clients/cpp
       - name: "Build C++ functions"
         run: ./bin/inv_wrapper.sh func.local
         working-directory: ${{ github.workspace }}/clients/cpp
