@@ -119,6 +119,8 @@ jobs:
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
+      - name: "Build Conan dependencies to be shared by all runs"
+        run: ./bin/inv_wrapper.sh dev.cmake --build Debug --clean
 
   tests:
     if: github.event.pull_request.draft == false
