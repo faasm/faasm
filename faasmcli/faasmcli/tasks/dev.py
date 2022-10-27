@@ -1,15 +1,14 @@
-from os import makedirs
-from os.path import exists
-from subprocess import run
-
-from invoke import task
-
 from faasmcli.util.env import (
     PROJ_ROOT,
     FAASM_BUILD_DIR,
     FAASM_INSTALL_DIR,
     FAASM_SGX_MODE_DISABLED,
 )
+from faasmtools.build import get_serialised_faasm_env_vars
+from invoke import task
+from os import makedirs
+from os.path import exists
+from subprocess import run
 
 DEV_TARGETS = [
     "codegen_func",
@@ -48,6 +47,7 @@ def cmake(
         makedirs(FAASM_INSTALL_DIR)
 
     cmd = [
+        get_serialised_faasm_env_vars("runtime"),
         "cmake",
         "-GNinja",
         "-DCMAKE_BUILD_TYPE={}".format(build),
@@ -113,7 +113,9 @@ def cc(ctx, target, clean=False, parallel=0):
     else:
         target = "--target {}".format(target)
 
-    cmake_cmd = "cmake --build . {}".format(target)
+    cmake_cmd = "{} cmake --build . {}".format(
+        get_serialised_faasm_env_vars("runtime"), target
+    )
     if parallel > 0:
         cmake_cmd += " --parallel {}".format(parallel)
     run(
