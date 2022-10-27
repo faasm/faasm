@@ -6,6 +6,7 @@
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 
+#include <fstream>
 #include <mutex>
 #include <syscall.h>
 

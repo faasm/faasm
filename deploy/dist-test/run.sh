@@ -29,7 +29,7 @@ echo "-------------------------------------------"
 docker compose logs dist-test-server
 
 # Stop everything
-docker compose stop
+docker compose stop upload dist-test-server
 
 popd >> /dev/null
 

@@ -11,15 +11,14 @@ list(PREPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/conan.cmake")
   message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-  file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/v0.16.1/conan.cmake"
+  file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/0.18.1/conan.cmake"
                 "${CMAKE_CURRENT_BINARY_DIR}/conan.cmake"
-                EXPECTED_HASH SHA256=396e16d0f5eabdc6a14afddbcfff62a54a7ee75c6da23f32f7a31bc85db23484
                 TLS_VERIFY ON)
 endif()
 
 include(${CMAKE_CURRENT_BINARY_DIR}/conan.cmake)
 
-conan_check(VERSION 1.43.0 REQUIRED)
+conan_check(VERSION 1.52.0 REQUIRED)
 
 # Enable revisions in the conan config
 execute_process(COMMAND ${CONAN_CMD} config set general.revisions_enabled=1
@@ -30,7 +29,7 @@ endif()
 
 conan_cmake_configure(
     REQUIRES
-        "catch2/2.13.7@#31c8cd08e3c957a9eac8cb1377cf5863"
+        "catch2/2.13.9@#8793d3e6287d3684201418de556d98fe"
         # These two dependencies are only needed to perform remote attestation
         # of SGX enclaves using Microsoft Azure's Attestation Service
         "jwt-cpp/0.6.0@#cd6b5c1318b29f4becaf807b23f7bb44"
@@ -105,14 +104,14 @@ add_library(AWS::s3 ALIAS aws_ext_s3_lib)
 set(FETCHCONTENT_QUIET OFF)
 FetchContent_Declare(wavm_ext
     GIT_REPOSITORY "https://github.com/faasm/WAVM.git"
-    GIT_TAG "5513780026e76c5c8053d13783706df6f55a5851"
+    GIT_TAG "751bcb6639b70589dde940466520d61a63931d59"
     CMAKE_ARGS "-DDLL_EXPORT= \
         -DDLL_IMPORT="
 )
 
 FetchContent_Declare(wamr_ext
     GIT_REPOSITORY "https://github.com/faasm/wasm-micro-runtime"
-    GIT_TAG "caef0bc4db394b2d603066cc8b1a1cf5731e1b62"
+    GIT_TAG "18af89dee49ee2a4148d5993669ce12f3b00941b"
 )
 
 # WAMR and WAVM both link to LLVM
