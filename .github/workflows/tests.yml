@@ -59,7 +59,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v3
         with:
-          submodules: recursive
+          submodules: true
       - name: "Build C++ functions"
         run: ./bin/inv_wrapper.sh func.local
         working-directory: ${{ github.workspace }}/clients/cpp
