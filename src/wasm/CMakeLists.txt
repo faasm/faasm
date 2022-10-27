@@ -13,10 +13,12 @@ set(FAASM_WASM_STACK_SIZE $ENV{FAASM_WASM_STACK_SIZE})
 set(FAASM_WASM_ZYGOTE_FUNC_NAME $ENV{FAASM_WASM_ZYGOTE_FUNC_NAME})
 configure_file(
     ${FAASM_INCLUDE_DIR}/wasm/WasmCommon.h.in
-    ${FAASM_INCLUDE_DIR}/wasm/WasmCommon.h
+    ${CMAKE_BINARY_DIR}/include/wasm/WasmCommon.h
 )
-
-target_include_directories(wasm PRIVATE ${FAASM_INCLUDE_DIR}/wasm)
+target_include_directories(wasm PRIVATE
+    ${FAASM_INCLUDE_DIR}/wasm
+    ${CMAKE_BINARY_DIR}/include
+)
 
 target_link_libraries(wasm PUBLIC
     faasm::conf
