@@ -4,9 +4,9 @@ from faasmcli.util.env import (
     FAASM_INSTALL_DIR,
     FAASM_SGX_MODE_DISABLED,
 )
-from faasmtools.build import get_serialised_faasm_env_vars
+from faasmtools.build import FAASM_RUNTIME_ENV_DICT
 from invoke import task
-from os import makedirs
+from os import environ, makedirs
 from os.path import exists
 from subprocess import run
 
@@ -47,7 +47,6 @@ def cmake(
         makedirs(FAASM_INSTALL_DIR)
 
     cmd = [
-        get_serialised_faasm_env_vars("runtime"),
         "cmake",
         "-GNinja",
         "-DCMAKE_BUILD_TYPE={}".format(build),
@@ -66,7 +65,11 @@ def cmake(
 
     cmd_str = " ".join(cmd)
     print(cmd_str)
-    run(cmd_str, shell=True, check=True, cwd=FAASM_BUILD_DIR)
+
+    work_env = environ.copy()
+    work_env.update(FAASM_RUNTIME_ENV_DICT)
+
+    run(cmd_str, shell=True, check=True, cwd=FAASM_BUILD_DIR, env=work_env)
 
 
 @task
@@ -113,14 +116,17 @@ def cc(ctx, target, clean=False, parallel=0):
     else:
         target = "--target {}".format(target)
 
-    cmake_cmd = "{} cmake --build . {}".format(
-        get_serialised_faasm_env_vars("runtime"), target
-    )
+    cmake_cmd = "cmake --build . {}".format(target)
     if parallel > 0:
         cmake_cmd += " --parallel {}".format(parallel)
+
+    work_env = environ.copy()
+    work_env.update(FAASM_RUNTIME_ENV_DICT)
+
     run(
         cmake_cmd,
         cwd=FAASM_BUILD_DIR,
         shell=True,
         check=True,
+        env=work_env,
     )
