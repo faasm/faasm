@@ -11,14 +11,14 @@ on:
 
 jobs:
   clean:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: "Prune docker"
         run: "docker system prune -f --all"
 
   build-dep-free-images:
     needs: clean
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         image: [redis, minio, base]
@@ -47,7 +47,7 @@ jobs:
 
   build-dep-on-base-images:
     needs: build-dep-free-images
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         image: [cli, upload, worker]
@@ -78,26 +78,26 @@ jobs:
 
   build-base-sgx:
     needs: build-dep-free-images
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         sgx-mode: [[-sgx, Hardware], [-sgx-sim, Simulation]]
     steps:
       - name: "Get the code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: "Get tag version"
         run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
       - name: "Set up QEMU"
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       - name: "Set up Docker Buildx"
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: "Log in to DockerHub"
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: "Build container image"
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           push: true
           file: docker/base-sgx.dockerfile
@@ -109,29 +109,29 @@ jobs:
 
   build-worker-cli-sgx:
     needs: build-base-sgx
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         image: [worker, cli]
         sgx-mode: [[-sgx, Hardware], [-sgx-sim, Simulation]]
     steps:
       - name: "Get the code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: "Get tag version"
         run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
       - name: "Work out the right docker tag"
         run: echo "DOCKER_TAG=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
       - name: "Set up QEMU"
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       - name: "Set up Docker Buildx"
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: "Log in to DockerHub"
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: "Build container image"
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           push: true
           file: docker/${{ matrix.image }}.dockerfile
