@@ -28,6 +28,7 @@ target_include_directories(
     dist_test_server
     PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_BINARY_DIR}/include
 )
 
 target_link_libraries(dist_test_server PRIVATE faasm::runner_lib)
