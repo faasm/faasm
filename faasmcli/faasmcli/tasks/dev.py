@@ -4,9 +4,9 @@ from faasmcli.util.env import (
     FAASM_INSTALL_DIR,
     FAASM_SGX_MODE_DISABLED,
 )
-from faasmtools.build import FAASM_RUNTIME_ENV_DICT
+from faasmtools.build import FAASM_RUNTIME_ENV_DICT, get_dict_as_cmake_vars
 from invoke import task
-from os import environ, makedirs
+from os import makedirs
 from os.path import exists
 from subprocess import run
 
@@ -60,16 +60,14 @@ def cmake(
         "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
         "-DFAASM_SGX_MODE={}".format(sgx),
         "-DFAASM_TARGET_CPU={}".format(cpu) if cpu else "",
+        get_dict_as_cmake_vars(FAASM_RUNTIME_ENV_DICT),
         PROJ_ROOT,
     ]
 
     cmd_str = " ".join(cmd)
     print(cmd_str)
 
-    work_env = environ.copy()
-    work_env.update(FAASM_RUNTIME_ENV_DICT)
-
-    run(cmd_str, shell=True, check=True, cwd=FAASM_BUILD_DIR, env=work_env)
+    run(cmd_str, shell=True, check=True, cwd=FAASM_BUILD_DIR)
 
 
 @task
@@ -120,13 +118,9 @@ def cc(ctx, target, clean=False, parallel=0):
     if parallel > 0:
         cmake_cmd += " --parallel {}".format(parallel)
 
-    work_env = environ.copy()
-    work_env.update(FAASM_RUNTIME_ENV_DICT)
-
     run(
         cmake_cmd,
         cwd=FAASM_BUILD_DIR,
         shell=True,
         check=True,
-        env=work_env,
     )

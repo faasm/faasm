@@ -5,12 +5,22 @@ faasm_private_lib(wasm
     chaining_util.cpp
 )
 
-# Populate the variables defined for cross-compiling WASM
-set(FAASM_WASM_BYTES_PER_PAGE $ENV{FAASM_WASM_BYTES_PER_PAGE})
-set(FAASM_WASM_CTORS_FUNC_NAME $ENV{FAASM_WASM_CTORS_FUNC_NAME})
-set(FAASM_WASM_MAX_MEMORY $ENV{FAASM_WASM_MAX_MEMORY})
-set(FAASM_WASM_STACK_SIZE $ENV{FAASM_WASM_STACK_SIZE})
-set(FAASM_WASM_ZYGOTE_FUNC_NAME $ENV{FAASM_WASM_ZYGOTE_FUNC_NAME})
+# Shared variables with the cross-compilation toolchain
+set(FAASM_WASM_BYTES_PER_PAGE CACHE STRING "Number of bytes per WASM page")
+set(FAASM_WASM_CTORS_FUNC_NAME CACHE STRING "Name for the WASM constructors function")
+set(FAASM_WASM_MAX_MEMORY CACHE STRING "Maximum memory for a WASM module instance (in Bytes)")
+set(FAASM_WASM_STACK_SIZE CACHE STRING "Stack size for a WASM module instance (in Bytes)")
+set(FAASM_WASM_ZYGOTE_FUNC_NAME CACHE STRING "Name for Faasm's Zygote function")
+
+# Check that the required Cache variables are defined
+if (NOT DEFINED CACHE{${FAASM_WASM_BYTES_PER_PAGE}} OR
+    NOT DEFINED CACHE{${FAASM_WASM_CTORS_FUNC_NAME}} OR
+    NOT DEFINED CACHE{${FAASM_WASM_BYTES_PER_PAGE}} OR
+    NOT DEFINED CACHE{${FAASM_WASM_BYTES_PER_PAGE}} OR
+    NOT DEFINED CACHE{${FAASM_WASM_BYTES_PER_PAGE}})
+message(FATAL_ERROR "Some of the FAASM_WASM variables are not set!")
+endif()
+
 configure_file(
     ${FAASM_INCLUDE_DIR}/wasm/WasmCommon.h.in
     ${FAASM_GENERATED_INCLUDE_DIR}/wasm/WasmCommon.h
