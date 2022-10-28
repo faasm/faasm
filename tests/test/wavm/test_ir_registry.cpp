@@ -51,7 +51,7 @@ TEST_CASE_METHOD(IRModuleCacheTestFixture, "Test main module caching", "[wasm]")
     // Sanity check the modules
     REQUIRE(!moduleRefA1.exports.empty());
     REQUIRE(!moduleRefB1.exports.empty());
-    REQUIRE(moduleRefA1.memories.defs[0].type.size.max == MAX_MEMORY_PAGES);
+    REQUIRE(moduleRefA1.memories.defs[0].type.size.max == MAX_WASM_MEMORY_PAGES);
     REQUIRE(moduleRefA1.tables.defs[0].type.size.max == MAX_TABLE_SIZE);
 
     // Check features are as expected
