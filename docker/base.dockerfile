@@ -11,6 +11,8 @@ ENV FAASM_DOCKER="on"
 # Copy Python runtime libraries
 COPY --from=python /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
 
+SHELL ["/bin/bash", "-c"]
+
 # Check out code (clean beforehand just in case). We also add the code
 # directory as a safe Git path. See:
 # https://github.blog/2022-04-12-git-security-vulnerability-announced/
