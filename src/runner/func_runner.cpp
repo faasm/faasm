@@ -1,8 +1,4 @@
 #include <conf/FaasmConfig.h>
-#include <faaslet/Faaslet.h>
-#include <storage/FileLoader.h>
-#include <wasm/WasmModule.h>
-
 #include <faabric/redis/Redis.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecutorFactory.h>
@@ -11,21 +7,58 @@
 #include <faabric/util/environment.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
+#include <faaslet/Faaslet.h>
+#include <storage/FileLoader.h>
+#include <wasm/WasmModule.h>
+
+#include <boost/program_options.hpp>
+#include <iostream>
+
+namespace po = boost::program_options;
 
 int doRunner(int argc, char* argv[])
 {
     faabric::util::initLogging();
 
-    if (argc < 3) {
-        SPDLOG_ERROR("Must provide user and function name");
-        return 1;
+    // Define command line arguments
+    std::string user;
+    std::string function;
+    std::string inputData;
+    std::string cmdLine;
+    po::options_description desc("Allowed options");
+    desc.add_options()
+      ("help", "print help message")
+      ("user", po::value<std::string>(&user), "function's user name (required)")
+      ("function", po::value<std::string>(&function), "function name (required)")
+      ("input-data", po::value<std::string>(&inputData), "input data for the function")
+      ("cmdline", po::value<std::string>(&inputData), "command line arguments to pass the function");
+
+    // Mark user and function as positional arguments
+    po::positional_options_description p;
+    p.add("user", 1);
+    p.add("function", 2);
+
+    // Parse command line arguments
+    po::variables_map vm;
+    po::store(po::command_line_parser(argc, argv).
+              options(desc).positional(p).run(), vm);
+    po::notify(vm);
+
+	if (vm.empty() || vm.count("help")) {
+        std::cout << "usage: func_runner <user> <function> [--input-data ...] [--cmdline ...]" << std::endl;
+        std::cout << desc << std::endl;
+		return 1;
+	}
+
+    if (!vm.count("user") || !vm.count("function")) {
+        std::cout << "User and function are required variables" << std::endl;
+		return 1;
     }
 
-    // Set up the call
-    std::string user = argv[1];
-    std::string function = argv[2];
+    return 0;
 
-    std::string inputData;
+
+    // Set up the call
     bool hasInput = false;
     if (argc == 4) {
         inputData = argv[3];
