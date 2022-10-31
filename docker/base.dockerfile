@@ -32,17 +32,10 @@ RUN mkdir -p /usr/local/faasm/runtime_root/etc \
     && mkdir -p /usr/local/faasm/runtime_root/share
 
 # Out of tree clean build of the basic targets
-RUN rm -rf /build/faasm \
-    && mkdir -p /build/faasm \
-    && cd /build/faasm \
-    && cmake \
-        -GNinja \
-        -DCMAKE_CXX_COMPILER=/usr/bin/clang++-13 \
-        -DCMAKE_C_COMPILER=/usr/bin/clang-13 \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DFAASM_SGX_MODE=Disabled \
-        /usr/local/code/faasm \
-    && cmake --build . --target tests \
-    && cmake --build . --target func_runner \
-    && cmake --build . --target codegen_func \
-    && cmake --build . --target codegen_shared_obj
+RUN cd /usr/local/code/faasm \
+    && ./bin/create_venv.sh \
+    && source venv/bin/activate \
+    && inv -r faasmcli/faasmcli dev.tools \
+        --clean \
+        --build Release \
+        --sgx Disabled
