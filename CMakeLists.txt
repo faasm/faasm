@@ -210,9 +210,6 @@ target_include_directories(faasm_common_deps INTERFACE
     ${FAASM_GENERATED_INCLUDE_DIR}
     ${FAASM_PYTHON_LIB_DIR}
 )
-target_compile_definitions(faasm_common_deps INTERFACE
-    BOOST_NO_TYPEID=1 # Prevent odd crashes within asio implementation
-)
 
 # Faasm SGX support
 if (SGX_FOUND)
