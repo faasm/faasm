@@ -1,14 +1,15 @@
 #pragma once
 
-#include "WasmEnvironment.h"
-
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/State.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/queue.h>
 #include <faabric/util/snapshot.h>
+#include <storage/FileSystem.h>
 #include <threads/ThreadState.h>
+#include <wasm/WasmCommon.h>
+#include <wasm/WasmEnvironment.h>
 
 #include <atomic>
 #include <exception>
@@ -17,16 +18,6 @@
 #include <sys/uio.h>
 #include <thread>
 #include <tuple>
-
-#include <storage/FileSystem.h>
-
-// Special known function names
-// Zygote function (must match faasm.h linked into the functions themselves)
-#define ZYGOTE_FUNC_NAME "_faasm_zygote"
-#define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
-#define ENTRY_FUNC_NAME "_start"
-
-#define MAX_WASM_MEM (1024L * 1024L * 1024L * 4L)
 
 namespace wasm {
 

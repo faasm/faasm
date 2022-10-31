@@ -6,16 +6,6 @@
 #include <faabric/util/config.h>
 #include <shared_mutex>
 
-// Note that page size in wasm is 64kiB
-#define ONE_MB_PAGES 16
-#define ONE_GB_PAGES 1024 * ONE_MB_PAGES
-#define MAX_TABLE_SIZE 500000
-
-// WARNING - when changing this, must also change in linker args for functions
-// As described in the linker args, we can't set this to the actual max as it
-// gets ignored, therefore we set it to one page below the max.
-#define MAX_MEMORY_PAGES (4 * ONE_GB_PAGES) - 1
-
 using namespace WAVM;
 
 namespace wasm {

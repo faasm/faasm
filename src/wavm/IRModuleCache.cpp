@@ -1,15 +1,15 @@
+#include <faabric/util/files.h>
+#include <faabric/util/func.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
+#include <storage/FileLoader.h>
+#include <wasm/WasmCommon.h>
+#include <wavm/IRModuleCache.h>
 
 #include <WAVM/IR/Module.h>
 #include <WAVM/IR/Types.h>
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/WASTParse/WASTParse.h>
-
-#include <faabric/util/files.h>
-#include <faabric/util/func.h>
-#include <storage/FileLoader.h>
-#include <wavm/IRModuleCache.h>
 
 namespace wasm {
 IRModuleCache::IRModuleCache()
@@ -203,7 +203,13 @@ IR::Module& IRModuleCache::getMainModule(const std::string& user,
             }
 
             // Force maximum size
-            module.memories.defs[0].type.size.max = (U64)MAX_MEMORY_PAGES;
+            if (module.memories.defs.empty()) {
+                SPDLOG_ERROR("WASM module ({}) does not define any memories",
+                             key);
+                throw std::runtime_error(
+                  "WASM module does not define any memories");
+            }
+            module.memories.defs[0].type.size.max = (U64)MAX_WASM_MEMORY_PAGES;
 
             // Typescript modules don't seem to define a table
             if (!module.tables.defs.empty()) {

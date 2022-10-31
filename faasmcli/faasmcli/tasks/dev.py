@@ -1,15 +1,14 @@
-from os import makedirs
-from os.path import exists
-from subprocess import run
-
-from invoke import task
-
 from faasmcli.util.env import (
     PROJ_ROOT,
     FAASM_BUILD_DIR,
     FAASM_INSTALL_DIR,
     FAASM_SGX_MODE_DISABLED,
 )
+from faasmtools.build import FAASM_RUNTIME_ENV_DICT, get_dict_as_cmake_vars
+from invoke import task
+from os import makedirs
+from os.path import exists
+from subprocess import run
 
 DEV_TARGETS = [
     "codegen_func",
@@ -61,11 +60,13 @@ def cmake(
         "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
         "-DFAASM_SGX_MODE={}".format(sgx),
         "-DFAASM_TARGET_CPU={}".format(cpu) if cpu else "",
+        get_dict_as_cmake_vars(FAASM_RUNTIME_ENV_DICT),
         PROJ_ROOT,
     ]
 
     cmd_str = " ".join(cmd)
     print(cmd_str)
+
     run(cmd_str, shell=True, check=True, cwd=FAASM_BUILD_DIR)
 
 
@@ -116,6 +117,7 @@ def cc(ctx, target, clean=False, parallel=0):
     cmake_cmd = "cmake --build . {}".format(target)
     if parallel > 0:
         cmake_cmd += " --parallel {}".format(parallel)
+
     run(
         cmake_cmd,
         cwd=FAASM_BUILD_DIR,
