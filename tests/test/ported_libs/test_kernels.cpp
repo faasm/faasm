@@ -4,11 +4,6 @@
 #include "fixtures.h"
 #include "utils.h"
 
-#include <boost/filesystem.hpp>
-#include <fstream>
-#include <iterator>
-#include <vector>
-
 namespace tests {
 // We read the different command line arguments from PRK's CI scripts
 TEST_CASE_METHOD(FunctionExecTestFixture,
@@ -85,9 +80,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     execFunction(msg);
 }
 
-TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test executing OpenMP kernels",
-                 "[libs]")
+TEST_CASE_METHOD(OpenMPTestFixture, "Test executing OpenMP kernels", "[libs]")
 {
     std::string kernelName;
     std::string cmdLine;
