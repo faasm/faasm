@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fixtures.h"
+#include "utils.h"
 
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
@@ -10,6 +11,10 @@
 #include <wavm/WAVMWasmModule.h>
 
 #include <faabric/util/files.h>
+
+// Longer timeout to allow longer-running OpenMP functions to finish even when
+// doing trace-level logging
+#define OMP_TEST_TIMEOUT_MS 60000
 
 namespace tests {
 
@@ -188,5 +193,25 @@ class FunctionLoaderTestFixture : public S3TestFixture
 
     std::string localSharedObjFile;
     std::vector<uint8_t> sharedObjWasm;
+};
+
+class OpenMPTestFixture
+  : public FunctionExecTestFixture
+  , public ConfTestFixture
+  , public SnapshotTestFixture
+{
+  public:
+    OpenMPTestFixture() { conf.overrideCpuCount = 30; }
+
+    ~OpenMPTestFixture() {}
+
+    std::string doOmpTestLocal(const std::string& function)
+    {
+        faabric::Message msg = faabric::util::messageFactory("omp", function);
+        faabric::Message result =
+          execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
+
+        return result.outputdata();
+    }
 };
 }

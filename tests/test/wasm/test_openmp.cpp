@@ -12,31 +12,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/string_tools.h>
 
-// Longer timeout to allow longer-running functions to finish even when doing
-// trace-level logging
-#define OMP_TEST_TIMEOUT_MS 60000
-
 namespace tests {
-
-class OpenMPTestFixture
-  : public FunctionExecTestFixture
-  , public ConfTestFixture
-  , public SnapshotTestFixture
-{
-  public:
-    OpenMPTestFixture() { conf.overrideCpuCount = 30; }
-
-    ~OpenMPTestFixture() {}
-
-    std::string doOmpTestLocal(const std::string& function)
-    {
-        faabric::Message msg = faabric::util::messageFactory("omp", function);
-        faabric::Message result =
-          execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
-
-        return result.outputdata();
-    }
-};
 
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test OpenMP static for scheduling",
