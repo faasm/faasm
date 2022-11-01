@@ -26,12 +26,16 @@ int doRunner(int argc, char* argv[])
     std::string inputData;
     std::string cmdLine;
     po::options_description desc("Allowed options");
-    desc.add_options()
-      ("help", "print help message")
-      ("user", po::value<std::string>(&user), "function's user name (required)")
-      ("function", po::value<std::string>(&function), "function name (required)")
-      ("input-data", po::value<std::string>(&inputData), "input data for the function")
-      ("cmdline", po::value<std::string>(&inputData), "command line arguments to pass the function");
+    desc.add_options()(
+      "user", po::value<std::string>(&user), "function's user name (required)")(
+      "function",
+      po::value<std::string>(&function),
+      "function name (required)")("input-data",
+                                  po::value<std::string>(&inputData),
+                                  "input data for the function")(
+      "cmdline",
+      po::value<std::string>(&cmdLine),
+      "command line arguments to pass the function");
 
     // Mark user and function as positional arguments
     po::positional_options_description p;
@@ -40,30 +44,10 @@ int doRunner(int argc, char* argv[])
 
     // Parse command line arguments
     po::variables_map vm;
-    po::store(po::command_line_parser(argc, argv).
-              options(desc).positional(p).run(), vm);
+    po::store(
+      po::command_line_parser(argc, argv).options(desc).positional(p).run(),
+      vm);
     po::notify(vm);
-
-	if (vm.empty() || vm.count("help")) {
-        std::cout << "usage: func_runner <user> <function> [--input-data ...] [--cmdline ...]" << std::endl;
-        std::cout << desc << std::endl;
-		return 1;
-	}
-
-    if (!vm.count("user") || !vm.count("function")) {
-        std::cout << "User and function are required variables" << std::endl;
-		return 1;
-    }
-
-    return 0;
-
-
-    // Set up the call
-    bool hasInput = false;
-    if (argc == 4) {
-        inputData = argv[3];
-        hasInput = true;
-    }
 
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(user, function, 1);
@@ -105,11 +89,14 @@ int doRunner(int argc, char* argv[])
         SPDLOG_INFO("Running function {}/{}", user, function);
     }
 
-    if (hasInput) {
-        std::string inputData = argv[3];
+    if (vm.count("input-data")) {
         msg.set_inputdata(inputData);
-
         SPDLOG_INFO("Adding input data: {}", inputData);
+    }
+
+    if (vm.count("cmdline")) {
+        msg.set_cmdline(cmdLine);
+        SPDLOG_INFO("Adding command line arguments: {}", cmdLine);
     }
 
     // Set up the system
