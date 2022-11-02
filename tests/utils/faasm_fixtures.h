@@ -5,12 +5,14 @@
 
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/files.h>
 #include <storage/FileLoader.h>
 #include <storage/S3Wrapper.h>
 #include <storage/SharedFiles.h>
 #include <wavm/WAVMWasmModule.h>
 
-#include <faabric/util/files.h>
+#include <boost/filesystem.hpp>
 
 // Longer timeout to allow longer-running OpenMP functions to finish even when
 // doing trace-level logging
@@ -212,6 +214,24 @@ class OpenMPTestFixture
           execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
 
         return result.outputdata();
+    }
+};
+
+class FunctionExecWithSharedFilesTestFixture
+  : public FunctionExecTestFixture
+  , public SharedFilesTestFixture
+{
+  public:
+    void uploadSharedFile(const std::string& testFilePath,
+                          const std::string& relativeSharedFilePath)
+    {
+        // Remove the file if it exists
+        std::string filePath = loader.getSharedFileFile(relativeSharedFilePath);
+        boost::filesystem::remove(filePath);
+
+        // Upload the file
+        auto fileBytes = faabric::util::readFileToBytes(testFilePath);
+        loader.uploadSharedFile(relativeSharedFilePath, fileBytes);
     }
 };
 }

@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "fixtures.h"
 #include "utils.h"
 
@@ -14,58 +15,16 @@
 #include <upload/UploadServer.h>
 
 namespace tests {
-// NOTE: we must be careful with this fixture that we don't have to rerun the
-// codegen for the ffmpeg function as it's over 40MB of wasm and takes several
-// minutes.
-class FFmpegTestFixture : public ExecutorContextTestFixture
-{
-
-  public:
-    FFmpegTestFixture()
-      : loader(storage::getFileLoader())
-    {
-        storage::SharedFiles::clear();
-
-        // Remove the file
-        filePath = loader.getSharedFileFile(relativeSharedFilePath);
-        boost::filesystem::remove(filePath);
-
-        // Upload the file
-        fileBytes = faabric::util::readFileToBytes(testFilePath);
-        loader.uploadSharedFile(relativeSharedFilePath, fileBytes);
-    }
-
-    ~FFmpegTestFixture()
-    {
-        storage::SharedFiles::clear();
-
-        boost::filesystem::remove(filePath);
-    }
-
-  protected:
-    storage::FileLoader& loader;
-
-    std::string testFilePath =
-      "./tests/test/ported_libs/files/ffmpeg_video.mp4";
-    std::string filePath;
-    std::string relativeSharedFilePath = "ffmpeg/sample_video.mp4";
-    std::vector<uint8_t> fileBytes;
-};
-
-TEST_CASE_METHOD(FFmpegTestFixture,
-                 "Test executing FFmpeg checks in WAVM",
+TEST_CASE_METHOD(FunctionExecWithSharedFilesTestFixture,
+                 "Test executing FFmpeg checks",
                  "[libs]")
 {
-    auto req = setUpContext("ffmpeg", "check");
-    faabric::Message& msg = req->mutable_messages()->at(0);
-    execFunction(msg);
-}
+    uploadSharedFile("./tests/test/ported_libs/files/ffmpeg_video.mp4",
+                     "ffmpeg/sample_video.mp4");
+    faabric::Message msg = faabric::util::messageFactory("ffmpeg", "check");
 
-TEST_CASE_METHOD(FFmpegTestFixture,
-                 "Test executing FFmpeg checks in WAMR",
-                 "[libs][wamr]")
-{
-    auto req = setUpContext("ffmpeg", "check");
-    executeWithWamrPool("ffmpeg", "check");
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 }
