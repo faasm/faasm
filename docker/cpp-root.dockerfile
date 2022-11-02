@@ -7,6 +7,7 @@ RUN apt update \
         cgroup-tools \
         iproute2 \
         iptables \
+        libcairo2-dev \
         libcgroup-dev \
         software-properties-common \
     && apt clean autoclean -y \

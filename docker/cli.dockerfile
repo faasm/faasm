@@ -10,12 +10,6 @@ RUN apt update \
         clang-tidy-10 \
         clang-tidy-13 \
         doxygen \
-        libpython3-dev \
-        python3-dev \
-        python3-pip \
-        python3-venv \
-        libcairo2-dev \
-        python3-cairo \
         vim
 
 # Install wabt
