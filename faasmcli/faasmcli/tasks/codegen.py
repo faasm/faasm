@@ -121,6 +121,8 @@ def local(ctx):
     _do_codegen_user("ffmpeg")
     _do_codegen_user("kernels-mpi")
     _do_codegen_user("kernels-omp")
+    _do_codegen_user("lammps")
+    _do_codegen_user("lulesh")
     _do_codegen_user("mpi")
     _do_codegen_user("omp")
     _do_codegen_user("python")
