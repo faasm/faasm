@@ -21,7 +21,7 @@ out-of-the box (bar some modifications in our fork of the app), and how to run
 them. This list includes:
 * [LAMMPS](https://github.com/faasm/lammps): a dynamic molecule simulator using
   C++ and MPI.
-* [LULESH](https://github.com/faasm/LULESH): a dynamic molecule simulator using
+* [LULESH](https://github.com/faasm/LULESH): a lagrangian shock simulator using
   C++ and OpenMP.
 * [FFmpeg](https://github.com/faasm/FFmpeg): libraries for the FFmpeg video-
   processing toolkit in C.
