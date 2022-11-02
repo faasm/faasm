@@ -47,6 +47,7 @@ Experiments and benchmarks:
    source/proto_faaslets
    source/python
    source/releases
+   source/sample_applications
    source/sgx
    source/shared_files
    source/state
