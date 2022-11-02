@@ -1,11 +1,22 @@
-file(GLOB_RECURSE TEST_FILES test_*.cpp)
-file(GLOB_RECURSE ENCLAVE_TEST_FILES enclave/test_*.cpp)
-file(GLOB_RECURSE ATTESTATION_TEST_FILES attestation/test_*.cpp)
+# Add the different test directories. Each subdirectory will populate the
+# TEST_FILES variable, adding the source files for the tests
+add_subdirectory(codegen)
+add_subdirectory(conf)
+add_subdirectory(faaslet)
+add_subdirectory(ported_libs)
+add_subdirectory(runner)
+add_subdirectory(storage)
+add_subdirectory(system)
+add_subdirectory(threads)
+add_subdirectory(upload)
+add_subdirectory(wamr)
+add_subdirectory(wasm)
+add_subdirectory(wavm)
 
-# Remove SGX tests if SGX disabled or not found
-if (FAASM_SGX_MODE STREQUAL "Disabled")
-    list(REMOVE_ITEM TEST_FILES ${ENCLAVE_TEST_FILES})
-    list(REMOVE_ITEM TEST_FILES ${ATTESTATION_TEST_FILES})
+# Add SGX tests if enabled
+if (NOT FAASM_SGX_MODE STREQUAL "Disabled")
+    add_subdirectory(attestation)
+    add_subdirectory(enclave)
 endif()
 
 add_executable(
