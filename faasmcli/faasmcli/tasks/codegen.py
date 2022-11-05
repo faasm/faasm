@@ -20,6 +20,7 @@ WAMR_ALLOWED_FUNCS = [
     ["demo", "chain_named_b"],
     ["demo", "chain_named_c"],
     ["ffmpeg", "check"],
+    ["tf", "minimal"],
     # Environment
     ["demo", "argc_argv_test"],
     ["demo", "exit"],
@@ -122,6 +123,7 @@ def local(ctx):
     _do_codegen_user("mpi")
     _do_codegen_user("omp")
     _do_codegen_user("python")
+    _do_codegen_user("tf")
 
     # Do codegen for libfake
     for so in LIB_FAKE_FILES:
