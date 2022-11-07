@@ -51,7 +51,12 @@ def format(ctx, check=False):
         .split("\n")[:-1]
     )
 
-    clang_cmd = "clang-format-10 -i {}".format(" ".join(files_to_check))
+    clang_cmd = [
+        "clang-format-10",
+        "--dry-run --Werror" if check else "-i",
+        " ".join(files_to_check),
+    ]
+    clang_cmd = " ".join(clang_cmd)
     run(clang_cmd, shell=True, check=True, cwd=PROJ_ROOT)
 
     # ---- Append newlines to C/C++ files if not there ----
