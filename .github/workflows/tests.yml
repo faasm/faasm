@@ -125,7 +125,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sanitiser: [None, Address, Thread, Undefined, Leak]
+        sanitiser: [None, Address, Thread, Undefined]
     env:
       CGROUP_MODE: off
       HOST_TYPE: ci
