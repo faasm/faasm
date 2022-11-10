@@ -1,13 +1,11 @@
+from faasmcli.util.shell import run_command
 from invoke import task
 from os import getenv
 
-from faasmcli.util.shell import run_command
 
-
-@task(default=True)
-def run(ctx, user, function, data=None, cmdline=None):
+def do_run_command(cmd_name, user, function, data, cmdline):
     """
-    Execute a specific function
+    Execute a specific function using a single Faaslet
     """
     args = [user, function]
     if data:
@@ -18,4 +16,14 @@ def run(ctx, user, function, data=None, cmdline=None):
     wasm_vm = getenv("WASM_VM", default="wavm")
     extra_env = {"WASM_VM": wasm_vm}
 
-    run_command("func_runner", args, extra_env=extra_env)
+    run_command(cmd_name, args, extra_env=extra_env)
+
+
+@task(default=True)
+def run(ctx, user, function, data=None, cmdline=None):
+    do_run_command("func_runner", user, function, data, cmdline)
+
+
+@task()
+def pool(ctx, user, function, data=None, cmdline=None):
+    do_run_command("pool_runner", user, function, data, cmdline)

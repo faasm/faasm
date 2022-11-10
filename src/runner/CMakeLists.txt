@@ -1,6 +1,7 @@
 
 faasm_private_lib(runner_lib
     MicrobenchRunner.cpp
+    runner_utils.cpp
 )
 target_link_libraries(runner_lib PUBLIC
     faasm::common_deps
@@ -23,6 +24,10 @@ target_include_directories(func_sym PRIVATE ${FAASM_INCLUDE_DIR}/runner)
 add_executable(microbench_runner microbench_runner.cpp)
 target_link_libraries(microbench_runner PRIVATE faasm::runner_lib)
 target_include_directories(microbench_runner PRIVATE ${FAASM_INCLUDE_DIR}/runner)
+
+add_executable(local_pool_runner local_pool_runner.cpp)
+target_link_libraries(local_pool_runner PRIVATE faasm::runner_lib)
+target_include_directories(local_pool_runner PRIVATE ${FAASM_INCLUDE_DIR}/runner)
 
 # Main entrypoint for worker nodes
 add_executable(pool_runner pool_runner.cpp)
