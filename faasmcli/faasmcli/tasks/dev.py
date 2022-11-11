@@ -15,6 +15,7 @@ DEV_TARGETS = [
     "codegen_shared_obj",
     "func_runner",
     "func_sym",
+    "local_pool_runner",
     "pool_runner",
     "upload",
     "tests",
