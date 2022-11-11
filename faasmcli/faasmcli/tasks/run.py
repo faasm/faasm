@@ -26,4 +26,4 @@ def run(ctx, user, function, data=None, cmdline=None):
 
 @task()
 def pool(ctx, user, function, data=None, cmdline=None):
-    do_run_command("pool_runner", user, function, data, cmdline)
+    do_run_command("local_pool_runner", user, function, data, cmdline)

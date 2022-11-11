@@ -18,20 +18,26 @@ int doRunner(int argc, char* argv[])
 
     if (vm.count("input-data")) {
         msg.set_inputdata(vm["input-data"].as<std::string>());
-        SPDLOG_INFO("Adding input data: {}", vm["input-data"].as<std::string>());
+        SPDLOG_INFO("Adding input data: {}",
+                    vm["input-data"].as<std::string>());
     }
     if (vm.count("cmdline")) {
-        msg.set_cmdline(vm["cmdine"].as<std::string>());
-        SPDLOG_INFO("Adding command line arguments: {}", vm["cmdine"].as<std::string>());
+        msg.set_cmdline(vm["cmdline"].as<std::string>());
+        SPDLOG_INFO("Adding command line arguments: {}",
+                    vm["cmdline"].as<std::string>());
     }
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunctions(req);
 
+    usleep(1000 * 500);
+
     for (const auto& m : req->messages()) {
         faabric::Message result = sch.getFunctionResult(m.id(), 20000);
         if (result.returnvalue() != 0) {
-            SPDLOG_ERROR("Message ({}) returned error code: {}", m.id(), result.returnvalue());
+            SPDLOG_ERROR("Message ({}) returned error code: {}",
+                         m.id(),
+                         result.returnvalue());
             throw std::runtime_error("Message execution failed");
         }
     }
@@ -45,6 +51,10 @@ int main(int argc, char* argv[])
     faabric::transport::initGlobalMessageContext();
     faabric::util::initLogging();
 
+    auto& sch = faabric::scheduler::getScheduler();
+    sch.shutdown();
+    sch.addHostToGlobalSet();
+
     // WARNING: All 0MQ-related operations must take place in a self-contined
     // scope to ensure all sockets are destructed before closing the context.
     {
@@ -52,19 +62,12 @@ int main(int argc, char* argv[])
         faabric::runner::FaabricMain m(fac);
         m.startRunner();
 
-        // Start endpoint (will also have multiple threads)
-        SPDLOG_INFO("Starting endpoint");
-        faabric::endpoint::FaabricEndpoint endpoint;
-        endpoint.start(faabric::endpoint::EndpointMode::SIGNAL);
-
         doRunner(argc, argv);
 
-        SPDLOG_INFO("Shutting down");
         m.shutdown();
-
-        faabric::transport::closeGlobalMessageContext();
     }
 
+    faabric::transport::closeGlobalMessageContext();
     storage::shutdownFaasmS3();
     return 0;
 }

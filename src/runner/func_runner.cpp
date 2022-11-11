@@ -64,12 +64,14 @@ int doRunner(int argc, char* argv[])
 
     if (vm.count("input-data")) {
         msg.set_inputdata(vm["input-data"].as<std::string>());
-        SPDLOG_INFO("Adding input data: {}", vm["input-data"].as<std::string>());
+        SPDLOG_INFO("Adding input data: {}",
+                    vm["input-data"].as<std::string>());
     }
 
     if (vm.count("cmdline")) {
-        msg.set_cmdline(vm["cmdine"].as<std::string>());
-        SPDLOG_INFO("Adding command line arguments: {}", vm["cmdine"].as<std::string>());
+        msg.set_cmdline(vm["cmdline"].as<std::string>());
+        SPDLOG_INFO("Adding command line arguments: {}",
+                    vm["cmdline"].as<std::string>());
     }
 
     // Set up the system

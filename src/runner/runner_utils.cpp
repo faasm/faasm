@@ -9,11 +9,8 @@ po::variables_map parseRunnerCmdLine(int argc, char* argv[])
     po::options_description desc("Allowed options");
     desc.add_options()(
       "user", po::value<std::string>(), "function's user name (required)")(
-      "function",
-      po::value<std::string>(),
-      "function name (required)")("input-data",
-                                  po::value<std::string>(),
-                                  "input data for the function")(
+      "function", po::value<std::string>(), "function name (required)")(
+      "input-data", po::value<std::string>(), "input data for the function")(
       "cmdline",
       po::value<std::string>(),
       "command line arguments to pass the function");
