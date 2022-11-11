@@ -31,7 +31,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm/worker-sgx:0.8.16
+        - image: faasm/worker-sgx:0.8.17
           name: faasm-worker
           ports:
             - containerPort: 8080
