@@ -19,7 +19,6 @@ WAMR_ALLOWED_FUNCS = [
     ["demo", "chain_named_a"],
     ["demo", "chain_named_b"],
     ["demo", "chain_named_c"],
-    ["ffmpeg", "check"],
     # Environment
     ["demo", "argc_argv_test"],
     ["demo", "exit"],
@@ -118,7 +117,6 @@ def local(ctx):
     """
     _do_codegen_user("demo")
     _do_codegen_user("errors")
-    _do_codegen_user("ffmpeg")
     _do_codegen_user("mpi")
     _do_codegen_user("omp")
     _do_codegen_user("python")
