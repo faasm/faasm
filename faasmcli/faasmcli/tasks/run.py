@@ -4,9 +4,6 @@ from os import getenv
 
 
 def do_run_command(cmd_name, user, function, data, cmdline):
-    """
-    Execute a specific function using a single Faaslet
-    """
     args = [user, function]
     if data:
         args.append("--input-data '{}'".format(data))
@@ -21,9 +18,15 @@ def do_run_command(cmd_name, user, function, data, cmdline):
 
 @task(default=True)
 def run(ctx, user, function, data=None, cmdline=None):
+    """
+    Execute a specific function using a single Faaslet
+    """
     do_run_command("func_runner", user, function, data, cmdline)
 
 
 @task()
 def pool(ctx, user, function, data=None, cmdline=None):
+    """
+    Execute a specific function using a pool of Faaslets
+    """
     do_run_command("local_pool_runner", user, function, data, cmdline)
