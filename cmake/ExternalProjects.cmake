@@ -104,7 +104,7 @@ add_library(AWS::s3 ALIAS aws_ext_s3_lib)
 set(FETCHCONTENT_QUIET OFF)
 FetchContent_Declare(wavm_ext
     GIT_REPOSITORY "https://github.com/faasm/WAVM.git"
-    GIT_TAG "84b6b213ff35d9d8807607697b0a79e922d72ef9"
+    GIT_TAG "547f54c34e39e826575cb7d3275f36020cdb8674"
     CMAKE_ARGS "-DDLL_EXPORT= \
         -DDLL_IMPORT="
 )
