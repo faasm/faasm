@@ -131,7 +131,7 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     // Sense-check the module
     auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem =
-      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+      ((AOTMemoryInstance**)aotModule->memories)[0];
 
     if (aotMem->num_bytes_per_page != WASM_BYTES_PER_PAGE) {
         SPDLOG_ERROR("WAMR module bytes per page wrong, {} != {}, overriding",
@@ -320,30 +320,31 @@ uint8_t* WAMRWasmModule::wasmPointerToNative(uint32_t wasmPtr)
 
 bool WAMRWasmModule::doGrowMemory(uint32_t pageChange)
 {
-    return wasm_runtime_enlarge_memory(moduleInstance, pageChange);
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    return aot_enlarge_memory(aotModule, pageChange);
 }
 
 size_t WAMRWasmModule::getMemorySizeBytes()
 {
     auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem =
-      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+      ((AOTMemoryInstance**)aotModule->memories)[0];
     return aotMem->cur_page_count * WASM_BYTES_PER_PAGE;
 }
 
 uint8_t* WAMRWasmModule::getMemoryBase()
 {
-    auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem =
-      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
-    return reinterpret_cast<uint8_t*>(aotMem->memory_data.ptr);
+      ((AOTMemoryInstance**)aotModule->memories)[0];
+    return reinterpret_cast<uint8_t*>(aotMem->memory_data);
 }
 
 size_t WAMRWasmModule::getMaxMemoryPages()
 {
     auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem =
-      ((AOTMemoryInstance**)aotModule->memories.ptr)[0];
+      ((AOTMemoryInstance**)aotModule->memories)[0];
     return aotMem->max_page_count;
 }
 
