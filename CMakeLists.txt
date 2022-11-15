@@ -18,7 +18,7 @@ option(FAASM_SGX_MODE "Type of SGX support: Disabled, Simulation or Hardware" "S
 option(FAASM_TARGET_CPU "CPU to optimise for, e.g. skylake, icelake or native" OFF)
 
 # Top-level CMake config
-set(CMAKE_CXX_FLAGS "-Wall")
+set(CMAKE_CXX_FLAGS "-Wall -Werror=vla")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

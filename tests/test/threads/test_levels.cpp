@@ -40,12 +40,11 @@ TEST_CASE("Check level serialisation and deserialisation", "[threads]")
     req->set_contextdata(serialised.data(), serialised.size());
 
     // Serialise and deserialise the protobuf object
-    size_t bufferSize = req->ByteSizeLong();
-    uint8_t buffer[bufferSize];
-    req->SerializeToArray(buffer, bufferSize);
+    std::string buffer;
+    REQUIRE(req->SerializeToString(&buffer));
 
     auto reqB = std::make_shared<faabric::BatchExecuteRequest>();
-    reqB->ParseFromArray(buffer, bufferSize);
+    reqB->ParseFromString(buffer);
     REQUIRE(reqB->contextdata().size() == expectedSize);
 
     // Deserialise the nested level object
