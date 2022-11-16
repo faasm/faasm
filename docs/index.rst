@@ -41,6 +41,7 @@ Experiments and benchmarks:
    source/getting_started
    source/host_interface
    source/kubernetes
+   source/llvm
    source/mpi
    source/networking
    source/profiling
