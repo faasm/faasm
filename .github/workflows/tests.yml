@@ -91,10 +91,10 @@ jobs:
         with:
           submodules: true
       - name: "Build CPython function"
-        run: inv func
+        run: ./bin/inv_wrapper.sh func
         working-directory: ${{ github.workspace }}/clients/python
       - name: "Put Python functions in place"
-        run: inv func.upload-all --local
+        run: ./bin/inv_wrapper.sh func.upload-all --local
         working-directory: ${{ github.workspace }}/clients/python
       - name: "Upload python wasm"
         uses: actions/upload-artifact@v3.1.0
