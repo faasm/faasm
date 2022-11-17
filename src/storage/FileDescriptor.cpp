@@ -133,6 +133,8 @@ uint16_t errnoToWasi(int errnoIn)
             return __WASI_EINVAL;
         case EMFILE:
             return __WASI_EMFILE;
+        case ESPIPE:
+            return __WASI_ESPIPE;
         default:
             throw std::runtime_error("Unsupported WASI errno: " +
                                      std::to_string(errnoIn));

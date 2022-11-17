@@ -1119,5 +1119,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "sendfile",
+                               I32,
+                               sendfile,
+                               I32 a,
+                               I32 b,
+                               I32 c,
+                               I32 d)
+{
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
 void ioLink() {}
 }
