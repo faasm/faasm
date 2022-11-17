@@ -16,7 +16,8 @@ class MachineCodeGenerator
 
     void codegenForFunction(faabric::Message& msg, bool clean = false);
 
-    void codegenForSharedObject(const std::string& inputPath);
+    void codegenForSharedObject(const std::string& inputPath,
+                                bool clean = false);
 
   private:
     conf::FaasmConfig& conf;

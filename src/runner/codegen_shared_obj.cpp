@@ -76,12 +76,17 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    bool clean = false;
+    if (argc == 3) {
+        clean = std::string(argv[2]) == "--clean";
+    }
+
     std::string inputPath = argv[1];
     if (is_directory(inputPath)) {
         codegenForDirectory(inputPath);
     } else {
         codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
-        gen.codegenForSharedObject(inputPath);
+        gen.codegenForSharedObject(inputPath, clean);
     }
 
     storage::shutdownFaasmS3();
