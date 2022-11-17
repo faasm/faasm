@@ -323,13 +323,13 @@ jobs:
     env:
       PYTHON_CODEGEN: "on"
     steps:
-      # Given that compose mounts the code directory into the containers by
-      # default, we need to checkout in recursive mode, as otherwise the
-      # necessary submodules for the cpp and python containers are not fetched
       - name: "Check out code"
         uses: actions/checkout@v3
         with:
-          submodules: recursive
+          submodules: true
+      - name: "Fetch python's CPP submodulle"
+        run: git submodule update --init -f third-party/cpp
+        working-directory: ${{ github.workspace }}/clients/python
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
