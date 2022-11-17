@@ -323,6 +323,9 @@ jobs:
     env:
       PYTHON_CODEGEN: "on"
     steps:
+      # Given that compose mounts the code directory into the containers by
+      # default, we need to checkout in recursive mode, as otherwise the
+      # necessary submodules for the cpp and python containers are not fetched
       - name: "Check out code"
         uses: actions/checkout@v3
         with:
