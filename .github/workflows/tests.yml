@@ -89,7 +89,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
       - name: "Build CPython function"
         run: ./bin/inv_wrapper.sh func
         working-directory: ${{ github.workspace }}/clients/python
