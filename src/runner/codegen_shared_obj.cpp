@@ -10,7 +10,7 @@
 
 using namespace boost::filesystem;
 
-void codegenForDirectory(std::string& inputPath)
+void codegenForDirectory(std::string& inputPath, bool clean)
 {
     SPDLOG_INFO("Running codegen on directory {}", inputPath);
 
@@ -25,7 +25,7 @@ void codegenForDirectory(std::string& inputPath)
     std::vector<std::thread> threads;
 
     for (unsigned int i = 0; i < nThreads; i++) {
-        threads.emplace_back([&iter, &mx, &end] {
+        threads.emplace_back([&iter, &mx, &end, clean] {
             SPDLOG_INFO("Spawning codegen thread");
             codegen::MachineCodeGenerator& gen =
               codegen::getMachineCodeGenerator();
@@ -53,7 +53,7 @@ void codegenForDirectory(std::string& inputPath)
                 if (faabric::util::endsWith(fileName, ".so") ||
                     faabric::util::endsWith(fileName, ".wasm")) {
                     SPDLOG_INFO("Generating machine code for {}", thisPath);
-                    gen.codegenForSharedObject(thisPath);
+                    gen.codegenForSharedObject(thisPath, clean);
                 }
             }
         });
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 
     std::string inputPath = argv[1];
     if (is_directory(inputPath)) {
-        codegenForDirectory(inputPath);
+        codegenForDirectory(inputPath, clean);
     } else {
         codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
         gen.codegenForSharedObject(inputPath, clean);

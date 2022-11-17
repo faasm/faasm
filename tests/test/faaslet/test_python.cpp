@@ -42,7 +42,7 @@ class PythonFuncTestFixture : public FunctionExecTestFixture
     }
 };
 
-TEST_CASE_METHOD(PythonFuncTestFixture, "Test python listdir", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python listdir", "[python][.]")
 {
     // We need to list a big enough directory here to catch issues with long
     // file listings and the underlying syscalls
@@ -88,7 +88,7 @@ TEST_CASE_METHOD(PythonFuncTestFixture, "Test python listdir", "[python]")
     REQUIRE(wasmList == nativeList);
 }
 
-TEST_CASE_METHOD(PythonFuncTestFixture, "Test python conformance", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python conformance", "[python][.]")
 {
     checkPythonFunction("lang_test", false);
 }
@@ -101,7 +101,7 @@ TEST_CASE_METHOD(PythonFuncTestFixture, "Test numpy conformance", "[python]")
 }
 */
 
-TEST_CASE_METHOD(PythonFuncTestFixture, "Test reading pyc files", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test reading pyc files", "[python][.]")
 {
     checkPythonFunction("pyc_check", false);
 }
@@ -118,7 +118,7 @@ TEST_CASE_METHOD(PythonFuncTestFixture,
 }
 */
 
-TEST_CASE_METHOD(PythonFuncTestFixture, "Test python echo", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python echo", "[python][.]")
 {
     auto req = setUpPythonContext("python", "echo");
     faabric::Message& call = req->mutable_messages()->at(0);
@@ -132,7 +132,7 @@ TEST_CASE_METHOD(PythonFuncTestFixture, "Test python echo", "[python]")
 
 TEST_CASE_METHOD(PythonFuncTestFixture,
                  "Test python state write/ read",
-                 "[python]")
+                 "[python][.]")
 {
     auto writeReq = setUpPythonContext("python", "state_test_write");
     faabric::Message& writeCall = writeReq->mutable_messages()->at(0);
@@ -147,27 +147,27 @@ TEST_CASE_METHOD(PythonFuncTestFixture,
     execFunction(readCall);
 }
 
-TEST_CASE_METHOD(PythonFuncTestFixture, "Test python chaining", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python chaining", "[python][.]")
 {
     checkPythonFunction("chain", true);
 }
 
-TEST_CASE_METHOD(PythonFuncTestFixture, "Test python sharing dict", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python sharing dict", "[python][.]")
 {
     checkPythonFunction("dict_state", true);
 }
 
-TEST_CASE_METHOD(PythonFuncTestFixture, "Test python ctypes", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python ctypes", "[python][.]")
 {
     checkPythonFunction("ctypes_check", false);
 }
 
-TEST_CASE_METHOD(PythonFuncTestFixture, "Test python hashing", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python hashing", "[python][.]")
 {
     checkPythonFunction("hash_check", false);
 }
 
-TEST_CASE_METHOD(PythonFuncTestFixture, "Test python picklinkg", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python picklinkg", "[python][.]")
 {
     checkPythonFunction("pickle_check", false);
 }

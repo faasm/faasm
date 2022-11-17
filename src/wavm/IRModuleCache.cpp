@@ -164,6 +164,13 @@ Runtime::ModuleRef IRModuleCache::getCompiledSharedModule(
     }
 }
 
+static void setModuleSpecFeatures(IR::Module& module)
+{
+    module.featureSpec.simd = true;
+    module.featureSpec.extendedNameSection = true;
+    module.featureSpec.nonTrappingFloatToInt = true;
+}
+
 IR::Module& IRModuleCache::getMainModule(const std::string& user,
                                          const std::string& func)
 {
@@ -183,9 +190,7 @@ IR::Module& IRModuleCache::getMainModule(const std::string& user,
               functionLoader.loadFunctionWasm(msg);
 
             IR::Module& module = getModuleFromMap(key);
-            module.featureSpec.simd = true;
-            module.featureSpec.extendedNameSection = true;
-            module.featureSpec.nonTrappingFloatToInt = true;
+            setModuleSpecFeatures(module);
 
             if (faabric::util::isWasm(wasmBytes)) {
                 WASM::LoadError loadError;
@@ -243,6 +248,7 @@ IR::Module& IRModuleCache::getSharedModule(const std::string& user,
               functionLoader.loadSharedObjectWasm(path);
 
             IR::Module& module = getModuleFromMap(key);
+            setModuleSpecFeatures(module);
 
             WASM::LoadError loadError;
             WASM::loadBinaryModule(

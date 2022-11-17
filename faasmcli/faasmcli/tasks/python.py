@@ -38,7 +38,7 @@ def clear_runtime_pyc(ctx):
 
 
 @task
-def codegen(ctx):
+def codegen(ctx, clean=False):
     """
     Run Python codegen
     """
@@ -51,8 +51,15 @@ def codegen(ctx):
     )
 
     binary = cg.find_codegen_shared_lib()
+    codegen_cmd = [
+        binary,
+        PY_RUNTIME_ROOT,
+        "--clean" if clean else "",
+    ]
+    codegen_cmd = " ".join(codegen_cmd)
+    print(codegen_cmd)
     run(
-        "{} {}".format(binary, PY_RUNTIME_ROOT),
+        codegen_cmd,
         env=shell_env,
         shell=True,
         check=True,
