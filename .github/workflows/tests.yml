@@ -351,12 +351,12 @@ jobs:
       - name: "Build and upload cpp function"
         run: docker compose run -T cpp ./bin/inv_wrapper.sh func demo hello func.upload demo hello
       - name: "Build and upload python function"
-        run: docker compose run -T python inv func func.upload func.uploadpy hello
+        run: docker compose run -T python ./bin/inv_wrapper.sh func func.upload func.uploadpy hello
       # Function invocation
       - name: "Invoke cpp function"
         run: docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
       - name: "Invoke python hello function"
-        run: docker compose run -T python inv func.invoke python hello
+        run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
       # Re-invocation of same function with different code after flush
       - name: "Flush workers"
         run: docker compose run -T cpp ./bin/inv_wrapper.sh func.flush
