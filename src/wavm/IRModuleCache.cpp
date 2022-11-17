@@ -265,16 +265,20 @@ IR::Module& IRModuleCache::getSharedModule(const std::string& user,
             // the table from the main module. This modifies the shared
             // reference, therefore we also have to preserve the original
             // size and make available to callers.
-            this->originalTableSizes[key] =
-              module.tables.imports[0].type.size.min;
+            if (!module.tables.imports.empty()) {
+                this->originalTableSizes[key] =
+                  module.tables.imports[0].type.size.min;
 
-            const std::string mainKey = getModuleKey(user, func, "");
-            IR::Module& mainModule = getModuleFromMap(mainKey);
+                const std::string mainKey = getModuleKey(user, func, "");
+                IR::Module& mainModule = getModuleFromMap(mainKey);
 
-            module.tables.imports[0].type.size.min =
-              (U64)mainModule.tables.defs[0].type.size.min;
-            module.tables.imports[0].type.size.max =
-              (U64)mainModule.tables.defs[0].type.size.max;
+                module.tables.imports[0].type.size.min =
+                  (U64)mainModule.tables.defs[0].type.size.min;
+                module.tables.imports[0].type.size.max =
+                  (U64)mainModule.tables.defs[0].type.size.max;
+            } else {
+                SPDLOG_WARN("Module has no imported tables (key={})", key);
+            }
         }
     } else {
         SPDLOG_DEBUG(
