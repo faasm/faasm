@@ -186,7 +186,7 @@ jobs:
         uses: actions/cache@v3.0.11
         with:
           path: /usr/local/faasm/object
-          key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}-llvm13
+          key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
       # Codegen build without sanitisers
       - name: "Build codegen - CMake"
         run: ./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sanitiser None
