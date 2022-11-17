@@ -330,6 +330,7 @@ jobs:
       - name: "Fetch python's CPP submodulle"
         run: git submodule update --init -f third-party/cpp
         working-directory: ${{ github.workspace }}/clients/python
+          submodules: recursive
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
