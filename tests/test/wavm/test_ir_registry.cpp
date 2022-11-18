@@ -149,8 +149,7 @@ TEST_CASE_METHOD(IRModuleCacheTestFixture, "Test IR cache clearing", "[wasm]")
     // Function and shared lib
     std::string user = "demo";
     std::string func = "echo";
-    std::string libPath = "/usr/local/faasm/runtime_root/lib/python3.8/"
-                          "site-packages/numpy/core/_multiarray_umath.so";
+    std::string libPath = "/usr/local/faasm/runtime_root/lib/fake/libfakeLibA.so";
 
     registry.getModule(user, func, "");
     registry.getCompiledModule(user, func, "");
