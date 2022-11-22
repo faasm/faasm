@@ -1,4 +1,9 @@
-file(GLOB_RECURSE TEST_FILES ${CMAKE_CURRENT_LIST_DIR} test_*.cpp)
+# Add the different test directories. Each subdirectory will populate the
+# TEST_FILES variable, adding the source files for the tests
+add_subdirectory(chaining)
+add_subdirectory(mpi)
+add_subdirectory(state)
+add_subdirectory(threads)
 
 # Tests
 add_executable(

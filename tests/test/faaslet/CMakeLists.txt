@@ -1,0 +1,20 @@
+set(TEST_FILES ${TEST_FILES}
+    ${CMAKE_CURRENT_LIST_DIR}/test_chaining.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_dynamic_linking.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_env.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_errors.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_exec_graph.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_filesystem.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_flushing.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_io.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_lang.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_memory.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_mpi.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_python.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_shared_files.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_state.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_threads.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_time.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_zygote.cpp
+    PARENT_SCOPE
+)
