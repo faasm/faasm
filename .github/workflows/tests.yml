@@ -359,8 +359,8 @@ jobs:
       # Function invocation
       - name: "Invoke cpp function"
         run: docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
-        # - name: "Invoke python hello function"
-        # run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
+      - name: "Invoke python hello function"
+        run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
       # Re-invocation of same function with different code after flush
       - name: "Flush workers"
         run: docker compose run -T cpp ./bin/inv_wrapper.sh func.flush
