@@ -8,11 +8,9 @@
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>
 #include <faaslet/Faaslet.h>
+#include <runner/runner_utils.h>
 #include <storage/FileLoader.h>
 #include <wasm/WasmModule.h>
-
-#include <boost/program_options.hpp>
-#include <iostream>
 
 namespace po = boost::program_options;
 
@@ -20,34 +18,9 @@ int doRunner(int argc, char* argv[])
 {
     faabric::util::initLogging();
 
-    // Define command line arguments
-    std::string user;
-    std::string function;
-    std::string inputData;
-    std::string cmdLine;
-    po::options_description desc("Allowed options");
-    desc.add_options()(
-      "user", po::value<std::string>(&user), "function's user name (required)")(
-      "function",
-      po::value<std::string>(&function),
-      "function name (required)")("input-data",
-                                  po::value<std::string>(&inputData),
-                                  "input data for the function")(
-      "cmdline",
-      po::value<std::string>(&cmdLine),
-      "command line arguments to pass the function");
-
-    // Mark user and function as positional arguments
-    po::positional_options_description p;
-    p.add("user", 1);
-    p.add("function", 2);
-
-    // Parse command line arguments
-    po::variables_map vm;
-    po::store(
-      po::command_line_parser(argc, argv).options(desc).positional(p).run(),
-      vm);
-    po::notify(vm);
+    auto vm = runner::parseRunnerCmdLine(argc, argv);
+    std::string user = vm["user"].as<std::string>();
+    std::string function = vm["function"].as<std::string>();
 
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(user, function, 1);
@@ -90,13 +63,15 @@ int doRunner(int argc, char* argv[])
     }
 
     if (vm.count("input-data")) {
-        msg.set_inputdata(inputData);
-        SPDLOG_INFO("Adding input data: {}", inputData);
+        msg.set_inputdata(vm["input-data"].as<std::string>());
+        SPDLOG_INFO("Adding input data: {}",
+                    vm["input-data"].as<std::string>());
     }
 
     if (vm.count("cmdline")) {
-        msg.set_cmdline(cmdLine);
-        SPDLOG_INFO("Adding command line arguments: {}", cmdLine);
+        msg.set_cmdline(vm["cmdline"].as<std::string>());
+        SPDLOG_INFO("Adding command line arguments: {}",
+                    vm["cmdline"].as<std::string>());
     }
 
     // Set up the system
