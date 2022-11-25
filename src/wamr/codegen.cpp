@@ -26,7 +26,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     bh_log_set_verbose_level(2);
 
     // Load the module
-    size_t errorBufferSize = 128;
+    const size_t errorBufferSize = 128;
     char errorBuffer[errorBufferSize];
     memset(errorBuffer, '\0', errorBufferSize);
     // Sadly, non-pointer types are not portably provided by the WASM headers
