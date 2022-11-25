@@ -3,7 +3,6 @@
 add_subdirectory(codegen)
 add_subdirectory(conf)
 add_subdirectory(faaslet)
-add_subdirectory(ported_libs)
 add_subdirectory(runner)
 add_subdirectory(storage)
 add_subdirectory(system)
