@@ -36,7 +36,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
         wasmBytes.data(), wasmBytes.size(), errorBuffer, errorBufferSize),
       &wasm_runtime_unload);
 
-    if (wasmModule == nullptr) { //  || strlen(errorBuffer) != 0) {
+    if (wasmModule == nullptr) {
         std::string tmpStr(errorBuffer, errorBufferSize);
         SPDLOG_ERROR("Failed to load wasm module: {}", tmpStr.c_str());
         throw std::runtime_error("Failed to load wasm module");
