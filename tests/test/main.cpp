@@ -8,7 +8,6 @@
 
 #include <catch2/catch.hpp>
 
-#include <faabric/transport/context.h>
 #include <faabric/util/crash.h>
 #include <faabric/util/logging.h>
 
@@ -23,7 +22,6 @@ int main(int argc, char* argv[])
 
     faabric::util::initLogging();
     storage::initFaasmS3();
-    faabric::transport::initGlobalMessageContext();
 
     // Faabric stuff
     tests::cleanFaabric();
@@ -39,8 +37,6 @@ int main(int argc, char* argv[])
     int result = Catch::Session().run(argc, argv);
 
     fflush(stdout);
-    faabric::transport::closeGlobalMessageContext();
-
     storage::shutdownFaasmS3();
 
     return result;

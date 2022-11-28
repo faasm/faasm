@@ -16,7 +16,6 @@
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/scheduler/Scheduler.h>
-#include <faabric/transport/context.h>
 #include <faabric/util/config.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/timing.h>

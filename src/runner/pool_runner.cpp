@@ -3,13 +3,12 @@
 
 #include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/runner/FaabricMain.h>
-#include <faabric/transport/context.h>
 #include <faabric/util/logging.h>
 
 int main()
 {
     storage::initFaasmS3();
-    faabric::transport::initGlobalMessageContext();
+
     faabric::util::initLogging();
 
     // WARNING: All 0MQ-related operations must take place in a self-contined
@@ -26,8 +25,6 @@ int main()
 
         SPDLOG_INFO("Shutting down");
         m.shutdown();
-
-        faabric::transport::closeGlobalMessageContext();
     }
 
     storage::shutdownFaasmS3();

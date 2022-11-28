@@ -10,6 +10,9 @@ signal:*
 race:std::__future_base::_Result
 race:std::future<*>::get
 
+# Tsan doesn't see through the readerwriterqueue's semaphore implementation
+race:moodycamel::BlockingReaderWriterCircularBuffer*
+
 # Raciness inside webassembly openmp modules
 race:wasm::startReduceCritical
 
