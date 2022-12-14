@@ -1,6 +1,5 @@
 #include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/runner/FaabricMain.h>
-#include <faabric/transport/context.h>
 #include <faabric/util/logging.h>
 #include <faaslet/Faaslet.h>
 #include <runner/runner_utils.h>
@@ -48,7 +47,6 @@ int doRunner(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
     storage::initFaasmS3();
-    faabric::transport::initGlobalMessageContext();
     faabric::util::initLogging();
 
     auto& sch = faabric::scheduler::getScheduler();
@@ -67,7 +65,6 @@ int main(int argc, char* argv[])
         m.shutdown();
     }
 
-    faabric::transport::closeGlobalMessageContext();
     storage::shutdownFaasmS3();
     return 0;
 }

@@ -5,7 +5,6 @@
 #include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecutorFactory.h>
-#include <faabric/transport/context.h>
 #include <faabric/util/logging.h>
 
 using namespace faabric::scheduler;
@@ -14,7 +13,6 @@ int main()
 {
     faabric::util::initLogging();
     storage::initFaasmS3();
-    faabric::transport::initGlobalMessageContext();
 
     // WARNING: All 0MQ-related operations must take place in a self-contined
     // scope to ensure all sockets are destructed before closing the context.
@@ -32,8 +30,6 @@ int main()
         SPDLOG_INFO("Shutting down");
         m.shutdown();
     }
-
-    faabric::transport::closeGlobalMessageContext();
     storage::shutdownFaasmS3();
 
     return 0;

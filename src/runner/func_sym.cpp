@@ -1,7 +1,6 @@
 #include <fstream>
 #include <iomanip>
 
-#include <faabric/transport/context.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
@@ -14,7 +13,6 @@
 int main(int argc, char* argv[])
 {
     storage::initFaasmS3();
-    faabric::transport::initGlobalMessageContext();
 
     // WARNING: All 0MQ-related operations must take place in a self-contined
     // scope to ensure all sockets are destructed before closing the context.
@@ -54,8 +52,6 @@ int main(int argc, char* argv[])
 
         SPDLOG_INFO("Output at {}", outPath);
     }
-
-    faabric::transport::closeGlobalMessageContext();
     storage::shutdownFaasmS3();
     return 0;
 }
