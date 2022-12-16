@@ -112,6 +112,16 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
         threadIsIsolated = true;
     }
 
+    // If we are executing a task that has been migrated, we need to hit a
+    // barrier that the non-migrated tasks are waiting at. We need to hit
+    // the barrier from the same thread that will execute the function
+    bool isMigration = req->type() == faabric::BatchExecuteRequest::MIGRATION;
+    if (isMigration) {
+        const auto& msg = req->messages().at(0);
+        faabric::transport::getPointToPointBroker().postMigrationHook(msg.groupid(), msg.groupidx());
+    }
+
+
     int32_t returnValue = module->executeTask(threadPoolIdx, msgIdx, req);
 
     return returnValue;

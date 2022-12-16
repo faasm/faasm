@@ -719,8 +719,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     auto* call = &ExecutorContext::get()->getMsg();
     auto& sch = faabric::scheduler::getScheduler();
 
-    // Detect if there is a pending migration for the current app
-    auto pendingMigrations = sch.getPendingAppMigrations(call->appid());
+    // Detect if there is a pending migration for the current app, and commit
+    // to migrate if it exists
+    auto pendingMigrations = sch.getPendingAppMigrations(call->appid(), call->groupid(), call->groupidx());
     bool appMustMigrate = pendingMigrations != nullptr;
 
     // Detect if this particular function needs to be migrated or not
@@ -742,6 +743,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     if (appMustMigrate && call->ismpi()) {
         auto& mpiWorld = faabric::scheduler::getMpiWorldRegistry().getWorld(
           call->mpiworldid());
+        faabric::transport::getPointToPointBroker().preMigrationHook(call->groupid(), call->groupidx(), pendingMigrations);
         mpiWorld.prepareMigration(call->mpirank(), pendingMigrations);
     }
 
@@ -791,10 +793,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
             msg.set_recordexecgraph(true);
         }
 
-        SPDLOG_INFO("Migrating {}/{} {} to {}",
+        SPDLOG_INFO("Migrating {}/{} {}:{}:{} to {}",
                     msg.user(),
                     msg.function(),
-                    call->id(),
+                    call->appid(),
+                    call->groupid(),
+                    call->groupidx(),
                     hostToMigrateTo);
 
         // Build decision and send
@@ -808,6 +812,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
         // Throw an exception to be caught by the executor and terminate
         throw faabric::util::FunctionMigratedException("Migrating MPI rank");
+    }
+
+    if (appMustMigrate) {
+        // If the application is migrating, hit the post-migration hook from
+        // functions that have not migrated
+        faabric::transport::getPointToPointBroker().postMigrationHook(call->groupid(), call->groupidx());
     }
 }
 
