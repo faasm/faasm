@@ -18,7 +18,7 @@ endif()
 
 include(${CMAKE_CURRENT_BINARY_DIR}/conan.cmake)
 
-conan_check(VERSION 1.52.0 REQUIRED)
+conan_check(VERSION 1.53.0 REQUIRED)
 
 # Enable revisions in the conan config
 execute_process(COMMAND ${CONAN_CMD} config set general.revisions_enabled=1
