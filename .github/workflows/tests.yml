@@ -91,7 +91,7 @@ jobs:
         with:
           submodules: recursive
       - name: "Build CPython function"
-        run: ./bin/inv_wrapper.sh func
+        run: ./bin/inv_wrapper.sh cpython.func
         working-directory: ${{ github.workspace }}/clients/python
       - name: "Put Python functions in place"
         run: ./bin/inv_wrapper.sh func.upload-all --local
@@ -354,7 +354,7 @@ jobs:
       - name: "Build and upload cpp function"
         run: docker compose run -T cpp ./bin/inv_wrapper.sh func demo hello func.upload demo hello
       - name: "Build and upload python function"
-        run: docker compose run -T python ./bin/inv_wrapper.sh cpython.wasm cpython.upload func.uploadpy hello
+        run: docker compose run -T python ./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello
       # Function invocation
       - name: "Invoke cpp function"
         run: docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
