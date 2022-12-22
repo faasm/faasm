@@ -65,3 +65,15 @@ def faasm_main():
     await_call(call_one)
     await_call(call_two)
 ```
+
+## Updating the Python runtime
+
+If you are updating the Python runtime (i.e. CPython) and you want to test the
+changes you will need to re-generate machine code for both the runtime and the
+shared libraries:
+
+```bash
+inv codegen python py_func [--clean]
+inv python.codegen [--clean]
+inv python.clear-runtime-pyc
+```

@@ -31,40 +31,5 @@ the latter, so they can have different upgrade life-cycles.
 Given the above, upgrading the LLVM version is a delicate procedure, and things
 are likely to break.
 
-To upgrade the LLVM version we use to build C++ code, you need to update
-the [`faabric-base` dockerfile](
-https://github.com/faasm/faabric/blob/main/docker/faabric-base.dockerfile#L4-L57)
-and propagate the changes. For this you will need to:
-* faasm/faabric: bump the code version `inv git.bump`
-* faasm/faabric: modify `faabric-base` and re-build `inv docker.build -c faabric-base --push --nocache`
-* faasm/faabric: update the `faabric-base` version tag in [`faabric.dockerfile`]()
-* faasm/faabric: tag the code (GHA will rebuild the image) `inv git.tag`
-* faasm/faabric: re-run the tests once containers are built
-* faasm/cpp: bump the code version `inv git.bump`
-* faasm/cpp: update the `faabric-base` version tag in [`cpp-sysroot.dockerfile`](
-https://github.com/faasm/cpp/blob/main/docker/cpp-sysroot.dockerfile#L4)
-* faasm/cpp: tag the code `inv git.tag`
-* faasm/cpp: re-run the tests once containers are built
-* faasm/python: bump the code version `inv git.bump`
-* faasm/python: update the `cpp-sysroot` tag in [`Dockerfile`](
-https://github.com/faasm/python/blob/main/Dockerfile#L1)
-* faasm/python: tag the code `inv git.tag`
-* faasm/python: re-run the tests once containers are built
-* faasm/faasm: bump the code version `inv git.bump`
-* faasm/faasm: bump the `faabric-base` version in [`cpp-root.dockerfile`](
-https://github.com/faasm/faasm/blob/main/docker/cpp-root.dockerfile#L1)
-* faasm/faasm: bump the `cpython` and `cpp-root` version in [`base.dockerfile`](
-https://github.com/faasm/faasm/blob/main/docker/base.dockerfile#L2-L5)
-* faasm/faasm: bump the `clients/cpp`, `clients/python`, and `faabric`
-  submodules to include the latest changes (remember to do this step again
-  after the branches have been merged in, as we want the submodules to point
-  to the `main` branch)
-* faasm/faasm: tag the code `inv git.tag`
-* faasm/faasm: re-run the tests once containers are built
-
-To upgrade the LLVM version that we use to cross-compile to WASM, you will
-have to:
-* faasm/cpp: follow the [instructions](
-https://github.com/faasm/cpp/blob/main/docs/upgrade-llvm.md) on how to upgrade
-LLVM there
-* Repeat the steps in the previous point from `faasm/cpp` onwards.
+The best advice is to replicate the steps followed in another PR to upgrade
+LLVM. See [here for the PR that upgraded to LLVM 13](faasm/faasm#705).
