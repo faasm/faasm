@@ -53,7 +53,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     specFs << "demo,echo,4,blah" << std::endl;
     specFs << "demo,hello,3" << std::endl;
-    // specFs << "python,hello,3" << std::endl;
+    specFs << "python,hello,3" << std::endl;
     specFs << "omp,hellomp,2" << std::endl;
     specFs.close();
 
@@ -65,7 +65,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     std::vector<std::string> lines;
     boost::split(lines, result, [](char c) { return c == '\n'; });
 
-    REQUIRE(lines.size() == 11);
+    REQUIRE(lines.size() == 14);
 
     REQUIRE(lines.at(0) == "User,Function,Return value,Execution (us)");
 
@@ -77,16 +77,14 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         checkLine(lines.at(i), "demo", "hello");
     }
 
-    /* 18/11/2022 - Python support broken with LLVM 13
     for (int i = 8; i < 11; i++) {
         checkLine(lines.at(i), "python", "hello");
     }
-    */
 
-    for (int i = 8; i < 10; i++) {
+    for (int i = 11; i < 13; i++) {
         checkLine(lines.at(i), "omp", "hellomp");
     }
 
-    REQUIRE(lines.at(10).empty());
+    REQUIRE(lines.at(13).empty());
 }
 }
