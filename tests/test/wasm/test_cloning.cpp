@@ -226,14 +226,14 @@ TEST_CASE_METHOD(CloneExecTestFixture,
     std::string preloadVal = conf.pythonPreload;
     conf.pythonPreload = "off";
 
-    std::string user = "demo";
-    std::string func = "echo";
+    std::string user = "python";
+    std::string func = "hello";
     std::string input;
 
-    SECTION("copy") { checkCopyConstructor(user, func, input, input, false); }
+    SECTION("copy") { checkCopyConstructor(user, func, input, input, true); }
     SECTION("assignment")
     {
-        checkAssignmentOperator(user, func, input, input, false);
+        checkAssignmentOperator(user, func, input, input, true);
     }
 
     conf.pythonPreload = preloadVal;
