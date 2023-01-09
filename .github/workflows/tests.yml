@@ -116,7 +116,7 @@ jobs:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
       - name: "Build Conan dependencies to be shared by all runs"
-        run: ./bin/inv_wrapper.sh dev.cmake --build Debug --clean
+        run: ./bin/inv_wrapper.sh dev.cmake --build Debug
       - name: "Build codegen without sanitisers for all test runs"
         run: ./bin/inv_wrapper.sh dev.cc codegen_func dev.cc codegen_shared_obj
       - name: "Upload codegen binaries"
@@ -208,7 +208,7 @@ jobs:
         run: ./bin/inv_wrapper.sh python.clear-runtime-pyc
       # Tests build (Debug required for tests)
       - name: "Re-run CMake with sanitiser set"
-        run: ./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sanitiser ${{ matrix.sanitiser }}
+        run: ./bin/inv_wrapper.sh dev.cmake --build Debug --sanitiser ${{ matrix.sanitiser }}
       - name: "Build only the tests target"
         run: ./bin/inv_wrapper.sh dev.cc tests
       # Run tests
@@ -278,7 +278,7 @@ jobs:
           key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
       # Code build (Debug required for tests)
       - name: "Build dev tools"
-        run: ./bin/inv_wrapper.sh dev.tools --build Debug --sgx Simulation --clean
+        run: ./bin/inv_wrapper.sh dev.tools --build Debug --sgx Simulation
       # Environment set-up
       - name: "Run codegen"
         run: ./bin/inv_wrapper.sh codegen.local
