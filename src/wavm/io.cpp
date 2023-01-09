@@ -647,6 +647,28 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
+                               "path_filestat_set_times",
+                               I32,
+                               wasi_path_filestat_set_times,
+                               I32 fd,
+                               I32 lookupFlags,
+                               I32 path,
+                               I32 pathLen,
+                               I64 accessTimeStamp,
+                               I64 modTimeStamp,
+                               I32 fstFlags)
+{
+    const std::string& pathStr = getStringFromWasm(path);
+    SPDLOG_TRACE("S - path_filestat_set_times - {} {} {} {}",
+                 fd,
+                 lookupFlags,
+                 pathStr,
+                 pathLen);
+
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                "fd_tell",
                                I32,
                                wasi_fd_tell,
@@ -1069,6 +1091,19 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "dirfd", I32, dirfd, I32 a)
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "poll", I32, poll, I32 a, I32 b, I32 c)
 {
     SPDLOG_DEBUG("S - poll - {} {} {}", a, b, c);
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "sendfile",
+                               I32,
+                               sendfile,
+                               I32 out_fd,
+                               I32 in_fd,
+                               I32 offset,
+                               I32 count)
+{
+    SPDLOG_DEBUG("S - sendfile - {} {} {} {}", out_fd, in_fd, offset, count);
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 

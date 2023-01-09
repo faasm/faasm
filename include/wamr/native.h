@@ -49,13 +49,19 @@ uint32_t getFaasmChainingApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmDynlinkApi(NativeSymbol** nativeSymbols);
 
+uint32_t getFaasmEnvApi(NativeSymbol** nativeSymbols);
+
 uint32_t getFaasmFilesystemApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmFunctionsApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmMemoryApi(NativeSymbol** nativeSymbols);
 
+uint32_t getFaasmProcessApi(NativeSymbol** nativeSymbols);
+
 uint32_t getFaasmPthreadApi(NativeSymbol** nativeSymbols);
+
+uint32_t getFaasmSignalApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmStateApi(NativeSymbol** nativeSymbols);
 
