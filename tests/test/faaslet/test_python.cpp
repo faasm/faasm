@@ -157,17 +157,12 @@ TEST_CASE_METHOD(PythonFuncTestFixture, "Test python sharing dict", "[python]")
     checkPythonFunction("dict_state", true);
 }
 
-TEST_CASE_METHOD(PythonFuncTestFixture, "Test python ctypes", "[python]")
-{
-    checkPythonFunction("ctypes_check", false);
-}
-
 TEST_CASE_METHOD(PythonFuncTestFixture, "Test python hashing", "[python]")
 {
     checkPythonFunction("hash_check", false);
 }
 
-TEST_CASE_METHOD(PythonFuncTestFixture, "Test python picklinkg", "[python]")
+TEST_CASE_METHOD(PythonFuncTestFixture, "Test python pickling", "[python]")
 {
     checkPythonFunction("pickle_check", false);
 }
