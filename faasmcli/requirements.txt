@@ -23,4 +23,4 @@ redis==3.5.3
 requests==2.25.1
 setuptools==65.5.1
 sphinx-rtd-theme==1.0.0
-wheel==0.36.2
+wheel==0.38.1
