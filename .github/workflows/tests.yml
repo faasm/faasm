@@ -206,10 +206,12 @@ jobs:
         run: ./bin/inv_wrapper.sh python.codegen
       - name: "Clear existing pyc files"
         run: ./bin/inv_wrapper.sh python.clear-runtime-pyc
-      # Code build (Debug required for tests)
-      - name: "Build dev tools"
-        run: ./bin/inv_wrapper.sh dev.tools --clean --build Debug --sanitiser ${{ matrix.sanitiser }}
-      # Test run
+      # Tests build (Debug required for tests)
+      - name: "Re-run CMake with sanitiser set"
+        run: ./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sanitiser ${{ matrix.sanitiser }}
+      - name: "Build only the tests target"
+        run: ./bin/inv_wrapper.sh dev.cc tests
+      # Run tests
       - name: "Run the tests"
         run: /build/faasm/bin/tests
 
