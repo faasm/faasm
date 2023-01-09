@@ -117,6 +117,13 @@ jobs:
         uses: faasm/conan-cache-action@v1
       - name: "Build Conan dependencies to be shared by all runs"
         run: ./bin/inv_wrapper.sh dev.cmake --build Debug --clean
+      - name: "Build codegen without sanitisers for all test runs"
+        run: ./bin/inv_wrapper.sh dev.cc codegen_func dev.cc codegen_shared_obj
+      - name: "Upload codegen binaries"
+        uses: actions/upload-artifact@v3.1.0
+        with:
+          name: codegen-bin
+          path: /build/faasm/bin
 
   tests:
     if: github.event.pull_request.draft == false
@@ -187,13 +194,11 @@ jobs:
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
-      # Codegen build without sanitisers
-      - name: "Build codegen - CMake"
-        run: ./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sanitiser None
-      - name: "Build codegen - Codegen Func"
-        run: ./bin/inv_wrapper.sh dev.cc codegen_func
-      - name: "Build codegen - Codegen Shared Obj"
-        run: ./bin/inv_wrapper.sh dev.cc codegen_shared_obj
+      - name: "Download codegen binaries shared between test runs"
+        uses: actions/download-artifact@v3.0.1
+        with:
+          name: codegen-bin
+          path: /build/faasm/bin
       # Environment set-up
       - name: "Run codegen"
         run: ./bin/inv_wrapper.sh codegen.local
