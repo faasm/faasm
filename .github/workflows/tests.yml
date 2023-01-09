@@ -205,8 +205,6 @@ jobs:
       - name: "Build dev tools"
         run: ./bin/inv_wrapper.sh dev.tools --clean --build Debug --sanitiser ${{ matrix.sanitiser }}
       # Test run
-      - name: "Print env variables"
-        run: env
       - name: "Run the tests"
         run: /build/faasm/bin/tests
 
