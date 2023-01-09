@@ -65,7 +65,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     option.enable_bulk_memory = false;
     option.enable_ref_types = true;
     option.is_jit_mode = false;
-    option.enable_simd = false;
+    option.enable_simd = true;
 
     if (isSgx) {
         option.size_level = 1;
