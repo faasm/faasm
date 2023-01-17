@@ -104,14 +104,14 @@ add_library(AWS::s3 ALIAS aws_ext_s3_lib)
 set(FETCHCONTENT_QUIET OFF)
 FetchContent_Declare(wavm_ext
     GIT_REPOSITORY "https://github.com/faasm/WAVM.git"
-    GIT_TAG "f062de37d2d8695d4c465d6e739e2623389f1b86"
+    GIT_TAG "d58adfb287818a25f478ee1154fd630ccae77662"
     CMAKE_ARGS "-DDLL_EXPORT= \
         -DDLL_IMPORT="
 )
 
 FetchContent_Declare(wamr_ext
     GIT_REPOSITORY "https://github.com/faasm/wasm-micro-runtime"
-    GIT_TAG "20e09296c163c8a4c779e7296493b40b1a59c546"
+    GIT_TAG "b8a03399ee62088da471354fc08c11a623aaa6b5"
 )
 
 # WAMR and WAVM both link to LLVM
