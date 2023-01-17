@@ -84,7 +84,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cpython:0.2.0
+      image: faasm/cpython:0.2.1
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
