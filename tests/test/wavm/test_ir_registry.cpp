@@ -92,10 +92,8 @@ TEST_CASE_METHOD(IRModuleCacheTestFixture,
     registry.getModule(user, func, "");
 
     // Two valid shared libs
-    std::string pathA = "/usr/local/faasm/runtime_root/lib/python3.8/"
-                        "site-packages/numpy/core/_multiarray_umath.so";
-    std::string pathB = "/usr/local/faasm/runtime_root/lib/python3.8/"
-                        "site-packages/numpy/linalg/_umath_linalg.so";
+    std::string pathA = "/usr/local/faasm/runtime_root/lib/fake/libfakeLibA.so";
+    std::string pathB = "/usr/local/faasm/runtime_root/lib/fake/libfakeLibB.so";
 
     // Once
     IR::Module& refA1 = registry.getModule(user, func, pathA);
@@ -151,8 +149,7 @@ TEST_CASE_METHOD(IRModuleCacheTestFixture, "Test IR cache clearing", "[wasm]")
     // Function and shared lib
     std::string user = "demo";
     std::string func = "echo";
-    std::string libPath = "/usr/local/faasm/runtime_root/lib/python3.8/"
-                          "site-packages/numpy/core/_multiarray_umath.so";
+    std::string libPath = "/usr/local/faasm/runtime_root/lib/fake/libfakeLibA.so";
 
     registry.getModule(user, func, "");
     registry.getCompiledModule(user, func, "");

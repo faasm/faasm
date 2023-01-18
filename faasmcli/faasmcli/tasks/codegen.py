@@ -98,7 +98,7 @@ def _do_codegen_user(user):
     run("{} {}".format(binary, user), shell=True, env=env, check=True)
 
 
-def _do_codegen_file(path):
+def _do_codegen_file(path, clean=False):
     binary = find_codegen_shared_lib()
 
     env = copy(environ)
@@ -107,7 +107,20 @@ def _do_codegen_file(path):
             "LD_LIBRARY_PATH": "/usr/local/lib/",
         }
     )
-    run("{} {}".format(binary, path), env=env, shell=True, check=True)
+    codegen_cmd = [
+        binary,
+        path,
+        "--clean" if clean else "",
+    ]
+    codegen_cmd = " ".join(codegen_cmd)
+    run(codegen_cmd, env=env, shell=True, check=True)
+
+
+@task
+def libs(ctx, clean=False):
+    # Do codegen for libfake
+    for so in LIB_FAKE_FILES:
+        _do_codegen_file(so, clean)
 
 
 @task

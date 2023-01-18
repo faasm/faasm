@@ -23,7 +23,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.8.19
+      image: faasm/cli:0.9.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
@@ -41,7 +41,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.8.19
+      image: faasm/cli:0.9.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
@@ -54,7 +54,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cpp-sysroot:0.1.11
+      image: faasm/cpp-sysroot:0.2.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
@@ -84,17 +84,17 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cpython:0.1.1
+      image: faasm/cpython:0.2.1
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
       - name: "Build CPython function"
-        run: inv func
+        run: ./bin/inv_wrapper.sh cpython.func
         working-directory: ${{ github.workspace }}/clients/python
       - name: "Put Python functions in place"
-        run: inv func.upload-all --local
+        run: ./bin/inv_wrapper.sh func.upload-all --local
         working-directory: ${{ github.workspace }}/clients/python
       - name: "Upload python wasm"
         uses: actions/upload-artifact@v3.1.0
@@ -111,7 +111,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.8.19
+      image: faasm/cli:0.9.0
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
@@ -138,12 +138,12 @@ jobs:
       TSAN_OPTIONS: "history_size=0 halt_on_error=1 suppressions=./thread-sanitizer-ignorelist.txt flush_memory_ms=5000"
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=./ub-sanitizer-ignorelist.txt"
     container:
-      image: faasm/cli:0.8.19
+      image: faasm/cli:0.9.0
     services:
       redis:
-        image: faasm/redis:0.8.19
+        image: faasm/redis:0.9.0
       minio:
-        image: faasm/minio:0.8.19
+        image: faasm/minio:0.9.0
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
@@ -205,8 +205,6 @@ jobs:
       - name: "Build dev tools"
         run: ./bin/inv_wrapper.sh dev.tools --clean --build Debug --sanitiser ${{ matrix.sanitiser }}
       # Test run
-      - name: "Print env variables"
-        run: env
       - name: "Run the tests"
         run: /build/faasm/bin/tests
 
@@ -222,12 +220,12 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli-sgx-sim:0.8.19
+      image: faasm/cli-sgx-sim:0.9.0
     services:
       redis:
-        image: faasm/redis:0.8.19
+        image: faasm/redis:0.9.0
       minio:
-        image: faasm/minio:0.8.19
+        image: faasm/minio:0.9.0
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
@@ -327,6 +325,9 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: true
+      - name: "Fetch python's CPP submodulle"
+        run: git submodule update --init -f third-party/cpp
+        working-directory: ${{ github.workspace }}/clients/python
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
@@ -351,12 +352,12 @@ jobs:
       - name: "Build and upload cpp function"
         run: docker compose run -T cpp ./bin/inv_wrapper.sh func demo hello func.upload demo hello
       - name: "Build and upload python function"
-        run: docker compose run -T python inv func func.upload func.uploadpy hello
+        run: docker compose run -T python ./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello
       # Function invocation
       - name: "Invoke cpp function"
         run: docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
       - name: "Invoke python hello function"
-        run: docker compose run -T python inv func.invoke python hello
+        run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
       # Re-invocation of same function with different code after flush
       - name: "Flush workers"
         run: docker compose run -T cpp ./bin/inv_wrapper.sh func.flush

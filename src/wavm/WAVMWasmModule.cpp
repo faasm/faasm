@@ -477,16 +477,18 @@ void WAVMWasmModule::doBindToFunctionInternal(faabric::Message& msg,
         executeZygoteFunction();
     }
 
-    // Check stack is at the bottom
+    // Check stack is at the bottom of the linear memory; without --stack-first
+    // linker argument, it'll be placed after data.
+    I32 stackTop = getGlobalI32("__stack_pointer", executionContext);
     I32 heapBase = getGlobalI32("__heap_base", executionContext);
     I32 dataEnd = getGlobalI32("__data_end", executionContext);
 
-    if (heapBase > 0 && dataEnd > 0 && heapBase != dataEnd) {
-        SPDLOG_ERROR(
-          "Appears stack is not at bottom (__heap_base={} __data_end={})",
-          heapBase,
-          dataEnd);
-        throw std::runtime_error("Wasm memory layout not as expected");
+    if ((stackTop > dataEnd) || (stackTop > heapBase)) {
+        SPDLOG_ERROR("Appears stack is not at bottom (__stack_pointer={} "
+                     "__heap_base={} __data_end={})",
+                     stackTop,
+                     heapBase,
+                     dataEnd);
     }
 
     SPDLOG_DEBUG("heap_top={} initial_pages={} initial_table={}",

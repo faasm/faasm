@@ -119,7 +119,8 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg, bool clean)
     }
 }
 
-void MachineCodeGenerator::codegenForSharedObject(const std::string& inputPath)
+void MachineCodeGenerator::codegenForSharedObject(const std::string& inputPath,
+                                                  bool clean)
 {
     // Load the wasm
     std::vector<uint8_t> bytes = loader.loadSharedObjectWasm(inputPath);
@@ -128,7 +129,7 @@ void MachineCodeGenerator::codegenForSharedObject(const std::string& inputPath)
     std::vector<uint8_t> newHash = hashBytes(bytes);
     std::vector<uint8_t> oldHash = loader.loadSharedObjectObjectHash(inputPath);
 
-    if ((!oldHash.empty()) && newHash == oldHash) {
+    if ((!oldHash.empty()) && newHash == oldHash && !clean) {
         // Even if we skip the code generation step, we want to sync the latest
         // shared object object file
         UNUSED(loader.loadSharedObjectObjectFile(inputPath));

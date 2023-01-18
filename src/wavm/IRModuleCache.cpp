@@ -24,11 +24,7 @@ IRModuleCache& getIRModuleCache()
 
 IR::Module& IRModuleCache::getModuleFromMap(const std::string& key)
 {
-    // Here we switch on module features that must always be used.
-    // TODO avoid doing this every time and set on construction
-    IR::Module& module = moduleMap[key];
-    module.featureSpec.simd = true;
-    return module;
+    return moduleMap[key];
 }
 
 std::string getModuleKey(const std::string& user,
@@ -168,6 +164,13 @@ Runtime::ModuleRef IRModuleCache::getCompiledSharedModule(
     }
 }
 
+static void setModuleSpecFeatures(IR::Module& module)
+{
+    module.featureSpec.simd = true;
+    module.featureSpec.extendedNameSection = true;
+    module.featureSpec.nonTrappingFloatToInt = true;
+}
+
 IR::Module& IRModuleCache::getMainModule(const std::string& user,
                                          const std::string& func)
 {
@@ -187,6 +190,7 @@ IR::Module& IRModuleCache::getMainModule(const std::string& user,
               functionLoader.loadFunctionWasm(msg);
 
             IR::Module& module = getModuleFromMap(key);
+            setModuleSpecFeatures(module);
 
             if (faabric::util::isWasm(wasmBytes)) {
                 WASM::LoadError loadError;
@@ -244,6 +248,7 @@ IR::Module& IRModuleCache::getSharedModule(const std::string& user,
               functionLoader.loadSharedObjectWasm(path);
 
             IR::Module& module = getModuleFromMap(key);
+            setModuleSpecFeatures(module);
 
             WASM::LoadError loadError;
             WASM::loadBinaryModule(
@@ -266,16 +271,20 @@ IR::Module& IRModuleCache::getSharedModule(const std::string& user,
             // the table from the main module. This modifies the shared
             // reference, therefore we also have to preserve the original
             // size and make available to callers.
-            this->originalTableSizes[key] =
-              module.tables.imports[0].type.size.min;
+            if (!module.tables.imports.empty()) {
+                this->originalTableSizes[key] =
+                  module.tables.imports[0].type.size.min;
 
-            const std::string mainKey = getModuleKey(user, func, "");
-            IR::Module& mainModule = getModuleFromMap(mainKey);
+                const std::string mainKey = getModuleKey(user, func, "");
+                IR::Module& mainModule = getModuleFromMap(mainKey);
 
-            module.tables.imports[0].type.size.min =
-              (U64)mainModule.tables.defs[0].type.size.min;
-            module.tables.imports[0].type.size.max =
-              (U64)mainModule.tables.defs[0].type.size.max;
+                module.tables.imports[0].type.size.min =
+                  (U64)mainModule.tables.defs[0].type.size.min;
+                module.tables.imports[0].type.size.max =
+                  (U64)mainModule.tables.defs[0].type.size.max;
+            } else {
+                SPDLOG_WARN("Module has no imported tables (key={})", key);
+            }
         }
     } else {
         SPDLOG_DEBUG(

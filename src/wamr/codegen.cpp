@@ -26,16 +26,19 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     bh_log_set_verbose_level(2);
 
     // Load the module
-    char errorBuffer[128];
+    const size_t errorBufferSize = 128;
+    char errorBuffer[errorBufferSize];
+    memset(errorBuffer, '\0', errorBufferSize);
     // Sadly, non-pointer types are not portably provided by the WASM headers
     using wasm_module = std::pointer_traits<wasm_module_t>::element_type;
     std::unique_ptr<wasm_module, decltype(&wasm_runtime_unload)> wasmModule(
       wasm_runtime_load(
-        wasmBytes.data(), wasmBytes.size(), errorBuffer, sizeof(errorBuffer)),
+        wasmBytes.data(), wasmBytes.size(), errorBuffer, errorBufferSize),
       &wasm_runtime_unload);
 
     if (wasmModule == nullptr) {
-        SPDLOG_ERROR("Failed to load wasm module: {}", errorBuffer);
+        std::string tmpStr(errorBuffer, errorBufferSize);
+        SPDLOG_ERROR("Failed to load wasm module: {}", tmpStr.c_str());
         throw std::runtime_error("Failed to load wasm module");
     }
 
@@ -59,8 +62,10 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     option.size_level = 3;
     option.output_format = AOT_FORMAT_FILE;
     option.bounds_checks = 2;
+    option.enable_bulk_memory = false;
+    option.enable_ref_types = true;
     option.is_jit_mode = false;
-    option.enable_simd = false;
+    option.enable_simd = true;
 
     if (isSgx) {
         option.size_level = 1;

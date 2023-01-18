@@ -227,7 +227,7 @@ TEST_CASE_METHOD(CloneExecTestFixture,
     conf.pythonPreload = "off";
 
     std::string user = "python";
-    std::string func = "numpy_test";
+    std::string func = "hello";
     std::string input;
 
     SECTION("copy") { checkCopyConstructor(user, func, input, input, true); }

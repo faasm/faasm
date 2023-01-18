@@ -52,7 +52,7 @@ def format(ctx, check=False):
     )
 
     clang_cmd = [
-        "clang-format-10",
+        "clang-format-13",
         "--dry-run --Werror" if check else "-i",
         " ".join(files_to_check),
     ]

@@ -20,6 +20,8 @@ std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& bytes,
 
     // Feature flags
     moduleIR.featureSpec.simd = true;
+    moduleIR.featureSpec.extendedNameSection = true;
+    moduleIR.featureSpec.nonTrappingFloatToInt = true;
 
     if (faabric::util::isWasm(bytes)) {
         // Handle WASM

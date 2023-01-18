@@ -10,7 +10,6 @@ endif ()
 
 # Performance functionality
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
-option(FAASM_PERF_PROFILING "Turn on profiling features as described in debugging.md" OFF)
 
 # This option customises the SGX features _provided_ SGX is found:
 option(FAASM_SGX_MODE "Type of SGX support: Disabled, Simulation or Hardware" "Simulation")
@@ -155,25 +154,11 @@ else ()
     endfunction()
 endif ()
 
-# LLVM config
-if (${FAASM_PERF_PROFILING})
-    # In accordance with bin/build_llvm_perf.sh and LLVM version for WAVM
-    set(LLVM_DIR ${CMAKE_CURRENT_LIST_DIR}/dev/llvm-perf/build/lib/cmake/llvm)
-    message(STATUS "Using custom LLVM at ${LLVM_DIR} for profiling")
-    find_package(LLVM REQUIRED CONFIG NO_DEFAULT_PATH)
-
-    set(WAVM_PERF_LIBS 1)
-    add_definitions(-DWAVM_PERF_EVENTS=1)
-
-    # Don't omit frame pointers (lets perf get better stack traces)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer")
-else ()
-    # We have to be very careful here to explicitly state which LLVM
-    # installation we are linking against, as there may be more than one on the
-    # system
-    set(LLVM_DIR "/usr/lib/llvm-10/cmake" CACHE STRING "" FORCE)
-    find_package(LLVM REQUIRED CONFIG)
-endif ()
+# We have to be very careful here to explicitly state which LLVM
+# installation we are linking against, as there may be more than one on the
+# system
+set(LLVM_DIR "/usr/lib/llvm-13/cmake" CACHE STRING "" FORCE)
+find_package(LLVM REQUIRED CONFIG)
 
 # Separate LLVM vars into CMake-friendly lists
 separate_arguments(LLVM_DEFINITIONS)
