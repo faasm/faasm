@@ -1,8 +1,8 @@
 # Stage to extract Python runtime files
-FROM faasm/cpython:0.2.0 as python
+FROM faasm/cpython:0.2.2 as python
 
 # Note - we don't often rebuild cpp-root so this dep may be behind
-FROM faasm/cpp-root:0.9.0
+FROM faasm/cpp-root:0.9.1
 ARG FAASM_VERSION
 
 # Flag to say we're in a container
