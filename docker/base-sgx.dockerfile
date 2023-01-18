@@ -27,10 +27,10 @@ RUN git clone -b v3.17.0 \
     && make install
 
 # Build and install SGX SDK and PSW
-ARG SGX_SDK_VERSION=2.15.1
+ARG SGX_SDK_VERSION=2.18.1
 # 09/03/2022 - As part of the preparation step, we download pre-built binaries
 # from Intel's official repositories. There does not seem to be a clear way
-# to specify which version to download. We pin to code version 2.15.101.1. It
+# to specify which version to download. We pin to code version 2.18.101.1. It
 # may happen that, at some point, the image build fails because the preparation
 # script points to out-of-date links. In that case we will have to clone from a
 # more recent tag.
@@ -52,7 +52,7 @@ RUN git clone -b sgx_${SGX_SDK_VERSION} https://github.com/intel/linux-sgx.git \
     && cp /opt/intel/sgxsdk/lib64/libsgx_capable.so /usr/lib
 
 # Install SGX DCAP
-ARG DCAP_VERSION=1.12.1
+ARG DCAP_VERSION=1.15
 RUN git clone -b DCAP_${DCAP_VERSION} \
         https://github.com/intel/SGXDataCenterAttestationPrimitives.git \
         /opt/intel/sgxdcap \
