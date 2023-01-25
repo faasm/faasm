@@ -40,8 +40,9 @@ ARG SGX_SDK_VERSION=2.18.1
 RUN git clone -b sgx_${SGX_SDK_VERSION} https://github.com/intel/linux-sgx.git \
     && cd /linux-sgx \
     && make preparation \
-    # Apply two patches to make the build work
-    && git apply /usr/local/code/faasm/src/enclave/inside/sgx_sdk.patch
+    # Apply two patches to make the build work corresponding to intel/linux-sgx
+    # issues 914 and 928
+    && git apply /usr/local/code/faasm/src/enclave/inside/sgx_sdk.patch \
     # Build SDK and install package
     && make sdk_install_pkg \
     && mkdir -p /opt/intel \
@@ -75,16 +76,10 @@ RUN git clone -b DCAP_${DCAP_VERSION} \
         /usr/lib/
 
 # Build Faasm with SGX enabled
-# ARG FAASM_SGX_MODE
-# RUN cd /build/faasm \
-    #     && cmake \
-    #         -GNinja \
-    #         -DCMAKE_CXX_COMPILER=/usr/bin/clang++-13 \
-    #         -DCMAKE_C_COMPILER=/usr/bin/clang-13 \
-    #         -DCMAKE_BUILD_TYPE=Release \
-    #         -DFAASM_SGX_MODE=${FAASM_SGX_MODE} \
-    #         /usr/local/code/faasm \
-    #     && cmake --build . --target tests \
-    #     && cmake --build . --target func_runner \
-    #     && cmake --build . --target codegen_func \
-    #     && cmake --build . --target codegen_shared_obj
+ARG FAASM_SGX_MODE
+RUN cd /usr/local/code/faasm \
+    && source venv/bin/activate \
+    && inv -r faasmcli/faasmcli dev.tools \
+        --clean \
+        --build Release \
+        --sgx ${FAASM_SGX_MODE}
