@@ -31,7 +31,6 @@ def format(ctx, check=False):
 
     flake8_cmd = [
         "python3 -m flake8",
-        "{}".format("--format" if not check else ""),
         " ".join(files_to_check),
     ]
     flake8_cmd = " ".join(flake8_cmd)
