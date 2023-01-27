@@ -6,7 +6,7 @@
 
 #ifdef FAASM_SGX_HARDWARE_MODE
 #include <dlfcn.h>
-#include <openssl/sha.h>
+#include <openssl/evp.h>
 #include <sgx_dcap_ql_wrapper.h>
 #include <sgx_ql_lib_common.h>
 #include <sgx_report.h>
@@ -18,10 +18,11 @@ namespace sgx {
 #ifdef FAASM_SGX_HARDWARE_MODE
 static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
 {
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, data, data_size);
-    SHA256_Final(hash, &sha256);
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+    EVP_DigestUpdate(ctx, data, data_size);
+    EVP_DigestFinal_ex(ctx, hash, &data_size);
+    EVP_MD_CTX_free(ctx);
 }
 
 // To generate an enclave quote we need to do four steps:

@@ -26,8 +26,7 @@ if [ ! -d ${VENV_PATH} ]; then
     python3 -m venv ${VENV_PATH}
 fi
 
-pip_cmd install -U pip
-pip_cmd install -U setuptools
+pip_cmd install -U pip setuptools wheel
 pip_cmd install -r faasmcli/requirements.txt
 
 pushd clients/cpp >> /dev/null

@@ -1,4 +1,4 @@
-FROM faasm/faabric-base:0.4.0
+FROM faasm/faabric-base:0.4.1
 
 # Install Faasm-specific APT dependencies
 RUN apt update \

@@ -7,7 +7,6 @@ SHELL ["/bin/bash", "-c"]
 # Install various deps
 RUN apt update \
     && apt install -y \
-        clang-tidy-10 \
         clang-tidy-13 \
         doxygen \
         vim

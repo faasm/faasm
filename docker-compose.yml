@@ -68,11 +68,7 @@ services:
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}:/dev/sgx
     environment:
       - CAPTURE_STDOUT=on
-      # 02/11/2022 - Temporarily disable CGroup mode, to mitigate a potential
-      # mismatch between the host OS and the container image. Ubuntu 20.04
-      # uses CGroup v1, whereas Ubuntu 22.04 uses CGroup v2. This change will
-      # be reverted once we upgrade container images to 22.04
-      - CGROUP_MODE=off
+      - CGROUP_MODE=on
       - GLOBAL_MESSAGE_TIMEOUT=600000
       - LOG_LEVEL=info
       - NETNS_MODE=off

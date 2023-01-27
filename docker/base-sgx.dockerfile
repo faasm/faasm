@@ -4,10 +4,13 @@ FROM faasm/base:${FAASM_VERSION}
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install  -y \
     debhelper \
+    libboost-thread-dev \
+    libprotobuf-c-dev \
     lsb-release \
     ocaml \
     ocamlbuild \
-    python
+    protobuf-c-compiler \
+    python-is-python3
 
 # We must install protobuf manually, as a static library and PIC. Otherwise,
 # attestation will fail at runtime with a hard to debug segmentation fault when
@@ -27,18 +30,21 @@ RUN git clone -b v3.17.0 \
     && make install
 
 # Build and install SGX SDK and PSW
-ARG SGX_SDK_VERSION=2.15.1
+ARG SGX_SDK_VERSION=2.18.1
 # 09/03/2022 - As part of the preparation step, we download pre-built binaries
 # from Intel's official repositories. There does not seem to be a clear way
-# to specify which version to download. We pin to code version 2.15.101.1. It
+# to specify which version to download. We pin to code version 2.18.101.1. It
 # may happen that, at some point, the image build fails because the preparation
 # script points to out-of-date links. In that case we will have to clone from a
 # more recent tag.
 RUN git clone -b sgx_${SGX_SDK_VERSION} https://github.com/intel/linux-sgx.git \
     && cd /linux-sgx \
     && make preparation \
+    # Apply two patches to make the build work corresponding to intel/linux-sgx
+    # issues 914 and 928
+    && git apply /usr/local/code/faasm/src/enclave/inside/sgx_sdk.patch \
     # Build SDK and install package
-    && make sdk_install_pkg_no_mitigation \
+    && make sdk_install_pkg \
     && mkdir -p /opt/intel \
     && cd /opt/intel \
     && sh -c "echo yes | /linux-sgx/linux/installer/bin/sgx_linux_x64_sdk_${SGX_SDK_VERSION}01.1.bin" \
@@ -52,7 +58,7 @@ RUN git clone -b sgx_${SGX_SDK_VERSION} https://github.com/intel/linux-sgx.git \
     && cp /opt/intel/sgxsdk/lib64/libsgx_capable.so /usr/lib
 
 # Install SGX DCAP
-ARG DCAP_VERSION=1.12.1
+ARG DCAP_VERSION=1.15
 RUN git clone -b DCAP_${DCAP_VERSION} \
         https://github.com/intel/SGXDataCenterAttestationPrimitives.git \
         /opt/intel/sgxdcap \
@@ -71,15 +77,9 @@ RUN git clone -b DCAP_${DCAP_VERSION} \
 
 # Build Faasm with SGX enabled
 ARG FAASM_SGX_MODE
-RUN cd /build/faasm \
-    && cmake \
-        -GNinja \
-        -DCMAKE_CXX_COMPILER=/usr/bin/clang++-13 \
-        -DCMAKE_C_COMPILER=/usr/bin/clang-13 \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DFAASM_SGX_MODE=${FAASM_SGX_MODE} \
-        /usr/local/code/faasm \
-     && cmake --build . --target tests \
-     && cmake --build . --target func_runner \
-     && cmake --build . --target codegen_func \
-     && cmake --build . --target codegen_shared_obj
+RUN cd /usr/local/code/faasm \
+    && source venv/bin/activate \
+    && inv -r faasmcli/faasmcli dev.tools \
+        --clean \
+        --build Release \
+        --sgx ${FAASM_SGX_MODE}

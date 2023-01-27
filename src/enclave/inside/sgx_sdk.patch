@@ -1,0 +1,29 @@
+diff --git a/sdk/tlibcxx/include/__config b/sdk/tlibcxx/include/__config
+index 7835a963..dbe05270 100644
+--- a/sdk/tlibcxx/include/__config
++++ b/sdk/tlibcxx/include/__config
+@@ -411,6 +411,8 @@
+
+ #if defined(_LIBCPP_COMPILER_CLANG)
+
++#include <__sgx>
++
+ #if defined(_LIBCPP_ALTERNATE_STRING_LAYOUT)
+ #  error _LIBCPP_ALTERNATE_STRING_LAYOUT is deprecated, please use _LIBCPP_ABI_ALTERNATE_STRING_LAYOUT instead
+ #endif
+diff --git a/sdk/trts/trts_emm_sim.cpp b/sdk/trts/trts_emm_sim.cpp
+index 92cb49b7..d47e7fc8 100644
+--- a/sdk/trts/trts_emm_sim.cpp
++++ b/sdk/trts/trts_emm_sim.cpp
+@@ -45,3 +45,11 @@ int mm_uncommit(void* addr, size_t size)
+     UNUSED(size);
+     return 0;
+ }
++
++int mm_modify_permissions(void* addr, size_t size, int prot)
++{
++    UNUSED(addr);
++    UNUSED(size);
++    UNUSED(prot);
++    return 0;
++}
