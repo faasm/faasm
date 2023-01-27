@@ -89,10 +89,10 @@ add_library(aws_ext_core SHARED IMPORTED)
 add_library(aws_ext_s3 SHARED IMPORTED)
 set_target_properties(aws_ext_core
     PROPERTIES IMPORTED_LOCATION
-    ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-core.so)
+    ${AWS_CORE_LIBRARY})
 set_target_properties(aws_ext_s3
     PROPERTIES IMPORTED_LOCATION
-    ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-s3.so)
+    ${AWS_S3_LIBRARY})
 add_dependencies(aws_ext_core aws_ext)
 add_dependencies(aws_ext_s3 aws_ext)
 # Merge the two libraries in one aliased interface
