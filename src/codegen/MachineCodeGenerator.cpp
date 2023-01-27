@@ -1,15 +1,14 @@
 #include <codegen/MachineCodeGenerator.h>
-#include <storage/FileLoader.h>
-#include <wamr/WAMRWasmModule.h>
-#include <wavm/WAVMWasmModule.h>
-
-#include <openssl/md5.h>
-#include <stdexcept>
-
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
+#include <storage/FileLoader.h>
+#include <wamr/WAMRWasmModule.h>
+#include <wavm/WAVMWasmModule.h>
+
+#include <openssl/evp.h>
+#include <stdexcept>
 
 using namespace faabric::util;
 
@@ -34,10 +33,17 @@ MachineCodeGenerator::MachineCodeGenerator(storage::FileLoader& loaderIn)
 std::vector<uint8_t> MachineCodeGenerator::hashBytes(
   const std::vector<uint8_t>& bytes)
 {
-    std::vector<uint8_t> result(MD5_DIGEST_LENGTH);
-    MD5(reinterpret_cast<const unsigned char*>(bytes.data()),
-        bytes.size(),
-        result.data());
+    // Use the new high-level hashing APIs as suggested for OpenSSL 3.0
+    // https://github.com/openssl/openssl/issues/12260
+    EVP_MD_CTX *mdctx;
+    mdctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(mdctx, EVP_md5(), NULL);
+    EVP_DigestUpdate(mdctx, bytes.data(), bytes.size());
+
+    unsigned int md5DigestLen = EVP_MD_size(EVP_md5());
+    std::vector<uint8_t> result(md5DigestLen);
+    EVP_DigestFinal_ex(mdctx, result.data(), &md5DigestLen);
+    EVP_MD_CTX_free(mdctx);
 
     return result;
 }
