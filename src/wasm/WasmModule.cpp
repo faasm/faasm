@@ -26,6 +26,24 @@
 
 namespace wasm {
 
+bool isWasmPageAligned(int32_t offset)
+{
+    return !(offset & (WASM_BYTES_PER_PAGE - 1));
+        // return false;
+    // }
+
+    // return true;
+}
+
+size_t getNumberOfWasmPagesForBytes(size_t nBytes)
+{
+    // Round up to nearest page
+    size_t pageCount =
+      (size_t(nBytes) + WASM_BYTES_PER_PAGE - 1) / WASM_BYTES_PER_PAGE;
+
+    return pageCount;
+}
+
 uint32_t roundUpToWasmPageAligned(uint32_t nBytes)
 {
     size_t nPages = getNumberOfWasmPagesForBytes(nBytes);
