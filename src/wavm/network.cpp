@@ -372,6 +372,17 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "socket", I32, socket, I32 a, I32 b, I32 c)
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
+                               "sock_accept",
+                               I32,
+                               sock_accept,
+                               I32 a,
+                               I32 b,
+                               I32 c)
+{
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                "sock_send",
                                I32,
                                wasi_sock_send,
