@@ -37,18 +37,6 @@ static uint32_t dup_wrapper(wasm_exec_env_t exec_env, uint32_t fd)
     return doWasiDup(fd);
 }
 
-static uint32_t getcwd_wrapper(wasm_exec_env_t exec_env,
-                               char* buf,
-                               uint32_t bufLen)
-{
-    SPDLOG_DEBUG("S - getcwd");
-
-    // Fake working directory
-    std::strcpy(buf, FAKE_WORKING_DIR);
-
-    return __WASI_ESUCCESS;
-}
-
 static uint32_t getpwnam_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 {
     SPDLOG_DEBUG("S - getpwnam");
@@ -72,8 +60,8 @@ static int32_t tempnam_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
 
 static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__wasi_fd_dup, "(i*)i"), REG_NATIVE_FUNC(dup, "(i)i"),
-    REG_NATIVE_FUNC(getcwd, "(*~)i"),        REG_NATIVE_FUNC(getpwnam, "(i)i"),
-    REG_NATIVE_FUNC(sendfile, "(iiii)i"),    REG_NATIVE_FUNC(tempnam, "(ii)i"),
+    REG_NATIVE_FUNC(getpwnam, "(i)i"), REG_NATIVE_FUNC(sendfile, "(iiii)i"),
+    REG_NATIVE_FUNC(tempnam, "(ii)i"),
 };
 
 uint32_t getFaasmFilesystemApi(NativeSymbol** nativeSymbols)

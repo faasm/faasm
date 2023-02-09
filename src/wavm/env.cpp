@@ -105,7 +105,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid)
 
     // Set up strings to place in passwd
     std::string fakeName = std::string(FAKE_NAME);
-    std::string fakeDir = std::string(FAKE_WORKING_DIR);
+    std::string fakeDir = std::string(WASI_LIBC_CWD);
 
     // Create enough memory
     size_t nameOffset = sizeof(wasm_passwd);
@@ -329,26 +329,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     getrandom(hostBuf, bufLen, 0);
 
     return __WASI_ESUCCESS;
-}
-
-WAVM_DEFINE_INTRINSIC_FUNCTION(env,
-                               "getcwd",
-                               I32,
-                               getcwd,
-                               I32 bufPtr,
-                               I32 bufLen)
-{
-    SPDLOG_DEBUG("S - getcwd - {} {}", bufPtr, bufLen);
-
-    Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
-    char* hostBuf =
-      Runtime::memoryArrayPtr<char>(memoryPtr, (Uptr)bufPtr, (Uptr)bufLen);
-
-    // Fake working directory
-    std::strcpy(hostBuf, FAKE_WORKING_DIR);
-
-    // Note, this needs to return the buffer on success, NOT zero
-    return bufPtr;
 }
 
 // --------------------------
