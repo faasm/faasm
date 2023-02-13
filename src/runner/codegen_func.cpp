@@ -12,32 +12,6 @@
 #include <boost/program_options.hpp>
 
 using namespace boost::filesystem;
-namespace po = boost::program_options;
-
-po::variables_map parseCmdLine(int argc, char* argv[])
-{
-    // Define command line arguments
-    po::options_description desc("Allowed options");
-    desc.add_options()(
-      "user", po::value<std::string>(), "function's user name (required)")(
-      "func", po::value<std::string>(), "function's name")(
-      "clean", "overwrite existing generated code");
-
-    // Mark user and function as positional arguments
-    po::positional_options_description p;
-    p.add("user", 1);
-
-    // Parse command line arguments
-    po::variables_map vm;
-    po::store(
-      po::command_line_parser(argc, argv).options(desc).positional(p).run(),
-      vm);
-    po::notify(vm);
-
-    return vm;
-}
-
-namespace po = boost::program_options;
 
 po::variables_map parseCmdLine(int argc, char* argv[])
 {
