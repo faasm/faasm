@@ -46,7 +46,7 @@ jobs:
           ./bin/inv_wrapper.sh git.bump --python --cpp
           git diff --exit-code
       - name: "Check that all the submodules point to their 'main' branch"
-        run: inv git.check-submodule-branch
+        run: ./bin/inv_wrapper.sh git.check-submodule-branch
 
   docs:
     if: github.event.pull_request.draft == false
