@@ -12,7 +12,6 @@
 #include <boost/program_options.hpp>
 
 using namespace boost::filesystem;
-
 namespace po = boost::program_options;
 
 po::variables_map parseCmdLine(int argc, char* argv[])
