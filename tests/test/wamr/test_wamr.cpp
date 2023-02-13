@@ -69,6 +69,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
             std::string outputData = msg.outputdata();
             REQUIRE(outputData == inputData);
         }
+
+        f.reset(msg);
     }
 
     f.shutdown();

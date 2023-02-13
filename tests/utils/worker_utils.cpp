@@ -68,6 +68,7 @@ void execWamrFunction(faabric::Message& call, const std::string& expectedOutput)
         std::string actualOutput = call.outputdata();
         REQUIRE(actualOutput == expectedOutput);
     }
+    module.reset(call, "");
 
     REQUIRE(returnValue == 0);
     REQUIRE(call.returnvalue() == 0);
