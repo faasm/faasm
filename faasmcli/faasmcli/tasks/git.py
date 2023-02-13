@@ -215,22 +215,41 @@ def publish_release(ctx):
 
 @task
 def check_submodule_branch(ctx):
+    """
+    Check that the commit hash for HEAD (i.e. where the submodule points to)
+    and the main branch match
+    """
     submodules = [
         join(PROJ_ROOT, "faabric"),
         join(PROJ_ROOT, "clients", "cpp"),
         join(PROJ_ROOT, "clients", "python"),
     ]
-    git_cmd = "git rev-parse --abbrev-ref HEAD"
+    git_cmd = "git rev-list -n 1 "
     for submodule in submodules:
-        out = (
-            run(git_cmd, shell=True, capture_output=True, cwd=submodule)
+        head_commit = (
+            run(
+                git_cmd + " HEAD",
+                shell=True,
+                capture_output=True,
+                cwd=submodule,
+            )
             .stdout.decode("utf-8")
             .strip()
         )
-        if out != "main":
+        main_commit = (
+            run(
+                git_cmd + " main",
+                shell=True,
+                capture_output=True,
+                cwd=submodule,
+            )
+            .stdout.decode("utf-8")
+            .strip()
+        )
+        if head_commit != main_commit:
             print(
-                "Submodule {} does not point to 'main' branch! ({})".format(
-                    submodule, out
+                "Submodule {}'s head and main don't match: {}!={})".format(
+                    submodule, head_commit, main_commit
                 )
             )
-            raise RuntimeError("Submodule pointint to dangling commit")
+            raise RuntimeError("Submodule pointing to dangling commit")
