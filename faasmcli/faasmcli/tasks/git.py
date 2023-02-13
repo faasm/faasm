@@ -5,14 +5,15 @@ from os.path import join
 
 from faasmcli.util.env import PROJ_ROOT
 from faasmcli.util.config import get_faasm_config
-from faasmcli.util.version import get_faasm_version
+from faasmcli.util.version import get_version
 
 REPO_NAME = "faasm/faasm"
 
-VERSIONED_FILES = [
-    ".env",
-    "VERSION",
-]
+VERSIONED_FILES = {
+    "faasm": [".env", "VERSION"],
+    "cpp": [".env", ".github/workflows/tests.yml"],
+    "python": [".env", ".github/workflows/tests.yml"],
+}
 
 VERSIONED_DIRS = [
     join(PROJ_ROOT, ".github"),
@@ -25,7 +26,7 @@ def _tag_name(version):
 
 
 def _get_tag():
-    faasm_ver = get_faasm_version()
+    faasm_ver = get_version()
     tag_name = _tag_name(faasm_ver)
     return tag_name
 
@@ -87,38 +88,63 @@ def _create_tag(tag_name, force=False):
 
 
 @task
-def bump(ctx, ver=None):
+def bump(ctx, ver=None, python=False, cpp=False):
     """
     Increase the version (defaults to bumping a single minor version)
     """
-    old_ver = get_faasm_version()
+    bump_faasm_ver = (not python) and (not cpp)
+    if bump_faasm_ver:
+        old_ver = get_version()
+        if ver:
+            new_ver = ver
+        else:
+            # Just bump the last minor version part
+            new_ver_parts = old_ver.split(".")
+            new_ver_minor = int(new_ver_parts[-1]) + 1
+            new_ver_parts[-1] = str(new_ver_minor)
+            new_ver = ".".join(new_ver_parts)
 
-    if ver:
-        new_ver = ver
+        # Replace version in all files
+        for f in VERSIONED_FILES["faasm"]:
+            sed_cmd = "sed -i 's/{}/{}/g' {}".format(old_ver, new_ver, f)
+            run(sed_cmd, shell=True, check=True)
+
+        # Replace version in dirs (only for faasm)
+        for d in VERSIONED_DIRS:
+            sed_cmd = [
+                "find {}".format(d),
+                "-type f",
+                "-exec sed -i -e 's/{}/{}/g'".format(old_ver, new_ver),
+                "{} \\;",
+            ]
+            sed_cmd = " ".join(sed_cmd)
+            print(sed_cmd)
+
+            run(sed_cmd, shell=True, check=True)
     else:
-        # Just bump the last minor version part
-        new_ver_parts = old_ver.split(".")
-        new_ver_minor = int(new_ver_parts[-1]) + 1
-        new_ver_parts[-1] = str(new_ver_minor)
-        new_ver = ".".join(new_ver_parts)
-
-    # Replace version in all files
-    for f in VERSIONED_FILES:
-        sed_cmd = "sed -i 's/{}/{}/g' {}".format(old_ver, new_ver, f)
-        run(sed_cmd, shell=True, check=True)
-
-    # Replace version in dirs
-    for d in VERSIONED_DIRS:
-        sed_cmd = [
-            "find {}".format(d),
-            "-type f",
-            "-exec sed -i -e 's/{}/{}/g'".format(old_ver, new_ver),
-            "{} \\;",
-        ]
-        sed_cmd = " ".join(sed_cmd)
-        print(sed_cmd)
-
-        run(sed_cmd, shell=True, check=True)
+        # The python and cpp versions might be the same, so we need to be more
+        # careful when we increment each of them to make sure we only increment
+        # the version of the client we are interested in
+        if python:
+            old_ver, new_ver = get_version("python")
+            strings_to_check = [r"faasm\/cpython:", "PYTHON_VERSION="]
+            for f in VERSIONED_FILES["python"]:
+                for string in strings_to_check:
+                    sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
+                        string, old_ver, string, new_ver, f
+                    )
+                    print(sed_cmd)
+                    run(sed_cmd, shell=True, check=True)
+        if cpp:
+            old_ver, new_ver = get_version("cpp")
+            strings_to_check = [r"faasm\/cpp-sysroot:", "CPP_VERSION="]
+            for f in VERSIONED_FILES["python"]:
+                for string in strings_to_check:
+                    sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
+                        string, old_ver, string, new_ver, f
+                    )
+                    print(sed_cmd)
+                    run(sed_cmd, shell=True, check=True)
 
 
 @task
@@ -148,7 +174,7 @@ def get_release_body():
         "orhunp/git-cliff:latest",
         "--config cliff.toml",
         "--repository .",
-        "{}..v{}".format(_get_release().tag_name, get_faasm_version()),
+        "{}..v{}".format(_get_release().tag_name, get_version()),
     ]
 
     cmd = " ".join(docker_cmd)
@@ -165,7 +191,7 @@ def create_release(ctx):
     Create a draft release on Github
     """
     # Work out the tag
-    faasm_ver = get_faasm_version()
+    faasm_ver = get_version()
     tag_name = _tag_name(faasm_ver)
 
     # Create a release in github from this tag

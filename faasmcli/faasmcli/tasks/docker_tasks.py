@@ -14,7 +14,7 @@ from faasmcli.util.env import (
     FAASM_SGX_MODE_SIM,
     PROJ_ROOT,
 )
-from faasmcli.util.version import get_faasm_version
+from faasmcli.util.version import get_version
 
 SGX_HW_CONTAINER_SUFFIX = "-sgx"
 SGX_SIMULATION_CONTAINER_SUFFIX = "-sgx-sim"
@@ -85,7 +85,7 @@ def build(ctx, c, nocache=False, push=False):
 
     _check_valid_containers(c)
 
-    faasm_ver = get_faasm_version()
+    faasm_ver = get_version()
 
     for container_name in c:
         # Prepare dockerfile and tag name
@@ -141,7 +141,7 @@ def push(ctx, c):
     """
     Push container images
     """
-    faasm_ver = get_faasm_version()
+    faasm_ver = get_version()
 
     _check_valid_containers(c)
 
@@ -154,7 +154,7 @@ def pull(ctx, c):
     """
     Pull container images
     """
-    faasm_ver = get_faasm_version()
+    faasm_ver = get_version()
 
     _check_valid_containers(c)
 
@@ -172,7 +172,7 @@ def delete_old(ctx):
     """
     Deletes old Docker images
     """
-    faasm_ver = get_faasm_version()
+    faasm_ver = get_version()
 
     dock = docker.from_env()
     images = dock.images.list()
