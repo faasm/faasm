@@ -228,5 +228,9 @@ def check_submodule_branch(ctx):
             .strip()
         )
         if out != "main":
-            print("Submodule {} does not point to 'main' branch!")
+            print(
+                "Submodule {} does not point to 'main' branch! ({})".format(
+                    submodule, out
+                )
+            )
             raise RuntimeError("Submodule pointint to dangling commit")
