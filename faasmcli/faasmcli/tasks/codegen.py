@@ -68,7 +68,7 @@ def codegen(ctx, user, function, clean=False):
     codegen_cmd = [
         binary,
         user,
-        function,
+        "--func {}".format(function),
         "--clean" if clean else "",
     ]
     codegen_cmd = " ".join(codegen_cmd)
@@ -83,8 +83,8 @@ def user(ctx, user):
     _do_codegen_user(user)
 
 
-def _do_codegen_user(user):
-    print("Running WAVM codegen for user {}".format(user))
+def _do_codegen_user(user, clean=False):
+    print("Running codegen for user {}".format(user))
 
     binary = find_codegen_func()
     env = copy(environ)
@@ -95,7 +95,13 @@ def _do_codegen_user(user):
         }
     )
 
-    run("{} {}".format(binary, user), shell=True, env=env, check=True)
+    codegen_cmd = [
+        binary,
+        user,
+        "--clean" if clean else "",
+    ]
+    codegen_cmd = " ".join(codegen_cmd)
+    run(codegen_cmd, shell=True, env=env, check=True)
 
 
 def _do_codegen_file(path, clean=False):
@@ -124,15 +130,15 @@ def libs(ctx, clean=False):
 
 
 @task
-def local(ctx):
+def local(ctx, clean=False):
     """
     Runs codegen on functions used in tests
     """
-    _do_codegen_user("demo")
-    _do_codegen_user("errors")
-    _do_codegen_user("mpi")
-    _do_codegen_user("omp")
-    _do_codegen_user("python")
+    _do_codegen_user("demo", clean)
+    _do_codegen_user("errors", clean)
+    _do_codegen_user("mpi", clean)
+    _do_codegen_user("omp", clean)
+    _do_codegen_user("python", clean)
 
     # Do codegen for libfake
     for so in LIB_FAKE_FILES:
@@ -144,9 +150,9 @@ def local(ctx):
     # Run the WAMR codegen required by the tests
     env.update({"WASM_VM": "wamr"})
     for user, func in WAMR_ALLOWED_FUNCS:
-        codegen(ctx, user, func)
+        codegen(ctx, user, func, clean)
 
     # Run the SGX codegen required by the tests
     env.update({"WASM_VM": "sgx"})
     for user, func in SGX_ALLOWED_FUNCS:
-        codegen(ctx, user, func)
+        codegen(ctx, user, func, clean)
