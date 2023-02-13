@@ -19,6 +19,10 @@ inv git.bump
 inv git.bump --ver=1.2.3
 ```
 
+> If you are updating the version of a client submodule (i.e. `clients/cpp`
+> or `clients/python`) you can bump the version of the files that track it
+> using `inv git.bump [--python] [--cpp]`
+
 Check the diff to make sure this hasn't edited anything we don't expect.
 
 Push all the changes to your branch.
