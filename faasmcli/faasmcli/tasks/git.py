@@ -211,3 +211,22 @@ def publish_release(ctx):
     """
     rel = _get_release()
     rel.update_release(rel.title, rel.raw_data["body"], draft=False)
+
+
+@task
+def check_submodule_branch(ctx):
+    submodules = [
+        join(PROJ_ROOT, "faabric"),
+        join(PROJ_ROOT, "clients", "cpp"),
+        join(PROJ_ROOT, "clients", "python"),
+    ]
+    git_cmd = "git rev-parse --abbrev-ref HEAD"
+    for submodule in submodules:
+        out = (
+            run(git_cmd, shell=True, capture_output=True, cwd=submodule)
+            .stdout.decode("utf-8")
+            .strip()
+        )
+        if out != "main":
+            print("Submodule {} does not point to 'main' branch!")
+            raise RuntimeError("Submodule pointint to dangling commit")

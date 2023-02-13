@@ -19,7 +19,7 @@ jobs:
       - name: Cancel Workflow Action
         uses: styfle/cancel-workflow-action@0.11.0
 
-  formatting:
+  checks:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
@@ -32,10 +32,21 @@ jobs:
         # We need to set the safe git directory as formatting relies on git-ls
         # See actions/checkout#766
       - name: "Set the GH workspace as a safe git directory"
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/faabric"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/cpp"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/python"
       # Formatting checks
       - name: "Code formatting check"
         run: ./bin/inv_wrapper.sh format-code --check
+      # Sanity checks
+      - name: "Check that the python and cpp versions tracked are correct"
+        run: |
+          ./bin/inv_wrapper.sh git.bump --python --cpp
+          git diff --exit-code
+      - name: "Check that all the submodules point to their 'main' branch"
+        run: inv git.check-submodule-branch
 
   docs:
     if: github.event.pull_request.draft == false
