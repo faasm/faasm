@@ -146,8 +146,10 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
     currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
-    // Set up thread stacks
-    createThreadStacks();
+    // 13/02/2023 - Threads are not supported in WAMR, and creating thread
+    // stacks uses mprotect to write-protect memory, whilst WAMR uses mmap
+    // under the hood, creating silent segmentation faults
+    threadStacks.push_back(-1);
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
