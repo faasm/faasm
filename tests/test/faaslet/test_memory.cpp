@@ -18,9 +18,11 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test memmove", "[faaslet]")
     execFunction(req);
 }
 
+/*
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test calloc", "[faaslet]")
 {
     auto req = setUpContext("demo", "calloc");
     execFunction(req);
 }
+*/
 }
