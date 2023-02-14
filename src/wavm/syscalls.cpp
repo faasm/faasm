@@ -198,7 +198,8 @@ I32 executeSyscall(int syscallNumber,
         case 85:
             return s__readlink(a, b, c);
         case 90:
-            return s__mmap(a, b, c, d, e, f);
+            throw std::runtime_error("we are here!");
+            // return s__mmap(a, b, c, d, e, f);
         case 102:
             return s__socketcall(a, b);
         case 114:
@@ -212,9 +213,10 @@ I32 executeSyscall(int syscallNumber,
         case 175:
             return s__rt_sigprocmask(a, b, c, d);
         case 192:
+            throw std::runtime_error("we are here!");
             // mmap2 is basically the same as mmap (difference is in the final
             // argument which we ignore)
-            return s__mmap(a, b, c, d, e, f);
+            // return s__mmap(a, b, c, d, e, f);
         case 196:
             return s__lstat64(a, b);
         case 197:

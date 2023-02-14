@@ -98,6 +98,7 @@ I32 doMmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset)
  * (instead of bytes, as is done by mmap). Given that we ignore the offset we
  * can just treat it like mmap
  */
+/* mmap no longer used
 I32 s__mmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset)
 {
     return doMmap(addr, length, prot, flags, fd, offset);
@@ -132,6 +133,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     return 0;
 }
+*/
 
 /**
  * Note that sbrk should only be called indirectly through musl. The required
