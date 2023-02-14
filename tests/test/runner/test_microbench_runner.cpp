@@ -36,7 +36,7 @@ void checkLine(const std::string& line,
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test microbench runner",
-                 "[runner]")
+                 "[runner][.]")
 {
     // Set up file contents
     std::string specFile = "/tmp/microbench_in.csv";
