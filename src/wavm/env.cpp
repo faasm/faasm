@@ -150,12 +150,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getgid", I32, getgid)
     return FAKE_GID;
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpid", I32, getpid)
-{
-    SPDLOG_DEBUG("S - getpid");
-    return FAKE_PID;
-}
-
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getppid", I32, getppid)
 {
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
