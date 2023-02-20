@@ -15,8 +15,8 @@ from faasmcli.util.version import get_version
 from faasmcli.util.env import AVAILABLE_HOSTS_SET
 
 
-@task
-def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
+@task(optional=["detached"])
+def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED, detached=False):
     """
     Start the local dev cluster
     """
@@ -24,8 +24,14 @@ def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
     # than using the prebuilt binaries
     env = copy(os.environ)
     env["FAASM_BUILD_DIR"] = join(PROJ_ROOT, "dev/faasm/build")
-    env["FAASM_BUILD_MOUNT"] = "/build/faasm"
-    env["FAASM_LOCAL_MOUNT"] = "/usr/local/faasm"
+    # In GHA we want to be able to pass a string argument to detached, yet
+    # disable it. So passing "False" also disables the detached flag
+    if detached and detached != "False":
+        env["FAASM_BUILD_MOUNT"] = "/host_dev/build"
+        env["FAASM_LOCAL_MOUNT"] = "/host_dev/faasm-local"
+    else:
+        env["FAASM_BUILD_MOUNT"] = "/build/faasm"
+        env["FAASM_LOCAL_MOUNT"] = "/usr/local/faasm"
 
     faasm_ver = get_version()
     if sgx == FAASM_SGX_MODE_SIM:
