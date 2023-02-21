@@ -36,7 +36,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     SECTION("WAVM") { execFunction(msg); }
 
-    // 13/02/2023 - This test is broken in WAMR
+    // 21/02/2023 - See bytecodealliance/wasm-micro-runtime#1979
     // SECTION("WAMR") { execWamrFunction(msg); }
 }
 
