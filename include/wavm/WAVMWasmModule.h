@@ -64,7 +64,9 @@ class WAVMWasmModule final
     void reset(faabric::Message& msg, const std::string& snapshotKey) override;
 
     // ----- Memory management -----
+#ifdef FAASM_HAS_WASM_MMAN
     uint32_t mmapFile(uint32_t fd, size_t length) override;
+#endif
 
     uint8_t* wasmPointerToNative(uint32_t wasmPtr) override;
 

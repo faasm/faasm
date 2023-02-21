@@ -989,6 +989,7 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     return returnValue.i32;
 }
 
+#ifdef FAASM_HAS_WASM_MMAN
 U32 WAVMWasmModule::mmapFile(U32 fd, size_t length)
 {
     // Create a new memory region
@@ -1013,6 +1014,7 @@ U32 WAVMWasmModule::mmapFile(U32 fd, size_t length)
 
     return wasmPtr;
 }
+#endif
 
 bool WAVMWasmModule::doGrowMemory(uint32_t pageChange)
 {

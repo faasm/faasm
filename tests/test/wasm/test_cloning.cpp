@@ -100,6 +100,7 @@ class CloneExecTestFixture : public FunctionExecTestFixture
             REQUIRE(msgA.outputdata() == inputA);
         }
 
+#ifdef FAASM_HAS_WASM_MMAN
         // Check memory has grown in the one that's executed
         Uptr memAfterA1 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
         Uptr memAfterB1 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
@@ -111,6 +112,7 @@ class CloneExecTestFixture : public FunctionExecTestFixture
 
         REQUIRE(memAfterA1 > memBeforeA);
         REQUIRE(brkAfterA1 > brkBeforeA);
+#endif
 
         // Check tables (should have grown for Python and not for other)
         Uptr tableAfterA1;
@@ -134,6 +136,7 @@ class CloneExecTestFixture : public FunctionExecTestFixture
             REQUIRE(msgB.outputdata() == inputB);
         }
 
+#ifdef FAASM_HAS_WASM_MMAN
         // Check memory sizes
         Uptr memAfterA2 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
         Uptr memAfterB2 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
@@ -147,6 +150,7 @@ class CloneExecTestFixture : public FunctionExecTestFixture
 
         REQUIRE(memAfterB2 > memBeforeB);
         REQUIRE(brkAfterB2 > brkBeforeB);
+#endif
 
         Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
         Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);

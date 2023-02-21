@@ -62,6 +62,7 @@ std::shared_ptr<faabric::state::StateKeyValue> getStateKV(I32 keyPtr)
     return kv;
 }
 
+#ifdef FAASM_HAS_WASM_MMAN
 I32 doMmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset)
 {
 
@@ -98,7 +99,6 @@ I32 doMmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset)
  * (instead of bytes, as is done by mmap). Given that we ignore the offset we
  * can just treat it like mmap
  */
-/* mmap no longer used
 I32 s__mmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset)
 {
     return doMmap(addr, length, prot, flags, fd, offset);
@@ -133,7 +133,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
     return 0;
 }
-*/
 
 /**
  * Note that sbrk should only be called indirectly through musl. The required
@@ -164,6 +163,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__sbrk", I32, __sbrk, I32 increment)
 
     return result;
 }
+#endif
 
 // mprotect is usually called as part of thread creation, in which
 // case we can ignore it.
