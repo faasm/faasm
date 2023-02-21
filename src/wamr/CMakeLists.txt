@@ -32,7 +32,7 @@ set(WAMR_BUILD_BULK_MEMORY 0)
 # allocate memory, which is not page-aligned. This seems like a blunt instrument
 # to solve a smal problem, but this parameter is deeply embedded in the WAMR
 # code, and it's difficult to change it surgically.
-set(WAMR_DISABLE_HW_BOUND_CHECK 1)
+set(WAMR_DISABLE_HW_BOUND_CHECK 0)
 # This definition prevents a buffer underflow during code generation
 add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
 

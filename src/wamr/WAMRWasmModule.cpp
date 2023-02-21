@@ -149,7 +149,8 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     // 13/02/2023 - Threads are not supported in WAMR, and creating thread
     // stacks uses mprotect to write-protect memory, whilst WAMR uses mmap
     // under the hood, creating silent segmentation faults
-    threadStacks.push_back(-1);
+    // threadStacks.push_back(-1);
+    createThreadStacks();
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
