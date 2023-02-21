@@ -83,7 +83,7 @@ inv func func.upload-all --local
 inv dev.tools
 
 # Run codegen (this may take a while the first time it's run)
-inv codegen.local python.codegen
+inv codegen.tests
 
 # Set up cgroup
 ./bin/cgroup.sh
