@@ -85,6 +85,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "system", I32, s__system, I32 a)
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
+WAVM_DEFINE_INTRINSIC_FUNCTION(env, "waitpid", I32, s__pid, I32 pid, I32 statusPtr, I32 options)
+{
+    SPDLOG_DEBUG("S - waitpid {} {} {}", pid, statusPtr, options);
+
+    // Note, on success, waitpid returns the process ID that has changed state.
+    // We currently don't support waitpid, so we just return the pid we're given
+    // https://man7.org/linux/man-pages/man2/wait.2.html
+    return pid;
+}
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "openpty",
                                I32,

@@ -5,7 +5,7 @@ option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 option(FAASM_SGX_MODE "Type of SGX support: Disabled, Simulation or Hardware" "Simulation")
 option(FAASM_TARGET_CPU "CPU to optimise for, e.g. skylake, icelake or native" OFF)
-option(FAASM_HAS_WASM_MMAN "Turn on Faasm's WASM memory management. Implements mmap/munmap and sbrk" OFF)
+option(FAASM_HAS_WASM_MMAN "Turn on Faasm's WASM memory management. Implements mmap/munmap and sbrk" ON)
 
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS "-Wall -Werror=vla")

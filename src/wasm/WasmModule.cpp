@@ -517,9 +517,9 @@ void WasmModule::unmapMemory(uint32_t offset, size_t nBytes)
 uint32_t WasmModule::createMemoryGuardRegion(uint32_t wasmOffset)
 {
     uint32_t regionSize = GUARD_REGION_SIZE;
-    uint8_t* nativePtr = wasmPointerToNative(wasmOffset);
 
 #ifdef FAASM_HAS_WASM_MMAN
+    uint8_t* nativePtr = wasmPointerToNative(wasmOffset);
     // NOTE: we want to protect these regions from _writes_, but we don't
     // want to stop them being read, otherwise snapshotting will fail.
     // Therefore we make them read-only
