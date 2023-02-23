@@ -217,18 +217,20 @@ def publish_release(ctx):
 def check_submodule_branch(ctx):
     """
     Check that the commit hash for HEAD (i.e. where the submodule points to)
-    and the main branch match
+    matches the main branch as tracked from faasm (not the main branch in
+    general)
     """
     submodules = [
         join(PROJ_ROOT, "faabric"),
         join(PROJ_ROOT, "clients", "cpp"),
         join(PROJ_ROOT, "clients", "python"),
     ]
-    git_cmd = "git rev-list -n 1 "
+    # git_cmd = "git rev-list -n 1 "
     for submodule in submodules:
         head_commit = (
             run(
-                git_cmd + " HEAD",
+                # git_cmd + " HEAD",
+                "git rev-parse HEAD",
                 shell=True,
                 capture_output=True,
                 cwd=submodule,
@@ -238,17 +240,18 @@ def check_submodule_branch(ctx):
         )
         main_commit = (
             run(
-                git_cmd + " main",
+                # git_cmd + " main",
+                "git rev-parse main:{}".format(submodule),
                 shell=True,
                 capture_output=True,
-                cwd=submodule,
+                cwd=PROJ_ROOT,
             )
             .stdout.decode("utf-8")
             .strip()
         )
         if head_commit != main_commit:
             print(
-                "Submodule {}'s head and main don't match: {}!={})".format(
+                "Submodule {}'s head and main don't match: {} != {})".format(
                     submodule, head_commit, main_commit
                 )
             )
