@@ -59,8 +59,10 @@ static int32_t tempnam_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
 }
 
 static NativeSymbol ns[] = {
-    REG_NATIVE_FUNC(__wasi_fd_dup, "(i*)i"), REG_NATIVE_FUNC(dup, "(i)i"),
-    REG_NATIVE_FUNC(getpwnam, "(i)i"), REG_NATIVE_FUNC(sendfile, "(iiii)i"),
+    REG_NATIVE_FUNC(__wasi_fd_dup, "(i*)i"),
+    REG_NATIVE_FUNC(dup, "(i)i"),
+    REG_NATIVE_FUNC(getpwnam, "(i)i"),
+    REG_NATIVE_FUNC(sendfile, "(iiii)i"),
     REG_NATIVE_FUNC(tempnam, "(ii)i"),
 };
 

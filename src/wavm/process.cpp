@@ -85,7 +85,13 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "system", I32, s__system, I32 a)
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
-WAVM_DEFINE_INTRINSIC_FUNCTION(env, "waitpid", I32, s__pid, I32 pid, I32 statusPtr, I32 options)
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "waitpid",
+                               I32,
+                               s__pid,
+                               I32 pid,
+                               I32 statusPtr,
+                               I32 options)
 {
     SPDLOG_DEBUG("S - waitpid {} {} {}", pid, statusPtr, options);
 

@@ -600,10 +600,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I64 b,
                                I64 c)
 {
-    SPDLOG_DEBUG("S - fd_fdstat_set_rights - {} {} {}",
-                 a,
-                 b,
-                 c);
+    SPDLOG_DEBUG("S - fd_fdstat_set_rights - {} {} {}", a, b, c);
 
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
