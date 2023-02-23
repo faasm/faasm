@@ -216,43 +216,36 @@ def publish_release(ctx):
 @task
 def check_submodule_branch(ctx):
     """
-    Check that the commit hash for HEAD (i.e. where the submodule points to)
-    matches the main branch as tracked from faasm (not the main branch in
-    general)
+    Check that the commit for each submodule is a commit in the main branch
     """
-    submodules = [
-        join(PROJ_ROOT, "faabric"),
-        join(PROJ_ROOT, "clients", "cpp"),
-        join(PROJ_ROOT, "clients", "python"),
-    ]
-    # git_cmd = "git rev-list -n 1 "
+    submodules = ["faabric", "clients/cpp", "clients/python"]
+    # First, work out what commit each submodule points to
+    git_cmd = "git submodule status"
+    sub_status = (
+        run(git_cmd, shell=True, capture_output=True, cwd=PROJ_ROOT)
+        .stdout.decode("utf-8")
+        .split("\n")
+    )
+
+    # Then, for each submodule, check if the pointed-to commit is an ancestor
+    # of the commit tagged with `main`
     for submodule in submodules:
-        head_commit = (
-            run(
-                # git_cmd + " HEAD",
-                "git rev-parse HEAD",
-                shell=True,
-                capture_output=True,
-                cwd=submodule,
-            )
-            .stdout.decode("utf-8")
-            .strip()
+        pointed_to_commit = [
+            line.split(" ") for line in sub_status if submodule in line
+        ][0]
+        pointed_to_commit = [word for word in pointed_to_commit if word][0]
+        print(submodule, pointed_to_commit)
+
+        git_ancestor_cmd = "git merge-base --is-ancestor {} main".format(
+            pointed_to_commit
         )
-        main_commit = (
-            run(
-                # git_cmd + " main",
-                "git rev-parse main:{}".format(submodule),
-                shell=True,
-                capture_output=True,
-                cwd=PROJ_ROOT,
-            )
-            .stdout.decode("utf-8")
-            .strip()
-        )
-        if head_commit != main_commit:
+        ret_code = run(
+            git_ancestor_cmd, shell=True, cwd=join(PROJ_ROOT, submodule)
+        ).returncode
+        if ret_code != 0:
             print(
-                "Submodule {}'s head and main don't match: {} != {})".format(
-                    submodule, head_commit, main_commit
+                "ERROR: submodule {} points to a dangling commit ({})".format(
+                    submodule, pointed_to_commit
                 )
             )
             raise RuntimeError("Submodule pointing to dangling commit")

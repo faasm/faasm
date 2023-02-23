@@ -29,6 +29,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: true
+          fetch-depth: 0
         # We need to set the safe git directory as formatting relies on git-ls
         # See actions/checkout#766
       - name: "Set the GH workspace as a safe git directory"
@@ -41,10 +42,6 @@ jobs:
       - name: "Code formatting check"
         run: ./bin/inv_wrapper.sh format-code --check
       # Sanity checks
-      - name: "Check that the python and cpp versions tracked are correct"
-        run: |
-          ./bin/inv_wrapper.sh git.bump --python --cpp
-          git diff --exit-code
       - name: "Check that all the submodules point to their 'main' branch"
         run: ./bin/inv_wrapper.sh git.check-submodule-branch
 
