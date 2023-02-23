@@ -168,21 +168,41 @@ def get_release_body():
     """
     Generate body for release with detailed changelog
     """
-    docker_cmd = [
-        "docker run -t -v",
-        "{}:/app/".format(PROJ_ROOT),
-        "orhunp/git-cliff:latest",
-        "--config cliff.toml",
-        "--repository .",
-        "{}..v{}".format(_get_release().tag_name, get_version()),
-    ]
+    git_cmd = (
+        "git log --pretty=format:'%d,%s,%as' {}...v{}".format(
+            _get_release().tag_name, get_version()
+        ),
+    )
+    commits = (
+        run(git_cmd, shell=True, capture_output=True, cwd=PROJ_ROOT)
+        .stdout.decode("utf-8")
+        .split("\n")
+    )
+    body = "Here is what has changed since last release:\n"
 
-    cmd = " ".join(docker_cmd)
-    print("Generating release body...")
-    print(cmd)
-    result = run(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+    def make_tag_header(body, tag, date):
+        tag = tag.split(" ")[2][:-1]
+        body += "\n## [{}] - {}\n".format(tag, date)
+        return body
 
-    return result.stdout.decode("utf-8")
+    def get_commit_parts(commit):
+        first_comma = commit.find(",")
+        last_comma = commit.rfind(",")
+        tag_end = first_comma
+        msg_start = first_comma + 1
+        msg_end = last_comma
+        date_start = last_comma + 1
+        tag = commit[0:tag_end]
+        msg = commit[msg_start:msg_end]
+        date = commit[date_start:]
+        return tag, msg, date
+
+    for commit in commits:
+        tag, msg, date = get_commit_parts(commit)
+        if tag:
+            body = make_tag_header(body, tag, date)
+        body += "* {}\n".format(msg)
+    return body.strip()
 
 
 @task
