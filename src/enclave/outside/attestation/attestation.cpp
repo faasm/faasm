@@ -18,7 +18,7 @@ namespace sgx {
 #ifdef FAASM_SGX_HARDWARE_MODE
 static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
 {
-    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
     EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
     EVP_DigestUpdate(ctx, data, data_size);
     EVP_DigestFinal_ex(ctx, hash, &data_size);
