@@ -35,7 +35,7 @@ std::vector<uint8_t> MachineCodeGenerator::hashBytes(
 {
     // Use the new high-level hashing APIs as suggested for OpenSSL 3.0
     // https://github.com/openssl/openssl/issues/12260
-    EVP_MD_CTX *mdctx;
+    EVP_MD_CTX* mdctx;
     mdctx = EVP_MD_CTX_new();
     EVP_DigestInit_ex(mdctx, EVP_md5(), NULL);
     EVP_DigestUpdate(mdctx, bytes.data(), bytes.size());

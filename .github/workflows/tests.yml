@@ -35,7 +35,7 @@ jobs:
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       # Formatting checks
       - name: "Code formatting check"
-        run: ./bin/inv_wrapper.sh format-code
+        run: ./bin/inv_wrapper.sh format-code --check
 
   docs:
     if: github.event.pull_request.draft == false
