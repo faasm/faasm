@@ -354,7 +354,7 @@ jobs:
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       # Setup
       - name: "Start docker compose"
-        run: ./bin/inv_wrapper.sh cluster start --detached ${{ matrix.detached  }}
+        run: ./bin/inv_wrapper.sh cluster.start --detached ${{ matrix.detached  }}
       # When re-building the targets it is important to set the build type to Release,
       # so that the targets are not re-built if not necesary (i.e. detached)
       - name: "Re-build the targets if necessary"
