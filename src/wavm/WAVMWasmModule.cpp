@@ -586,15 +586,8 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         // Provision the memory for the new module plus two guard regions
         uint32_t memSize = DYNAMIC_MODULE_MEMORY_SIZE + (2 * GUARD_REGION_SIZE);
         Uptr memOffset = growMemory(memSize);
-#ifdef FAASM_HAS_WASM_MMAN
         uint32_t memStart = createMemoryGuardRegion(memOffset);
         createMemoryGuardRegion(memStart + DYNAMIC_MODULE_MEMORY_SIZE);
-#else
-        /* TODO: creating a memory guard (using mprotect) causes a segmentation
-         * fault when dlopen-ing complex shared libraries in python. Why?
-         */
-        uint32_t memStart = memOffset + GUARD_REGION_SIZE;
-#endif
 
         // Record the dynamic module's creation
         int handle = dynamicPathToHandleMap[sharedModulePath];
@@ -992,7 +985,6 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     return returnValue.i32;
 }
 
-#ifdef FAASM_HAS_WASM_MMAN
 U32 WAVMWasmModule::mmapFile(U32 fd, size_t length)
 {
     // Create a new memory region
@@ -1017,7 +1009,6 @@ U32 WAVMWasmModule::mmapFile(U32 fd, size_t length)
 
     return wasmPtr;
 }
-#endif
 
 bool WAVMWasmModule::doGrowMemory(uint32_t pageChange)
 {

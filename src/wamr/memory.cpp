@@ -8,7 +8,6 @@
 #include <wasm_export.h>
 
 namespace wasm {
-#ifdef FAASM_HAS_WASM_MMAN
 static int32_t __sbrk_wrapper(wasm_exec_env_t exec_env, int32_t increment)
 {
     // Note trace logging here as this is called a lot
@@ -70,14 +69,11 @@ static int32_t munmap_wrapper(wasm_exec_env_t exec_env,
 
     return 0;
 }
-#endif
 
 static NativeSymbol ns[] = {
-#ifdef FAASM_HAS_WASM_MMAN
     REG_NATIVE_FUNC(__sbrk, "(i)i"),
     REG_NATIVE_FUNC(mmap, "(iiiiiI)i"),
     REG_NATIVE_FUNC(munmap, "(ii)i"),
-#endif
 };
 
 uint32_t getFaasmMemoryApi(NativeSymbol** nativeSymbols)

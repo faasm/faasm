@@ -94,13 +94,11 @@ class WasmModule
 
     uint32_t shrinkMemory(size_t nBytes);
 
-#ifdef FAASM_HAS_WASM_MMAN
     uint32_t mmapMemory(size_t nBytes);
 
     virtual uint32_t mmapFile(uint32_t fp, size_t length);
 
     void unmapMemory(uint32_t offset, size_t nBytes);
-#endif
 
     uint32_t createMemoryGuardRegion(uint32_t wasmOffset);
 

@@ -49,9 +49,7 @@ class WAMRWasmModule final
     uint8_t* wasmPointerToNative(uint32_t wasmPtr) override;
 
     // ----- Memory management -----
-#ifdef FAASM_HAS_WASM_MMAN
     uint32_t mmapFile(uint32_t fp, size_t length) override;
-#endif
 
     size_t getMemorySizeBytes() override;
 

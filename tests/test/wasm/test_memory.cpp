@@ -18,7 +18,6 @@
 using namespace WAVM;
 
 namespace tests {
-#ifdef FAASM_HAS_WASM_MMAN
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test mmapping a file", "[wasm]")
 {
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
@@ -55,7 +54,6 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test mmapping a file", "[wasm]")
     // Check the bytes match
     REQUIRE(expected == actual);
 }
-#endif
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test memory growth and shrinkage",
@@ -69,25 +67,17 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     wasm::WAVMWasmModule module;
     module.bindToFunction(call);
 
-    size_t oldMemSize;
-    uint32_t oldBrk;
-    uint32_t memOffset;
-    size_t newMemSize;
-    size_t newBrk;
-
-#ifdef FAASM_HAS_WASM_MMAN
     // Check we can mmap less than a page and it rounds up
-    oldMemSize = module.getMemorySizeBytes();
-    oldBrk = module.getCurrentBrk();
-    memOffset = module.mmapMemory(1);
-    newMemSize = module.getMemorySizeBytes();
-    newBrk = module.getCurrentBrk();
+    size_t oldMemSize = module.getMemorySizeBytes();
+    uint32_t oldBrk = module.getCurrentBrk();
+    uint32_t memOffset = module.mmapMemory(1);
+    size_t newMemSize = module.getMemorySizeBytes();
+    size_t newBrk = module.getCurrentBrk();
 
     REQUIRE(oldBrk == oldMemSize);
     REQUIRE(newBrk == newMemSize);
     REQUIRE(memOffset == oldBrk);
     REQUIRE(newMemSize == oldMemSize + WASM_BYTES_PER_PAGE);
-#endif
 
     // Check we can only grow page-aligned
     REQUIRE_THROWS(module.growMemory(1));
@@ -105,7 +95,6 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     REQUIRE(memOffset == oldBrk);
     REQUIRE(newMemSize == oldMemSize + growA);
 
-#ifdef FAASM_HAS_WASM_MMAN
     // Check shrinking memory reduces brk but not size
     oldMemSize = module.getMemorySizeBytes();
     oldBrk = module.getCurrentBrk();
@@ -159,7 +148,6 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     REQUIRE(newMemSize == oldMemSize);
     REQUIRE(newBrk == oldBrk);
-#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,

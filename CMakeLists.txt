@@ -1,11 +1,20 @@
 cmake_minimum_required(VERSION 3.18.2)
 project(faasm)
 
+# Optional functionality
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
+
+if (FAASM_STATIC_LIBS)
+    set(BUILD_SHARED_LIBS FALSE CACHE BOOL "" FORCE)
+endif ()
+
+# Performance functionality
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
+
+# This option customises the SGX features _provided_ SGX is found:
 option(FAASM_SGX_MODE "Type of SGX support: Disabled, Simulation or Hardware" "Simulation")
+
 option(FAASM_TARGET_CPU "CPU to optimise for, e.g. skylake, icelake or native" OFF)
-option(FAASM_HAS_WASM_MMAN "Turn on Faasm's WASM memory management. Implements mmap/munmap and sbrk" ON)
 
 # Top-level CMake config
 set(CMAKE_CXX_FLAGS "-Wall -Werror=vla")
@@ -16,11 +25,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld")
 
-if (FAASM_STATIC_LIBS)
-    set(BUILD_SHARED_LIBS FALSE CACHE BOOL "" FORCE)
-endif ()
-
-if (FAASM_TARGET_CPU)
+if(FAASM_TARGET_CPU)
     message(STATUS "Optimising Faasm for CPU ${FAASM_TARGET_CPU}")
     add_compile_options(-march=${FAASM_TARGET_CPU} -mtune=${FAASM_TARGET_CPU})
 else()
@@ -28,20 +33,11 @@ else()
 endif()
 
 # Faasm profiling
-if (FAASM_SELF_TRACING)
+if (${FAASM_SELF_TRACING})
     message("-- Activated FAASM tracing")
     add_definitions(-DTRACE_ALL=1)
     set(FAABRIC_SELF_TRACING 1)
 endif ()
-
-# If this option is turned on, Faasm defines and implements symbols like mmap,
-# munmap, and sbrk for WASM dynamic memory management. wasi-libc also
-# implements this symbols natively in WASM, so we disable them in Faasm.
-# If enabled in Faasm, Faasm's fork of wasi-libc needs to be re-compiled to
-# _not_ define these symbols, and transfer control to the Faasm runtime
-if (FAASM_HAS_WASM_MMAN)
-    add_compile_definitions(FAASM_HAS_WASM_MMAN)
-endif()
 
 # Ensure all targets can generate readable stacktraces
 add_compile_options(-fno-omit-frame-pointer)

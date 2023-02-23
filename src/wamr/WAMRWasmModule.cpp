@@ -358,10 +358,8 @@ std::vector<std::string> WAMRWasmModule::getArgv()
     return argv;
 }
 
-#ifdef FAASM_HAS_WASM_MMAN
 uint32_t WAMRWasmModule::mmapFile(uint32_t fp, size_t length)
 {
     return 0;
 }
-#endif
 }
