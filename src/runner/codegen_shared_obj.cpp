@@ -8,7 +8,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
-
 using namespace boost::filesystem;
 namespace po = boost::program_options;
 
@@ -16,8 +15,9 @@ po::variables_map parseCmdLine(int argc, char* argv[])
 {
     // Define command line arguments
     po::options_description desc("Allowed options");
-    desc.add_options()(
-      "input-path", po::value<std::string>(), "directory of shared objects (required)")(
+    desc.add_options()("input-path",
+                       po::value<std::string>(),
+                       "directory of shared objects (required)")(
       "clean", "overwrite existing generated code");
 
     // Mark user and function as positional arguments
