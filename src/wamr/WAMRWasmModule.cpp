@@ -146,6 +146,7 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
     currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
+    // Set up thread stacks
     createThreadStacks();
 }
 
@@ -360,6 +361,7 @@ std::vector<std::string> WAMRWasmModule::getArgv()
 
 uint32_t WAMRWasmModule::mmapFile(uint32_t fp, size_t length)
 {
+    // TODO - implement
     return 0;
 }
 }

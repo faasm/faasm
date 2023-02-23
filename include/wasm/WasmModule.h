@@ -68,7 +68,7 @@ class WasmModule
     virtual void writeArgvToMemory(uint32_t wasmArgvPointers,
                                    uint32_t wasmArgvBuffer);
 
-    // ----- Environment variables -----
+    // ----- Environment variables
     virtual void writeWasmEnvToMemory(uint32_t envPointers, uint32_t envBuffer);
 
     WasmEnvironment& getWasmEnvironment();

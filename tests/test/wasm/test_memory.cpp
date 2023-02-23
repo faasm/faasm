@@ -18,6 +18,7 @@
 using namespace WAVM;
 
 namespace tests {
+
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test mmapping a file", "[wasm]")
 {
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
