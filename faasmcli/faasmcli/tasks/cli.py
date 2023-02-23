@@ -1,6 +1,6 @@
 from faasmcli.util.env import PROJ_ROOT
 from faasmcli.util.sgx import start_sgx_aesmd_socket
-from faasmcli.util.version import get_faasm_version
+from faasmcli.util.version import get_version
 from invoke import task
 from os import environ
 from subprocess import run
@@ -25,7 +25,7 @@ def cli(ctx, service, detached=False):
         raise RuntimeError("Unrecognised service for CLI")
 
     work_env = environ.copy()
-    faasm_ver = get_faasm_version()
+    faasm_ver = get_version()
     if service == "faasm-sgx":
         work_env["WASM_VM"] = "sgx"
         work_env["FAASM_CLI_IMAGE"] = "faasm/cli-sgx:{}".format(faasm_ver)
