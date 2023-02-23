@@ -11,7 +11,7 @@ from faasmcli.util.env import (
     FAASM_SGX_MODE_SIM,
     PROJ_ROOT,
 )
-from faasmcli.util.version import get_faasm_version
+from faasmcli.util.version import get_version
 from faasmcli.util.env import AVAILABLE_HOSTS_SET
 
 
@@ -27,7 +27,7 @@ def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
     env["FAASM_BUILD_MOUNT"] = "/build/faasm"
     env["FAASM_LOCAL_MOUNT"] = "/usr/local/faasm"
 
-    faasm_ver = get_faasm_version()
+    faasm_ver = get_version()
     if sgx == FAASM_SGX_MODE_SIM:
         env["FAASM_CLI_IMAGE"] = "faasm/cli-sgx-sim:{}".format(faasm_ver)
         env["FAASM_WORKER_IMAGE"] = "faasm/worker-sgx-sim:{}".format(faasm_ver)
