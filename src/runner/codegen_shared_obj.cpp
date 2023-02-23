@@ -15,14 +15,9 @@ po::variables_map parseCmdLine(int argc, char* argv[])
 {
     // Define command line arguments
     po::options_description desc("Allowed options");
-<<<<<<< HEAD
     desc.add_options()("input-path",
                        po::value<std::string>(),
                        "directory of shared objects (required)")(
-=======
-    desc.add_options()(
-      "input-path", po::value<std::string>(), "directory of shared objects (required)")(
->>>>>>> 5131ce61 (codegen: add command line parsing to properly pass the clean flag everywhere)
       "clean", "overwrite existing generated code");
 
     // Mark user and function as positional arguments
