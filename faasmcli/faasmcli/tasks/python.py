@@ -1,17 +1,8 @@
-from copy import copy
-from os import environ
+from faasmcli.util.env import FAASM_RUNTIME_ROOT
+from faasmcli.util.files import glob_remove
+from invoke import task
 from os.path import join, exists
 from shutil import rmtree
-from subprocess import run
-
-from invoke import task
-
-from faasmcli.util import codegen as cg
-from faasmcli.util.env import (
-    FAASM_RUNTIME_ROOT,
-    PY_RUNTIME_ROOT,
-)
-from faasmcli.util.files import glob_remove
 
 
 def _clear_pyc_files(dir_path):
@@ -35,32 +26,3 @@ def clear_runtime_pyc(ctx):
     """
     print("Clearing out runtime pyc files")
     _clear_pyc_files(FAASM_RUNTIME_ROOT)
-
-
-@task
-def codegen(ctx, clean=False):
-    """
-    Run Python codegen
-    """
-    # Update env
-    shell_env = copy(environ)
-    shell_env.update(
-        {
-            "LD_LIBRARY_PATH": "/usr/local/lib/",
-        }
-    )
-
-    binary = cg.find_codegen_shared_lib()
-    codegen_cmd = [
-        binary,
-        PY_RUNTIME_ROOT,
-        "--clean" if clean else "",
-    ]
-    codegen_cmd = " ".join(codegen_cmd)
-    print(codegen_cmd)
-    run(
-        codegen_cmd,
-        env=shell_env,
-        shell=True,
-        check=True,
-    )

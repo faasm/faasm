@@ -1,14 +1,38 @@
-#include <boost/filesystem.hpp>
-
+#include <codegen/MachineCodeGenerator.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/string_tools.h>
-
-#include <codegen/MachineCodeGenerator.h>
 #include <storage/S3Wrapper.h>
 
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
+
 using namespace boost::filesystem;
+namespace po = boost::program_options;
+
+po::variables_map parseCmdLine(int argc, char* argv[])
+{
+    // Define command line arguments
+    po::options_description desc("Allowed options");
+    desc.add_options()("input-path",
+                       po::value<std::string>(),
+                       "directory of shared objects (required)")(
+      "clean", "overwrite existing generated code");
+
+    // Mark user and function as positional arguments
+    po::positional_options_description p;
+    p.add("input-path", 1);
+
+    // Parse command line arguments
+    po::variables_map vm;
+    po::store(
+      po::command_line_parser(argc, argv).options(desc).positional(p).run(),
+      vm);
+    po::notify(vm);
+
+    return vm;
+}
 
 void codegenForDirectory(std::string& inputPath, bool clean)
 {
@@ -71,17 +95,10 @@ int main(int argc, char* argv[])
     faabric::util::initLogging();
     storage::initFaasmS3();
 
-    if (argc < 2) {
-        SPDLOG_ERROR("Must provide path to shared object dir");
-        return 1;
-    }
+    auto vm = parseCmdLine(argc, argv);
+    std::string inputPath = vm["input-path"].as<std::string>();
+    bool clean = vm.find("clean") != vm.end();
 
-    bool clean = false;
-    if (argc == 3) {
-        clean = std::string(argv[2]) == "--clean";
-    }
-
-    std::string inputPath = argv[1];
     if (is_directory(inputPath)) {
         codegenForDirectory(inputPath, clean);
     } else {

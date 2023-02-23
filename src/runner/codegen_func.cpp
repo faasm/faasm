@@ -1,20 +1,45 @@
-#include <boost/filesystem.hpp>
+#include <codegen/MachineCodeGenerator.h>
+#include <conf/FaasmConfig.h>
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/func.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
-
-#include <codegen/MachineCodeGenerator.h>
-#include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
 #include <storage/S3Wrapper.h>
 
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
+
 using namespace boost::filesystem;
+namespace po = boost::program_options;
+
+po::variables_map parseCmdLine(int argc, char* argv[])
+{
+    // Define command line arguments
+    po::options_description desc("Allowed options");
+    desc.add_options()(
+      "user", po::value<std::string>(), "function's user name (required)")(
+      "func", po::value<std::string>(), "function's name")(
+      "clean", "overwrite existing generated code");
+
+    // Mark user and function as positional arguments
+    po::positional_options_description p;
+    p.add("user", 1);
+
+    // Parse command line arguments
+    po::variables_map vm;
+    po::store(
+      po::command_line_parser(argc, argv).options(desc).positional(p).run(),
+      vm);
+    po::notify(vm);
+
+    return vm;
+}
 
 void codegenForFunc(const std::string& user,
                     const std::string& func,
-                    bool clean = false)
+                    bool clean)
 {
     codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
     storage::FileLoader& loader = storage::getFileLoader();
@@ -38,31 +63,21 @@ int main(int argc, char* argv[])
 {
     faabric::util::initLogging();
     storage::initFaasmS3();
-
     conf::FaasmConfig& conf = conf::getFaasmConfig();
-    if (argc == 3) {
-        std::string user = argv[1];
-        std::string func = argv[2];
+
+    auto vm = parseCmdLine(argc, argv);
+    std::string user = vm["user"].as<std::string>();
+    bool clean = vm.find("clean") != vm.end();
+
+    if (vm.find("func") != vm.end()) {
+        std::string func = vm["func"].as<std::string>();
 
         SPDLOG_INFO("Running codegen for function {}/{} (WASM VM: {})",
                     user,
                     func,
                     conf.wasmVm);
-        codegenForFunc(user, func);
-    } else if (argc == 4) {
-        std::string user = argv[1];
-        std::string func = argv[2];
-        bool clean = std::string(argv[3]) == "--clean";
-
-        SPDLOG_INFO("Running codegen for function {}/{} (WASM VM: {})",
-                    user,
-                    func,
-                    conf.wasmVm,
-                    clean);
         codegenForFunc(user, func, clean);
-    } else if (argc == 2) {
-        std::string user = argv[1];
-
+    } else {
         SPDLOG_INFO(
           "Running codegen for user {} on dir {}", user, conf.functionDir);
 
@@ -74,14 +89,15 @@ int main(int argc, char* argv[])
             return 1;
         }
 
-        boost::filesystem::directory_iterator iter(path), end;
+        boost::filesystem::directory_iterator iter(path);
+        boost::filesystem::directory_iterator end;
         std::mutex mx;
 
         unsigned int nThreads = faabric::util::getUsableCores();
         std::vector<std::thread> threads;
 
         for (unsigned int i = 0; i < nThreads; i++) {
-            threads.emplace_back([&iter, &mx, &end, &user] {
+            threads.emplace_back([&iter, &mx, &end, &user, clean] {
                 SPDLOG_INFO("Spawning codegen thread");
 
                 while (true) {
@@ -105,7 +121,7 @@ int main(int argc, char* argv[])
                     directory_entry subPath(thisPath);
                     std::string functionName =
                       subPath.path().filename().string();
-                    codegenForFunc(user, functionName);
+                    codegenForFunc(user, functionName, clean);
                 }
             });
         }
@@ -115,9 +131,6 @@ int main(int argc, char* argv[])
                 t.join();
             }
         }
-    } else {
-        SPDLOG_ERROR("Must provide function user and optional function name");
-        return 0;
     }
 
     storage::shutdownFaasmS3();
