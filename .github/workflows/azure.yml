@@ -32,4 +32,7 @@ jobs:
         # TODO: consider using a special path for `.kubeconfig`
         run: |
           ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx
-          ./bin/inv_wrapper.sh cluster.credentials
+          ./bin/inv_wrapper.sh cluster.credentials --name ${{ env.CLUSTER_NAME }}
+      - name: "Delete cluster"
+        if: always()
+        run: inv cluster.delete --name ${{ env.CLUSTER_NAME }}
