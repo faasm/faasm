@@ -31,23 +31,24 @@ jobs:
       - name: "Install kubectl"
         run: ./bin/inv_wrapper.sh k8s.install-kubectl
         working-directory: ${{ github.workspace }}/experiment-base
-      - name: "Run invoke once"
-        run: ./bin/inv_wrapper.sh -l
+      - name: "Start a managed k8s cluster on Azure's Kubernetes Service"
+        # TODO: deploy with a different name (as a parameter) and allow --sgx=False
+        run: |
+          ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx
+          ./bin/inv_wrapper.sh cluster.credentials --name ${{ env.CLUSTER_NAME }}
         working-directory: ${{ github.workspace }}/experiment-base
-      - name: "Check out faasm code, where is it?"
+      - name: "Check out faasm code"
         uses: actions/checkout@v3
         with:
           submodules: true
           path: faasm
-      - name: "Run invoke twice"
-        run: ./bin/inv_wrapper.sh -l
+      - name: "Deploy Faasm on k8s cluster"
+        run: ./bin/inv_wrapper.sh k8s.deploy --workers=4 --sgx
         working-directory: ${{ github.workspace }}/faasm
-          #       - name: "Start a managed k8s cluster on Azure's Kubernetes Service"
-          #         # TODO: deploy with a different name (as a parameter) and allow --sgx=False
-          #         # TODO: consider using a special path for `.kubeconfig`
-          #         run: |
-          #           ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx
-          #           ./bin/inv_wrapper.sh cluster.credentials --name ${{ env.CLUSTER_NAME }}
-          #       - name: "Delete cluster"
-          #         if: always()
-          #         run: ./bin/inv_wrapper.sh cluster.delete --name ${{ env.CLUSTER_NAME }}
+      - name: "Build and upload cpp function"
+        run: docker compose run -T cpp ./bin/inv_wrapper.sh func demo hello func.upload demo hello
+        working-directory: ${{ github.workspace }}/faasm
+      - name: "Delete cluster"
+        if: always()
+        run: ./bin/inv_wrapper.sh cluster.delete --name ${{ env.CLUSTER_NAME }}
+        working-directory: ${{ github.workspace }}/experiment-base
