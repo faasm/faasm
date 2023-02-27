@@ -1,0 +1,18 @@
+name: "Azure Integration Tests"
+
+# These tests provision resources on Faasm's Azure subscription to run
+# integration tests on a production environment. To limit the cost of running
+# them, we only trigger them on workflow dispatch. In order to run them, you
+# need to navigate to the Actions tab on GitHub, and click the run button
+on: workflow_dispatch
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  sgx-hw:
+    runs-on: self-hosted
+    steps:
+      - name: "Checck out the experiment-base code"
+        uses: actions/checkout@v3
