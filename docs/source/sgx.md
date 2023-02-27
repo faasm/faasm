@@ -12,7 +12,7 @@ To configure SGX, we must build the code with the desired SGX flavour: disabled
 First, access an SGX-enabled docker-based CLI:
 
 ```bash
-./bin/cli.sh faasm-sgx
+inv cli faasm-sgx
 ```
 
 ```bash
@@ -32,14 +32,14 @@ environment variable to "sgx".
 
 ```bash
 # Start development cluster, and log into the cpp container
-./bin/cli.sh cpp
+inv cli cpp
 
 # Compile the demo function
 inv func demo hello
 
 # Exit the cpp container, and log into the CLI one
 exit
-./bin/cli.sh faasm
+inv cli faasm
 
 # Set SGX as our execution mode of choice, and operate as usual
 export WASM_VM="sgx"

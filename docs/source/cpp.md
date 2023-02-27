@@ -3,7 +3,7 @@
 All C++ work takes place in the `cpp` container, i.e.:
 
 ```bash
-./bin/cli.sh cpp
+inv cli cpp
 ```
 
 From here you can compile, upload and invoke different functions defined in the

@@ -36,11 +36,20 @@ can initialise with:
 
 ## Use
 
-Once you've set up the repo, you should first run the Faasm CLI to make sure
-things work:
+To interact with Faasm from the shell, make sure to always have the virtual
+environment activated:
 
 ```bash
-./bin/cli.sh faasm
+source ./bin/workon.sh
+# Should print a list of supported tasks
+inv -l
+```
+
+Once you've set up the repo and the virtual environment, you should first run
+the Faasm CLI to make sure things work:
+
+```bash
+inv cli faasm
 
 # Wait for 30s while it sets up the Python environment in the background
 
@@ -58,10 +67,10 @@ CLI container):
 
 ```bash
 # C++ functions
-./bin/cli.sh cpp
+inv cli cpp
 
 # Python functions
-./bin/cli.sh python
+inv cli python
 ```
 
 ## Tests
@@ -97,7 +106,7 @@ tests
 You can use custom containers that inherit from the existing CLI images if you
 want to add text editors etc.
 
-Before running the `./bin/cli.sh` script, you need to set one or more of the
+Before running the `inv cli` task, you need to set one or more of the
 following environment variables:
 
 ```bash
@@ -114,7 +123,7 @@ CPP_CLI_IMAGE
 PYTHON_CLI_IMAGE
 ```
 
-The defaults for these are set in [`.env`](../.env).
+The defaults for these are set in [`.env`](../../.env).
 
 ## Testing
 
@@ -129,6 +138,11 @@ tests "[mpi]"
 
 # Run a specific test
 tests "Test some feature"
+
+# Run all the tests defined in a file
+# Note that depending on the shell you use you may have to escape the '['
+# and/or the '#' characters
+tests -# [#file_name_without_extension]
 ```
 
 ## Code style
@@ -199,7 +213,7 @@ executed by the `worker` container), you can pick up the changes with:
 
 ```bash
 # Start the Faasm CLI
-./bin/cli.sh faasm
+inv cli faasm
 
 # Rebuild the pool_runner target
 inv dev.cc pool_runner
@@ -229,7 +243,7 @@ Make sure your local setup is built, along with the distributed tests:
 
 ```bash
 # Enter CLI container
-./bin/cli.sh faasm
+inv cli faasm
 
 # Build local environment
 inv dev.tools
@@ -286,7 +300,7 @@ kept up to date, so YMMV:
 ### LLVM and Clang
 
 LLVM and Clang can be installed using the script from the LLVM website (we use
-13 _and_ 10 at the time of writing):
+13 at the time of writing):
 
 ```bash
 wget https://apt.llvm.org/llvm.sh
@@ -332,8 +346,6 @@ instructions](https://cmake.org/install/).
 You will then need to set up the Faasm Python environment:
 
 ```bash
-./bin/create_venv.sh
-
 source bin/workon.sh
 
 inv -l
@@ -405,7 +417,7 @@ sudo apt install redis-server redis-cli -y
 Compile a function with the CPP CLI:
 
 ```bash
-./bin/cli.sh cpp
+inv cli cpp
 
 inv func demo hello
 ```
