@@ -4,8 +4,7 @@ name: "Azure Integration Tests"
 # integration tests on a production environment. To limit the cost of running
 # them, we only trigger them on workflow dispatch. In order to run them, you
 # need to navigate to the Actions tab on GitHub, and click the run button
-on:
-  workflow_dispatch:
+on: workflow_dispatch
 
 defaults:
   run:
