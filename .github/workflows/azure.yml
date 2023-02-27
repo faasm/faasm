@@ -22,6 +22,7 @@ jobs:
           repository: faasm/experiment-base
           # TODO: remove after merge
           ref: gha
+          path: experiment-base
       - name: "Create a unique cluster name"
         # TODO: update with matrix contents
         run: |
@@ -29,14 +30,18 @@ jobs:
           echo ${CLUSTER_NAME}
       - name: "Install kubectl"
         run: ./bin/inv_wrapper.sh k8s.install-kubectl
+        working-directory: ${{ github.workspace }}/experiment-base
       - name: "Run invoke once"
         run: ./bin/inv_wrapper.sh -l
+        working-directory: ${{ github.workspace }}/experiment-base
       - name: "Check out faasm code, where is it?"
         uses: actions/checkout@v3
         with:
           submodules: true
+          path: faasm
       - name: "Run invoke twice"
         run: ./bin/inv_wrapper.sh -l
+        working-directory: ${{ github.workspace }}/faasm
           #       - name: "Start a managed k8s cluster on Azure's Kubernetes Service"
           #         # TODO: deploy with a different name (as a parameter) and allow --sgx=False
           #         # TODO: consider using a special path for `.kubeconfig`
