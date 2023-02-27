@@ -37,7 +37,7 @@ jobs:
       - name: "Create a unique cluster name"
         # TODO: update with matrix contents
         run: |
-          echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}-${{ github.job }}" >> $GITHUB_ENV
+          echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}" >> $GITHUB_ENV
           echo ${CLUSTER_NAME}
       - name: "Install kubectl"
         run: ./bin/inv_wrapper.sh k8s.install-kubectl
