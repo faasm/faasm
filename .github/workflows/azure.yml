@@ -38,6 +38,8 @@ jobs:
         run: |
           echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}-${{ github.job }}" >> $GITHUB_ENV
           echo ${CLUSTER_NAME}
+      - name: "Install kubectl"
+        run: ./bin/inv_wrapper.sh k8s.install-kubectl
       - name: "Run invoke once"
         run: ./bin/inv_wrapper.sh -l
       - name: "Check out faasm code, where is it?"
