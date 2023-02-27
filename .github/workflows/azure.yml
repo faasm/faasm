@@ -27,12 +27,20 @@ jobs:
         run: |
           echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}-${{ github.job }}" >> $GITHUB_ENV
           echo ${CLUSTER_NAME}
-      - name: "Start a managed k8s cluster on Azure's Kubernetes Service"
-        # TODO: deploy with a different name (as a parameter) and allow --sgx=False
-        # TODO: consider using a special path for `.kubeconfig`
-        run: |
-          ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx
-          ./bin/inv_wrapper.sh cluster.credentials --name ${{ env.CLUSTER_NAME }}
-      - name: "Delete cluster"
-        if: always()
-        run: inv cluster.delete --name ${{ env.CLUSTER_NAME }}
+      - name: "Run invoke once"
+        run: ./bin/inv_wrapper.sh -l
+      - name: "Check out faasm code, where is it?"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: "Run invoke twice"
+        run: ./bin/inv_wrapper.sh -l
+          #       - name: "Start a managed k8s cluster on Azure's Kubernetes Service"
+          #         # TODO: deploy with a different name (as a parameter) and allow --sgx=False
+          #         # TODO: consider using a special path for `.kubeconfig`
+          #         run: |
+          #           ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx
+          #           ./bin/inv_wrapper.sh cluster.credentials --name ${{ env.CLUSTER_NAME }}
+          #       - name: "Delete cluster"
+          #         if: always()
+          #         run: ./bin/inv_wrapper.sh cluster.delete --name ${{ env.CLUSTER_NAME }}
