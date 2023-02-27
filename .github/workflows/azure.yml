@@ -14,15 +14,19 @@ jobs:
   sgx-hw:
     runs-on: self-hosted
     env:
-      CLUSTER_NAME_BASE=
+      CLUSTER_NAME_BASE: gha-cluster
     steps:
-      - name: "Checck out the experiment-base code"
+      - name: "Check out the experiment-base code"
         uses: actions/checkout@v3
         with:
           repository: faasm/experiment-base
+          # TODO: remove after merge
+          ref: gha
       - name: "Create a unique cluster name"
         # TODO: update with matrix contents
-        run: echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}" >> $GITHUB_ENV
+        run: |
+          echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}-${{ github.job }}" >> $GITHUB_ENV
+          echo ${CLUSTER_NAME}
       - name: "Start a managed k8s cluster on Azure's Kubernetes Service"
         # TODO: deploy with a different name (as a parameter) and allow --sgx=False
         # TODO: consider using a special path for `.kubeconfig`
