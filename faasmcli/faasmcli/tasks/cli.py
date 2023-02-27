@@ -36,7 +36,9 @@ def cli(ctx, service, detached=False):
     elif service == "faasm-sgx-sim":
         work_env["WASM_VM"] = "sgx"
         work_env["FAASM_CLI_IMAGE"] = "faasm/cli-sgx-sim:{}".format(faasm_ver)
-        work_env["FAASM_CLI_IMAGE"] = "faasm/worker-sgx-sim:{}".format(faasm_ver)
+        work_env["FAASM_CLI_IMAGE"] = "faasm/worker-sgx-sim:{}".format(
+            faasm_ver
+        )
 
     # In GHA we want to be able to pass a string argument to detached, yet
     # disable it. So passing "False" also disables the detached flag

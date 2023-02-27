@@ -19,7 +19,7 @@ def start_sgx_aesmd_socket():
         "--opt type=tmpfs",
         "--opt device=tmpfs",
         "--opt o=rw",
-        "aesmd-socket"
+        "aesmd-socket",
     ]
     docker_cmd = " ".join(docker_cmd)
     run(docker_cmd, shell=True, check=True, cwd=PROJ_ROOT, env=work_env)
