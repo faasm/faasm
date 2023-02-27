@@ -56,8 +56,8 @@ jobs:
       - name: "Deploy Faasm on k8s cluster"
         run: ./bin/inv_wrapper.sh k8s.deploy --workers=4 --sgx
         working-directory: ${{ github.workspace }}/faasm
-      - name: "Build and upload cpp function"
-        run: docker compose run -T cpp ./bin/inv_wrapper.sh func demo hello func.upload demo hello
+      - name: "Build, upload and run a simple CPP function"
+        run: docker compose -f docker-compose-k8s.yml run -T cpp-cli ./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello
         working-directory: ${{ github.workspace }}/faasm
       - name: "Delete cluster"
         if: always()
