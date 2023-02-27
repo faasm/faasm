@@ -1,0 +1,32 @@
+name: "Azure Integration Tests"
+
+# These tests provision resources on Faasm's Azure subscription to run
+# integration tests on a production environment. To limit the cost of running
+# them, we only trigger them on workflow dispatch. In order to run them, you
+# need to navigate to the Actions tab on GitHub, and click the run button
+on: workflow_dispatch
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  sgx-hw:
+    runs-on: self-hosted
+    steps:
+      - name: "Checck out the experiment-base code"
+        uses: actions/checkout@v3
+        with:
+          repository: faasm/experiment-base
+            #       - name: "Start a managed k8s cluster on Azure's Kubernetes Service"
+            #         run: ./bin/inv_wrapper.sh \
+            #           # TODO: deploy with a different name (as a parameter) and allow --sgx=False
+            #           cluster.provision --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx \
+            #         # TODO: consider using a special path for `.kubeconfig`
+            #           cluster.credentials
+            #       - name: "Deploy the Faasm cluster"
+            #         # TODO: make the number of workers a GHA parameter and allow --sgx=False
+            #         run: ./bin/inv_wrapper.sh k8s.deploy --workers=4 --sgx
+            #       - name: "Check that the cluster was provisioned succesfully"
+            #         run: kubectl get pods -n kube-system | grep sgx
+            #         # TODO: delete the cluster inconditionally
