@@ -13,16 +13,19 @@ defaults:
 jobs:
   sgx-hw:
     runs-on: self-hosted
+    env:
+      CLUSTER_NAME_BASE=
     steps:
       - name: "Checck out the experiment-base code"
         uses: actions/checkout@v3
         with:
           repository: faasm/experiment-base
-      - name: "test"
-        run: ./bin/inv_wrapper.sh -l
+      - name: "Create a unique cluster name"
+        # TODO: update with matrix contents
+        run: echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}" >> $GITHUB_ENV
       - name: "Start a managed k8s cluster on Azure's Kubernetes Service"
         # TODO: deploy with a different name (as a parameter) and allow --sgx=False
         # TODO: consider using a special path for `.kubeconfig`
         run: |
-          ./bin/inv_wrapper.sh cluster.provision --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx
+          ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx
           ./bin/inv_wrapper.sh cluster.credentials
