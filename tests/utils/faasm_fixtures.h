@@ -152,7 +152,7 @@ class FunctionLoaderTestFixture : public S3TestFixture
 
         // Use a shared object we know exists
         localSharedObjFile =
-          conf.runtimeFilesDir + "/lib/python3.8/lib-dynload/mmap.so";
+          conf.runtimeFilesDir + "/lib/python3.8/lib-dynload/syslog.so";
         sharedObjWasm = faabric::util::readFileToBytes(localSharedObjFile);
 
         // Dummy directories for functions and object files

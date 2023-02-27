@@ -64,6 +64,7 @@ struct WAMRModuleMixin
             validateNativePointer(nextBuffer, thisStr.size() + 1);
 
             std::copy(thisStr.begin(), thisStr.end(), nextBuffer);
+            nextBuffer[thisStr.size()] = '\0';
             strOffsets[i] = nativePointerToWasmOffset(nextBuffer);
 
             nextBuffer += thisStr.size() + 1;

@@ -48,7 +48,8 @@ TEST_CASE_METHOD(ErrorCheckFixture,
 {
     SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+    // 21/02/2023 - See bytecodealliance/wasm-micro-runtime#1979
+    // SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
     checkError("ret_one", "Call failed (return value=1)");
 }

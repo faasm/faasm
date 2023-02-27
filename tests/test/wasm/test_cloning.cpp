@@ -109,8 +109,10 @@ class CloneExecTestFixture : public FunctionExecTestFixture
         REQUIRE(memAfterB1 == memBeforeA);
         REQUIRE(brkAfterB1 == brkBeforeA);
 
-        REQUIRE(memAfterA1 > memBeforeA);
-        REQUIRE(brkAfterA1 > brkBeforeA);
+        if (isPython) {
+            REQUIRE(memAfterA1 > memBeforeA);
+            REQUIRE(brkAfterA1 > brkBeforeA);
+        }
 
         // Check tables (should have grown for Python and not for other)
         Uptr tableAfterA1;
@@ -145,8 +147,10 @@ class CloneExecTestFixture : public FunctionExecTestFixture
         REQUIRE(brkAfterB2 == brkAfterA2);
         REQUIRE(brkAfterA1 == brkAfterA2);
 
-        REQUIRE(memAfterB2 > memBeforeB);
-        REQUIRE(brkAfterB2 > brkBeforeB);
+        if (isPython) {
+            REQUIRE(memAfterB2 > memBeforeB);
+            REQUIRE(brkAfterB2 > brkBeforeB);
+        }
 
         Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
         Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);

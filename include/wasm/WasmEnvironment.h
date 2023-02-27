@@ -4,10 +4,12 @@
 #include <unordered_map>
 #include <vector>
 
+// Defined in wasi-libc/libc-bottom-half/sources/getcwd.c
+#define WASI_LIBC_CWD "/"
+
 #define FAKE_NAME "faasm"
 #define FAKE_PASSWORD "foobar123"
 #define FAKE_HOME "/home/faasm/"
-#define FAKE_WORKING_DIR "/bin"
 #define FAKE_HOSTNAME "faasm"
 
 #define FAKE_PID 23

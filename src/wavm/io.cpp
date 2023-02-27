@@ -592,6 +592,19 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
     return 0;
 }
 
+WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
+                               "fd_fdstat_set_rights",
+                               I32,
+                               wasi_fd_fdstat_set_rights,
+                               I32 a,
+                               I64 b,
+                               I64 c)
+{
+    SPDLOG_DEBUG("S - fd_fdstat_set_rights - {} {} {}", a, b, c);
+
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
 I32 doFileStat(int fd, const std::string& relativePath, I32 statPtr)
 {
     WAVMWasmModule* module = getExecutingWAVMModule();

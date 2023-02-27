@@ -157,9 +157,9 @@ TEST_CASE_METHOD(SimpleWasmTestFixture, "Test disassemble module", "[wasm]")
     REQUIRE(disasMap["functionDef4"] == "faasmGetInput");
 
     // Check a couple of imports
-    REQUIRE(disasMap["functionImport0"] == "__wasi_proc_exit");
-    REQUIRE(disasMap["functionImport1"] == "__faasm_read_input");
-    REQUIRE(disasMap["functionImport2"] == "__faasm_write_output");
-    REQUIRE(disasMap["functionImport3"] == "pthread_mutex_lock");
+    REQUIRE(disasMap["functionImport0"] == "__faasm_read_input");
+    REQUIRE(disasMap["functionImport1"] == "__faasm_write_output");
+    REQUIRE(disasMap["functionImport2"] == "mmap");
+    REQUIRE(disasMap["functionImport3"] == "munmap");
 }
 }
