@@ -31,33 +31,9 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: faasm/experiment-base
-      - name: "Create a unique cluster name"
-        run: |
-          [[ "${{ matrix.sgx }}" == "true" ]] && SUFFIX_SGX="-sgx" || SUFFIX_SGX=""
-          echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}${SUFFIX_SGX}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}" >> $GITHUB_ENV
-      - name: "Install kubectl"
-        run: ./bin/inv_wrapper.sh k8s.install-kubectl
-        working-directory: ${{ github.workspace }}/experiment-base
       - name: "Start a managed k8s cluster on Azure's Kubernetes Service"
-        run: |
-          ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx ${{ matrix.sgx }}
-          ./bin/inv_wrapper.sh cluster.credentials --name ${{ env.CLUSTER_NAME }}
-        working-directory: ${{ github.workspace }}/experiment-base
-      - name: "Check out faasm code"
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-          path: faasm
-      - name: "Deploy Faasm on k8s cluster"
-        run: ./bin/inv_wrapper.sh k8s.deploy --workers=4 --sgx ${{ matrix.sgx }}
-        working-directory: ${{ github.workspace }}/faasm
-      - name: "Build, upload and run a simple CPP function"
-        run: docker compose -f docker-compose-k8s.yml run -T cpp-cli ./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello
-        working-directory: ${{ github.workspace }}/faasm
-      - name: "Delete cluster"
-        if: always()
-        run: ./bin/inv_wrapper.sh cluster.delete --name ${{ env.CLUSTER_NAME }}
-        working-directory: ${{ github.workspace }}/experiment-base
-      - name: "Chown all files"
-        if: always()
-        run: sudo chown -R $(id -u):$(id -g) .
+        # TODO: deploy with a different name (as a parameter) and allow --sgx=False
+        # TODO: consider using a special path for `.kubeconfig`
+        run: ./bin/inv_wrapper.sh \
+          cluster.provision --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx \
+          cluster.credentials
