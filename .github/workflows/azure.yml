@@ -16,3 +16,5 @@ jobs:
     steps:
       - name: "Checck out the experiment-base code"
         uses: actions/checkout@v3
+        with:
+          repository: faasm/experiment-base
