@@ -266,7 +266,7 @@ uint32_t EnclaveWasmModule::shrinkMemory(size_t nBytes)
 uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
 {
     if (nBytes == 0) {
-        return currentBrk.load(std::memory_order_release);
+        return currentBrk.load(std::memory_order_acquire);
     }
 
     std::unique_lock<std::mutex> lock(moduleMutex);
@@ -349,5 +349,47 @@ size_t EnclaveWasmModule::getMaxMemoryPages()
     auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem = ((AOTMemoryInstance**)aotModule->memories)[0];
     return aotMem->max_page_count;
+}
+
+uint32_t EnclaveWasmModule::mmapMemory(size_t nBytes)
+{
+    // The mmap interface allows non page-aligned values, and rounds up
+    uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);
+    return growMemory(pageAligned);
+}
+
+
+void EnclaveWasmModule::unmapMemory(uint32_t offset, size_t nBytes)
+{
+    // TODO: remove duplication with WasmModule
+    if (nBytes == 0) {
+        return;
+    }
+
+    // Munmap expects the offset itself to be page-aligned, but will round up
+    // the number of bytes
+    if (!isWasmPageAligned(offset)) {
+        SPDLOG_ERROR_SGX("Non-page aligned munmap address %i", offset);
+        throw std::runtime_error("Non-page aligned munmap address");
+    }
+
+    uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);
+    size_t maxPages = getMaxMemoryPages();
+    size_t maxSize = maxPages * WASM_BYTES_PER_PAGE;
+    uint32_t unmapTop = offset + pageAligned;
+
+    if (unmapTop > maxSize) {
+        SPDLOG_ERROR_SGX(
+          "Munmapping outside memory max (%i > %zu)", unmapTop, maxSize);
+        throw std::runtime_error("munmapping outside memory max");
+    }
+
+    if (unmapTop == currentBrk.load(std::memory_order_acquire)) {
+        shrinkMemory(pageAligned);
+    } else {
+        SPDLOG_ERROR_SGX("MEM - unable to reclaim unmapped memory %i at %i",
+                         pageAligned,
+                         offset);
+    }
 }
 }

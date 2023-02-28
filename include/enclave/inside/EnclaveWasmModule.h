@@ -59,6 +59,10 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     uint32_t shrinkMemory(size_t nBytes);
 
+    uint32_t mmapMemory(size_t nBytes);
+
+    void unmapMemory(uint32_t offset, size_t nBytes);
+
   private:
     char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
 

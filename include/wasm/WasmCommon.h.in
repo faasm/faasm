@@ -54,4 +54,10 @@ inline size_t getNumberOfWasmPagesForBytes(size_t nBytes)
 
     return pageCount;
 }
+
+inline uint32_t roundUpToWasmPageAligned(uint32_t nBytes)
+{
+    size_t nPages = getNumberOfWasmPagesForBytes(nBytes);
+    return (uint32_t)(nPages * WASM_BYTES_PER_PAGE);
+}
 }

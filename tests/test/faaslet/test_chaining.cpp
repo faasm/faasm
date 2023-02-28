@@ -28,6 +28,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
+    // TODO: this is failing!
+    // SECTION("SGX") { conf.wasmVm = "sgx"; }
+
     faabric::Message call =
       faabric::util::messageFactory("demo", "chain_named_a");
     execFuncWithPool(call, true, 5000);

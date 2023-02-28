@@ -104,11 +104,4 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test WAMR sbrk", "[wamr]")
     REQUIRE(sizeB == initialSize + growA + growB);
     REQUIRE(module.getCurrentBrk() == sizeB);
 }
-
-TEST_CASE_METHOD(FunctionExecTestFixture,
-                 "Test executing chain function with WAMR",
-                 "[wamr]")
-{
-    executeWithWamrPool("demo", "chain", 10000);
-}
 }

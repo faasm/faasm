@@ -26,12 +26,6 @@
 
 namespace wasm {
 
-uint32_t roundUpToWasmPageAligned(uint32_t nBytes)
-{
-    size_t nPages = getNumberOfWasmPagesForBytes(nBytes);
-    return (uint32_t)(nPages * WASM_BYTES_PER_PAGE);
-}
-
 size_t getPagesForGuardRegion()
 {
     size_t regionSize = GUARD_REGION_SIZE;

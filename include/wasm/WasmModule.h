@@ -221,8 +221,6 @@ class WasmModule
 };
 
 // Convenience functions
-uint32_t roundUpToWasmPageAligned(uint32_t nBytes);
-
 size_t getPagesForGuardRegion();
 
 /*

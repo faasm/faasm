@@ -27,6 +27,7 @@ WAMR_ALLOWED_FUNCS = [
     # Environment
     ["demo", "argc_argv_test"],
     ["demo", "exit"],
+    ["demo", "getcwd"],
     ["demo", "getenv"],
     ["errors", "ret_one"],
     # Memory
@@ -57,6 +58,7 @@ SGX_ALLOWED_FUNCS = [
     # Environment
     ["demo", "argc_argv_test"],
     ["demo", "exit"],
+    ["demo", "getcwd"],
     ["demo", "getenv"],
     # Filesystem
     ["demo", "fcntl"],

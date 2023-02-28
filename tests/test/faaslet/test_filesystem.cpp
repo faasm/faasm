@@ -79,9 +79,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 #endif
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test fcntl",
-                 "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fcntl", "[faaslet]")
 {
     auto req = setUpContext("demo", "fcntl");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -109,9 +107,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
 #endif
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test fstat",
-                 "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fstat", "[faaslet]")
 {
     auto req = setUpContext("demo", "fstat");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -127,7 +123,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test file operations",
-                 "[faaslet][wamr]")
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "file");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -143,7 +139,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test file descriptors",
-                 "[faaslet][wamr]")
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "filedescriptor");
     faabric::Message& msg = req->mutable_messages()->at(0);

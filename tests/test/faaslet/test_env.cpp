@@ -9,7 +9,7 @@
 namespace tests {
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test getenv",
-                 "[faaslet][wamr]")
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "getenv");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -33,7 +33,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test exit",
-                 "[faaslet][wamr]")
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "exit");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -84,7 +84,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "getcwd");
-    execFunction(req);
+    faabric::Message& msg = req->mutable_messages()->at(0);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
