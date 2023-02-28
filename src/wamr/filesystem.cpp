@@ -134,6 +134,15 @@ static int32_t wasi_fd_fdstat_set_flags(wasm_exec_env_t exec_env,
     throw std::runtime_error("fd_fdstat_set_flags not implemented");
 }
 
+static int32_t wasi_fd_fdstat_set_rights(wasm_exec_env_t exec_env,
+                                         int32_t a,
+                                         int64_t b,
+                                         int64_t c)
+{
+    SPDLOG_DEBUG("S - fd_fdstat_set_rights");
+    throw std::runtime_error("fd_fdstat_set_rights not implemented");
+}
+
 static int32_t wasi_fd_filestat_set_size(wasm_exec_env_t exec_env,
                                         int32_t a,
                                         int32_t b)
@@ -557,11 +566,8 @@ static NativeSymbol wasiNs[] = {
     REG_WASI_NATIVE_FUNC(fd_close, "(i)i"),
     REG_WASI_NATIVE_FUNC(fd_fdstat_get, "(i*)i"),
     REG_WASI_NATIVE_FUNC(fd_fdstat_set_flags, "(ii)i"),
-<<<<<<< HEAD
     REG_WASI_NATIVE_FUNC(fd_fdstat_set_rights, "(iII)i"),
-=======
     REG_WASI_NATIVE_FUNC(fd_filestat_set_size, "(iI)i"),
->>>>>>> 6eb1d829 (wamr: improve wasi support for wamr)
     REG_WASI_NATIVE_FUNC(fd_filestat_get, "(i*)i"),
     REG_WASI_NATIVE_FUNC(fd_pread, "(i*iI*)i"),
     REG_WASI_NATIVE_FUNC(fd_prestat_dir_name, "(i*~)i"),

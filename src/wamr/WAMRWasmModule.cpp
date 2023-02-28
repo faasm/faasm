@@ -29,7 +29,7 @@ static bool wamrInitialised = false;
 // so it may cause performance issues under high churn of short-lived functions.
 static std::mutex wamrGlobalsMutex;
 
-static uint8_t wamrHeapBuffer[WAMR_HEAP_BUFFER_SIZE];
+// static uint8_t wamrHeapBuffer[WAMR_HEAP_BUFFER_SIZE];
 
 void WAMRWasmModule::initialiseWAMRGlobally()
 {
@@ -40,14 +40,17 @@ void WAMRWasmModule::initialiseWAMRGlobally()
     }
 
     // Initialise the WAMR runtime
+    /*
     RuntimeInitArgs wamrRteArgs;
     memset(&wamrRteArgs, 0x0, sizeof(wamrRteArgs));
     wamrRteArgs.mem_alloc_type = Alloc_With_Pool;
     wamrRteArgs.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
     wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
+    */
 
     // Initialise WAMR runtime
-    bool success = wasm_runtime_full_init(&wamrRteArgs);
+    // bool success = wasm_runtime_full_init(&wamrRteArgs);
+    bool success = wasm_runtime_init();
 
     if (!success) {
         throw std::runtime_error("Failed to initialise WAMR");
@@ -163,12 +166,7 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     }
     currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
 
-    // 17/10/2022 - We move WAMR from HW bound checks to using mmap+mprotect
-    // to using malloc. This breaks the current threading approach where we
-    // use mprotect to create guard regions. Given that threading is not
-    // supported in WAMR anyway, we avoid creating thread stacks altogether.
-    // createThreadStacks();
-    threadStacks.push_back(-1);
+    createThreadStacks();
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
