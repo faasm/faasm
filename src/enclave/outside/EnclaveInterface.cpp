@@ -2,6 +2,7 @@
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
 #include <faabric/util/gids.h>
+#include <faabric/util/logging.h>
 #include <wasm/WasmExecutionContext.h>
 
 #include <faabric/util/func.h>
@@ -13,10 +14,9 @@ namespace wasm {
 EnclaveInterface::EnclaveInterface()
   : interfaceId(faabric::util::generateGid())
 {
-    checkSgxSetup();
+    enclaveId = checkSgxSetup();
 
-    SPDLOG_DEBUG("Created enclave interface for enclave {}",
-                 sgx::getGlobalEnclaveId());
+    SPDLOG_DEBUG("Created enclave interface for enclave {}", enclaveId);
 }
 
 EnclaveInterface::~EnclaveInterface()
@@ -24,12 +24,17 @@ EnclaveInterface::~EnclaveInterface()
     unbindFunction();
 }
 
+EnclaveInterface* getExecutingEnclaveInterface()
+{
+    return reinterpret_cast<EnclaveInterface*>(getExecutingModule());
+}
+
 // ----- Module lifecycle -----
 void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
 {
     // Set up filesystem
-    storage::FileSystem fs;
-    fs.prepareFilesystem();
+    // TODO(csegarragonz): do we need to prepare anything inside the enclave?
+    filesystem.prepareFilesystem();
 
     // Load AoT
     storage::FileLoader& functionLoader = storage::getFileLoader();
@@ -40,7 +45,7 @@ void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
     // Load the wasm module
     // Note - loading and instantiating happen in the same ecall
     faasm_sgx_status_t returnValue;
-    sgx_status_t status = ecallLoadModule(sgx::getGlobalEnclaveId(),
+    sgx_status_t status = ecallLoadModule(enclaveId,
                                           &returnValue,
                                           (void*)wasmBytes.data(),
                                           (uint32_t)wasmBytes.size(),
@@ -64,7 +69,7 @@ bool EnclaveInterface::unbindFunction()
 
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue =
-      ecallUnloadModule(sgx::getGlobalEnclaveId(), &returnValue, interfaceId);
+      ecallUnloadModule(enclaveId, &returnValue, interfaceId);
     processECallErrors("Error trying to unload module from enclave",
                        sgxReturnValue,
                        returnValue);
@@ -77,8 +82,10 @@ int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
 
     std::string funcStr = faabric::util::funcToString(msg, true);
 
-    SPDLOG_DEBUG(
-      "Entering enclave {} to execute {}", sgx::getGlobalEnclaveId(), funcStr);
+    SPDLOG_DEBUG("Entering enclave {} to execute {}", enclaveId, funcStr);
+
+    // Set execution context
+    wasm::WasmExecutionContext ctx(this);
 
     // Prepare argc/argv to be passed to the enclave.
     std::vector<std::string> argv = faabric::util::getArgvForMessage(msg);
@@ -90,13 +97,10 @@ int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
         cArgv.at(i) = const_cast<char*>(argv.at(i).c_str());
     }
 
-    // Set execution context
-    wasm::WasmExecutionContext ctx(this);
-
     // Enter enclave and call function
     faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue = ecallCallFunction(
-      sgx::getGlobalEnclaveId(), &returnValue, interfaceId, argc, &cArgv[0]);
+    sgx_status_t sgxReturnValue =
+      ecallCallFunction(enclaveId, &returnValue, interfaceId, argc, &cArgv[0]);
     processECallErrors(
       "Error running function inside enclave", sgxReturnValue, returnValue);
 
@@ -105,19 +109,19 @@ int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
 
 size_t EnclaveInterface::getMemorySizeBytes()
 {
-    SPDLOG_WARN("SGX-WAMR getMemorySizeBytes not implemented");
+    // This method is implemented in src/enclave/inside/EnclaveWasmModule.cpp
     return 0;
 }
 
 size_t EnclaveInterface::getMaxMemoryPages()
 {
-    SPDLOG_WARN("SGX-WAMR getMaxMemoryPages not implemented");
+    // This method is implemented in src/enclave/inside/EnclaveWasmModule.cpp
     return 0;
 }
 
 uint8_t* EnclaveInterface::getMemoryBase()
 {
-    SPDLOG_WARN("SGX-WAMR getMemoryBase not implemented");
+    // This method is implemented in src/enclave/inside/EnclaveWasmModule.cpp
     return nullptr;
 }
 }

@@ -144,8 +144,8 @@ static int32_t wasi_fd_fdstat_set_rights(wasm_exec_env_t exec_env,
 }
 
 static int32_t wasi_fd_filestat_set_size(wasm_exec_env_t exec_env,
-                                        int32_t a,
-                                        int32_t b)
+                                         int32_t a,
+                                         int32_t b)
 {
     SPDLOG_DEBUG("S - wasi_fd_filestat_set_size");
     throw std::runtime_error("wasi_fd_filestat_set_size not implemented");
@@ -309,7 +309,8 @@ static int32_t wasi_fd_readdir(wasm_exec_env_t exec_env,
           "No directory iterator exists, and this is not the start cookie");
     }
 
-    size_t bytesCopied = fileDesc.copyDirentsToWasiBuffer((uint8_t*)buf, bufLen);
+    size_t bytesCopied =
+      fileDesc.copyDirentsToWasiBuffer((uint8_t*)buf, bufLen);
     module->validateNativePointer(resSizePtr, sizeof(uint32_t));
     *resSizePtr = bytesCopied;
 

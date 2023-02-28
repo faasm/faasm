@@ -39,6 +39,7 @@ WAMR_ALLOWED_FUNCS = [
     ["demo", "filedescriptor"],
     ["demo", "fread"],
     ["demo", "fstat"],
+    ["demo", "getdents"],
     ["demo", "listdir"],
     ["demo", "shared_file"],
     # Input output
@@ -55,6 +56,17 @@ SGX_ALLOWED_FUNCS = [
     ["demo", "chain_named_c"],
     # Environment
     ["demo", "argc_argv_test"],
+    ["demo", "exit"],
+    ["demo", "getenv"],
+    # Filesystem
+    ["demo", "fcntl"],
+    ["demo", "file"],
+    ["demo", "filedescriptor"],
+    ["demo", "fread"],
+    ["demo", "fstat"],
+    ["demo", "getdents"],
+    ["demo", "listdir"],
+    ["demo", "shared_file"],
 ]
 
 

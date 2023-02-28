@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <cstdio>
+
 /* The constants defined in this header file are meant to
  * be shared across all supported WASM runtimes: WAVM, WAMR, and WAMR inside
  * SGX. In particular, this header must also be included inside an SGX enclave
@@ -35,3 +38,20 @@
 #define MAX_WASM_MEM @FAASM_WASM_MAX_MEMORY@
 #define MAX_WASM_MEMORY_PAGES (MAX_WASM_MEM / WASM_BYTES_PER_PAGE)
 #define MAX_TABLE_SIZE 500000
+
+namespace wasm {
+
+inline bool isWasmPageAligned(int32_t offset)
+{
+    return !(offset & (WASM_BYTES_PER_PAGE - 1));
+}
+
+inline size_t getNumberOfWasmPagesForBytes(size_t nBytes)
+{
+    // Round up to nearest page
+    size_t pageCount =
+      (size_t(nBytes) + WASM_BYTES_PER_PAGE - 1) / WASM_BYTES_PER_PAGE;
+
+    return pageCount;
+}
+}

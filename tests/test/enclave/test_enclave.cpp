@@ -23,7 +23,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test executing chaining by name with SGX",
                  "[sgx]")
 {
-    auto req = setUpContext("demo", "hello");
+    auto req = setUpContext("demo", "chain_named_a");
     faabric::Message& msg = req->mutable_messages()->at(0);
 
     execFuncWithSgxPool(msg, 10000);

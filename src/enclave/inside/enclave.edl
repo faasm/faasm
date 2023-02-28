@@ -1,15 +1,17 @@
 // Annoyingly we have to redefine these here
 #define FAASM_SGX 1
-#define FAASM_SGX_WAMR_WASI_LIBC 0
+#define FAASM_SGX_WAMR_WASI_LIBC 1
 
 enclave{
     include "/usr/local/code/faasm/include/enclave/error.h"
     include "/build/faasm/_deps/wamr_ext-src/core/iwasm/include/wasm_export.h"
+    include "/build/faasm/_deps/wamr_ext-src/core/iwasm/libraries/libc-wasi/sandboxed-system-primitives/include/wasmtime_ssp.h"
     include "sgx_report.h"
 
     from "sgx_tstdc.edl" import *;
     from "sgx_pthread.edl" import *;
 #if(FAASM_SGX_WAMR_WASI_LIBC)
+// I think we can remove this
     from "sgx_wamr.edl" import *;
 #endif
 
@@ -37,6 +39,11 @@ enclave{
             [in, count=argc]    char** argv
         );
 
+        public faasm_sgx_status_t ecallRunInternalTest(
+                            uint32_t faasletId,
+            [in, string]    const char* testCase
+        );
+
         public faasm_sgx_status_t ecallCryptoChecks(void);
     };
 
@@ -44,6 +51,11 @@ enclave{
         void ocallLogError([in, string] const char* msg);
 
         void ocallLogDebug([in, string] const char* msg);
+
+        // We need separate OCalls because WAMR's native logging adds
+        // newlines, which makes the output through the spdlog-based OCalls
+        // unreadable
+        int ocallLogWamr([in, string] const char* msg);
 
         int ocallFaasmReadInput(
             [in, out, size=bufferSize]  uint8_t* buffer,
@@ -75,6 +87,150 @@ enclave{
                                     unsigned int bufferSize
         );
 
-        int32_t ocallSbrk(int32_t increment);
+        // ----- WASI Env Calls -----
+
+        int32_t ocallWasiEnvironGet(
+            [in, out, size=bufLen]  char* envBuf,
+                                    int32_t bufLen,
+            [out]                   int32_t* bytesWritten
+        );
+
+        int32_t ocallWasiEnvironSizesGet(
+            [in, out]   int32_t* envCountWasm,
+            [in, out]   int32_t* envBufferSizeWasm
+        );
+
+        // ----- Env Filesystem Calls -----
+
+        uint32_t ocallDup(uint32_t fd);
+
+        // ----- WASI Filesystem Calls -----
+
+        int32_t ocallWasiFdFdstatGet(
+                    int32_t fd,
+            [out]   uint8_t* wasiFileType,
+            [out]   uint64_t* rightsBase,
+            [out]   uint64_t* rightsInheriting
+        );
+
+        int32_t ocallWasiFdFilestatGet(
+                    int32_t fd,
+            [out]   uint8_t* wasiFiletype,
+            [out]   uint64_t* st_dev,
+            [out]   uint64_t* st_ino,
+            [out]   uint64_t* st_nlink,
+            [out]   uint64_t* st_size,
+            [out]   uint64_t* st_atim,
+            [out]   uint64_t* st_mtim,
+            [out]   uint64_t* st_ctim
+        );
+
+        int32_t ocallWasiFdPrestatDirName(
+                                    int32_t fd,
+            [out, size=pathLen]     char* path,
+                                    int32_t pathLen
+        );
+
+        int32_t ocallWasiFdPrestatGet(
+                    int32_t fd,
+            [out]   uint8_t* prType,
+            [out]   uint32_t* nameLen
+        );
+
+        int32_t ocallWasiFdRead(
+                                            int32_t fd,
+            [in, out, count=ioVecBasesSize] uint8_t* ioVecBases, // out?
+                                            int32_t ioVecBasesSize,
+            [in, out, count=ioVecCount]     int32_t* ioVecOffsets, // in?
+                                            int32_t ioVecCount,
+            [out]                           int32_t* bytesRead
+        );
+
+        int32_t ocallWasiFdReadDir(
+                                    int32_t fd,
+            [in, out, size=bufLen]  char* buf,
+                                    int32_t bufLen,
+                                    int64_t startCookie,
+            [out]                   int32_t* resSizePtr
+        );
+
+        int32_t ocallWasiFdSeek(
+                    int32_t fd,
+                    int64_t offset,
+                    int32_t whence,
+            [out]   uint64_t* newOffset
+        );
+
+        int32_t ocallWasiFdTell(
+                    int32_t fd,
+            [out]   int32_t* resOffset
+        );
+
+        int32_t ocallWasiFdWrite(
+                                        int32_t fd,
+            [in, count=ioVecBasesSize]  uint8_t* ioVecBases,
+                                        int32_t ioVecBasesSize,
+            [in, count=ioVecCount]      int32_t* ioVecOffsets,
+                                        int32_t ioVecCount,
+            [out]                       int32_t* bytesWritten
+        );
+
+        int32_t ocallWasiPathFilestatGet(
+                                int32_t fd,
+            [in, size=pathLen]  char* path,
+                                int32_t pathLen,
+            [out]               uint8_t* wasiFiletype,
+            [out]               uint64_t* st_dev,
+            [out]               uint64_t* st_ino,
+            [out]               uint64_t* st_nlink,
+            [out]               uint64_t* st_size,
+            [out]               uint64_t* st_atim,
+            [out]               uint64_t* st_mtim,
+            [out]               uint64_t* st_ctim
+        );
+
+        int32_t ocallWasiPathOpen(
+                                int32_t fdNative,
+                                int32_t lookupFlags,
+            [in, size=pathLen]  char* path,
+                                int32_t pathLen,
+                                int32_t openFlags,
+                                int64_t rightsBase,
+                                int64_t rightsInheriting,
+                                int32_t fdFlags,
+            [out]               int32_t* fdWasm
+        );
+
+        int32_t ocallWasiPathReadlink(
+                                    int32_t fd,
+            [in, size=pathLen]      char* path,
+                                    int32_t pathLen,
+            [in, out, size=bufLen]  char* buf,
+                                    int32_t bufLen,
+            [out]                   int32_t* resBytesUsed
+        );
+
+        int32_t ocallWasiPathRename(
+                                    int32_t oldFd,
+            [in, size=oldPathLen]   char* oldPath,
+                                    int32_t oldPathLen,
+                                    int32_t newFd,
+            [in, size=newPathLen]   char* newPath,
+                                    int32_t newPathLen
+        );
+
+        int32_t ocallWasiPathUnlinkFile(
+                                int32_t fd,
+            [in, size=pathLen]  char* path,
+                                int32_t pathLen
+        );
+
+        // ---- WASI Timing OCalls
+
+        int32_t ocallWasiClockTimeGet(
+                    int32_t clockId,
+                    int64_t precision,
+            [out]   int32_t* result
+        );
     };
 };

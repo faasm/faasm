@@ -30,8 +30,6 @@ enum ThreadRequestType
     OPENMP = 2,
 };
 
-bool isWasmPageAligned(int32_t offset);
-
 class WasmModule
 {
   public:
@@ -223,8 +221,6 @@ class WasmModule
 };
 
 // Convenience functions
-size_t getNumberOfWasmPagesForBytes(size_t nBytes);
-
 uint32_t roundUpToWasmPageAligned(uint32_t nBytes);
 
 size_t getPagesForGuardRegion();
