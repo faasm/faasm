@@ -28,11 +28,11 @@ set(WAMR_BUILD_MULTI_MODULE 1)
 # management model
 set(WAMR_BUILD_BULK_MEMORY 0)
 
-# If HW bound checks are enabled, WAMR uses mprotect to allocate memory and
-# traps on out-of-bounds memory accesses. Unfortunately, this option is not
-# available for SGX, so we disable it for regular WAMR as well to have the
-# most similar configuration possible.
-set(WAMR_DISABLE_HW_BOUND_CHECK 1)
+# We must enable WAMR hardware bounds check here, otherwise WAMR uses malloc to
+# allocate memory, which is not page-aligned. This seems like a blunt instrument
+# to solve a smal problem, but this parameter is deeply embedded in the WAMR
+# code, and it's difficult to change it surgically.
+set(WAMR_DISABLE_HW_BOUND_CHECK 0)
 # This definition prevents a buffer underflow during code generation
 add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
 
