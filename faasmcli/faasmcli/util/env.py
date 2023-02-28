@@ -1,7 +1,6 @@
+from faasmtools.build import FAASM_LOCAL_DIR
 from os import makedirs, environ
 from os.path import dirname, realpath, join, exists, expanduser
-
-from faasmtools.build import FAASM_LOCAL_DIR
 
 
 def _get_dir(variable, default):
@@ -22,7 +21,9 @@ FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 WASM_DIR = join(FAASM_LOCAL_DIR, "wasm")
 
 FAASM_BUILD_DIR = _get_dir("FAASM_BUILD_DIR", "/build/faasm")
+FAASM_BUILD_DIR_DETACHED = "/host_dev/build"
 FAASM_INSTALL_DIR = _get_dir("FAASM_INSTALL_DIR", "/usr/local")
+FAASM_LOCAL_DIR_DETACHED = "/host_dev/faasm-local"
 
 FAASM_CONFIG_FILE = join(PROJ_ROOT, "faasm.ini")
 GLOBAL_FAASM_CONFIG_DIR = join(HOME_DIR, ".config")

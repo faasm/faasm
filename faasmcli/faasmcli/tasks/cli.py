@@ -1,6 +1,12 @@
-from faasmcli.util.env import PROJ_ROOT
+from faasmcli.util.env import (
+    FAASM_BUILD_DIR,
+    FAASM_BUILD_DIR_DETACHED,
+    FAASM_LOCAL_DIR_DETACHED,
+    PROJ_ROOT,
+)
 from faasmcli.util.sgx import start_sgx_aesmd_socket
 from faasmcli.util.version import get_version
+from faasmtools.build import FAASM_LOCAL_DIR
 from invoke import task
 from os import environ
 from subprocess import run
@@ -43,11 +49,11 @@ def cli(ctx, service, detached=False):
     # In GHA we want to be able to pass a string argument to detached, yet
     # disable it. So passing "False" also disables the detached flag
     if detached and detached != "False":
-        work_env["FAASM_BUILD_MOUNT"] = "/host_dev/build"
-        work_env["FAASM_LOCAL_MOUNT"] = "/host_dev/faasm-local"
+        work_env["FAASM_BUILD_MOUNT"] = FAASM_BUILD_DIR_DETACHED
+        work_env["FAASM_LOCAL_MOUNT"] = FAASM_LOCAL_DIR_DETACHED
     else:
-        work_env["FAASM_BUILD_MOUNT"] = "/build/faasm"
-        work_env["FAASM_LOCAL_MOUNT"] = "/usr/local/faasm"
+        work_env["FAASM_BUILD_MOUNT"] = FAASM_BUILD_DIR
+        work_env["FAASM_LOCAL_MOUNT"] = FAASM_LOCAL_DIR
 
     docker_cmd = [
         "docker compose up",
