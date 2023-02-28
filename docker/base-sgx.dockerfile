@@ -73,7 +73,10 @@ RUN git clone -b DCAP_${DCAP_VERSION} \
     && cp /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so* \
         /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_pce_logic.so \
         /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_qe3_logic.so \
-        /usr/lib/
+        /usr/lib/ \
+    # Add another two soft-links to fix runtime linking issues
+    && ln -s /usr/lib/libsgx_urts.so /usr/lib/libsgx_urts.so.2 \
+    && ln -s /usr/lib/libsgx_pce_logic.so /usr/lib/libsgx_pce_logic.so.1
 
 # Build Faasm with SGX enabled
 ARG FAASM_SGX_MODE
