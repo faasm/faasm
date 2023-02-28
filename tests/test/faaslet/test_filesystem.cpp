@@ -59,7 +59,11 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "listdir");
-    execFunction(req);
+    faabric::Message& msg = req->mutable_messages()->at(0);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,

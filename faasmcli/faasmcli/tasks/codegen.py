@@ -37,8 +37,9 @@ WAMR_ALLOWED_FUNCS = [
     ["demo", "fcntl"],
     ["demo", "file"],
     ["demo", "filedescriptor"],
-    ["demo", "fstat"],
     ["demo", "fread"],
+    ["demo", "fstat"],
+    ["demo", "listdir"],
     ["demo", "shared_file"],
     # Input output
     ["demo", "check_input"],

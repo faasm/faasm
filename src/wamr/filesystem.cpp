@@ -285,14 +285,35 @@ static int32_t wasi_fd_read(wasm_exec_env_t exec_env,
 }
 
 static int32_t wasi_fd_readdir(wasm_exec_env_t exec_env,
-                               int32_t a,
-                               int32_t* b,
-                               char* c,
-                               int64_t d,
-                               int32_t e)
+                               int32_t fd,
+                               char* buf,
+                               uint32_t bufLen,
+                               int64_t startCookie,
+                               uint32_t* resSizePtr)
 {
-    SPDLOG_DEBUG("S - wasi_fd_readdir");
-    throw std::runtime_error("fd_readdir not implemented");
+    WAMRWasmModule* module = getExecutingWAMRModule();
+    storage::FileSystem& fileSystem = module->getFileSystem();
+    std::string path = fileSystem.getPathForFd(fd);
+
+    SPDLOG_DEBUG("S - wasi_fd_readdir {} ({})", fd, path);
+
+    storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(fd);
+    bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
+    if (fileDesc.iterStarted() && isStartCookie) {
+        // Return invalid if we've already started the iterator but also get the
+        // start cookie
+        return __WASI_EINVAL;
+    }
+    if (!fileDesc.iterStarted() && !isStartCookie) {
+        throw std::runtime_error(
+          "No directory iterator exists, and this is not the start cookie");
+    }
+
+    size_t bytesCopied = fileDesc.copyDirentsToWasiBuffer((uint8_t*)buf, bufLen);
+    module->validateNativePointer(resSizePtr, sizeof(uint32_t));
+    *resSizePtr = bytesCopied;
+
+    return __WASI_ESUCCESS;
 }
 
 static int32_t wasi_fd_seek(wasm_exec_env_t exec_env,
