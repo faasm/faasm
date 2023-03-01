@@ -17,6 +17,7 @@ jobs:
       CLUSTER_NAME_BASE: gha-cluster
     strategy:
       fail-fast: true
+      max-parallel: 1
       matrix:
         sgx: [True, False]
     steps:
