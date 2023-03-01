@@ -62,3 +62,6 @@ jobs:
         if: always()
         run: ./bin/inv_wrapper.sh cluster.delete --name ${{ env.CLUSTER_NAME }}
         working-directory: ${{ github.workspace }}/experiment-base
+      - name: "Chown all files"
+        if: always()
+        run: sudo chown -R $(id -u):$(id -g) .
