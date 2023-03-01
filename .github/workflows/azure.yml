@@ -25,7 +25,6 @@ jobs:
       # run one after the other, so we don't implement the fix.
       max-parallel: 1
       matrix:
-        fail-fast: True
         sgx: [True, False]
     steps:
       - name: "Check out the experiment-base code"
