@@ -25,6 +25,7 @@ jobs:
       # run one after the other, so we don't implement the fix.
       max-parallel: 1
       matrix:
+        fail-fast: True
         sgx: [True, False]
     steps:
       - name: "Check out the experiment-base code"
@@ -35,17 +36,16 @@ jobs:
           ref: gha
           path: experiment-base
       - name: "Create a unique cluster name"
-        # TODO: update with matrix contents
         run: |
-          echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}" >> $GITHUB_ENV
+          [[ "${{ matrix.sgx }}" == "True" ]] && SUFFIX_SGX="-sgx" || SUFFIX_SGX=""
+          echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}${SUFFIX_SGX}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}" >> $GITHUB_ENV
           echo ${CLUSTER_NAME}
       - name: "Install kubectl"
         run: ./bin/inv_wrapper.sh k8s.install-kubectl
         working-directory: ${{ github.workspace }}/experiment-base
       - name: "Start a managed k8s cluster on Azure's Kubernetes Service"
-        # TODO: deploy with a different name (as a parameter) and allow --sgx=False
         run: |
-          ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx
+          ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx ${{ matrix.sgx }}
           ./bin/inv_wrapper.sh cluster.credentials --name ${{ env.CLUSTER_NAME }}
         working-directory: ${{ github.workspace }}/experiment-base
       - name: "Check out faasm code"
@@ -54,7 +54,7 @@ jobs:
           submodules: true
           path: faasm
       - name: "Deploy Faasm on k8s cluster"
-        run: ./bin/inv_wrapper.sh k8s.deploy --workers=4 --sgx
+        run: ./bin/inv_wrapper.sh k8s.deploy --workers=4 --sgx ${{ matrix.sgx }}
         working-directory: ${{ github.workspace }}/faasm
       - name: "Build, upload and run a simple CPP function"
         run: docker compose -f docker-compose-k8s.yml run -T cpp-cli ./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello
