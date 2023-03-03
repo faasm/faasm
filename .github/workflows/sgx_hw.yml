@@ -60,25 +60,41 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "FAASM_BUILD_MOUNT=/build/faasm FAASM_LOCAL_MOUNT=/usr/local/faasm FAASM_CLI_IMAGE=faasm/cli-sgx:${{ env.FAASM_VERSION }} docker compose up --no-recreate -d faasm-cli cpp python"
+            --cmd "docker volume create --driver local --opt type=tmpfs --opt device=tmpfs --opt o=rw aesmd-socket"
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "FAASM_BUILD_MOUNT=/build/faasm FAASM_LOCAL_MOUNT=/usr/local/faasm FAASM_CLI_IMAGE=faasm/cli-sgx:${{ env.FAASM_VERSION }} SGX_DEVICE_MOUNT_DIR=/dev/sgx docker compose up --no-recreate -d aesmd faasm-cli cpp python"
       - name: "Cross-compile CPP functions"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "sudo rm -rf ./clients/cpp/venv/ && docker compose exec cpp ./bin/inv_wrapper.sh func.local libfake"
+            --cmd "docker compose exec cpp rm -rf ./venv"
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "docker compose exec cpp ./bin/inv_wrapper.sh func.local libfake"
       - name: "Cross-compile Python functions"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "sudo rm -rf ./clients/python/venv && docker compose exec python ./bin/inv_wrapper.sh cpython.func func.upload-all --local"
+            --cmd "docker compose exec python rm -rf ./venv"
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "docker compose exec python ./bin/inv_wrapper.sh cpython.func func.upload-all --local"
       - name: "Build Faasm targets"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "sudo rm -rf ./venv && docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release --sgx Hardware"
+            --cmd "docker compose exec faasm-cli rm -rf ./venv"
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release --sgx Hardware"
       - name: "Run codegen"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
