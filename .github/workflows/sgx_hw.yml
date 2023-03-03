@@ -26,8 +26,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: faasm/experiment-base
-          # TODO: remove after merge
-          ref: gha
       - name: "Create a unique VM name"
         run: echo "VM_NAME=${VM_BASE_NAME}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}" >> $GITHUB_ENV
       - name: "Create and provision an SGX-enabled IceLake VM"
@@ -36,7 +34,6 @@ jobs:
           ./bin/inv_wrapper.sh vm.inventory --prefix ${{ env.VM_NAME }}
           ./bin/inv_wrapper.sh vm.setup
       - name: "Fetch the branch code if necessary"
-        # if: github.ref != "main"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
@@ -54,20 +51,12 @@ jobs:
             --name ${{ env.VM_NAME }} \
             --path "code/faasm/clients/python" \
             --cmd "git submodule update --init -f third-party/cpp"
-            #       - name: "Get Faasm version"
-            #         run: |
-            #           FAASM_VERSION=$(./bin/inv_wrapper.sh vm.run-command \
-            #             --name ${{ env.VM_NAME }} \
-            #             --path "code/faasm" \
-            #             --cmd "cat VERSION" | tee | head -n 1)
-            #           echo "${FAASM_VERSION}" >> $GITHUB_ENV
-      - name: "Prepare the tests"
+      - name: "Start the docker compose cluster"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
             --cmd "./bin/refresh_local.sh"
-          # Start the compose cluster
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
