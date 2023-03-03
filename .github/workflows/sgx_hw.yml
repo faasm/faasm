@@ -66,7 +66,7 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "sudo rm -rf ./clients/cpp/venv && docker compose exec cpp ./bin/inv_wrapper.sh func.local libfake"
+            --cmd "sudo rm -rf ./clients/cpp/venv/ && docker compose exec cpp ./bin/inv_wrapper.sh func.local libfake"
       - name: "Cross-compile Python functions"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
@@ -78,7 +78,7 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "sudo rm -rf ./venv && docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release"
+            --cmd "sudo rm -rf ./venv && docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release --sgx Hardware"
       - name: "Run codegen"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
