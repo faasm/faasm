@@ -18,6 +18,89 @@ defaults:
 jobs:
   sgx-hw:
     runs-on: self-hosted
+    env:
+      VM_NAME: gha-sgx-hw-vm
     steps:
       - name: "Check out the experiment-base code"
         uses: actions/checkout@v3
+        with:
+          repository: faasm/experiment-base
+          # TODO: remove after merge
+          ref: gha
+      - name: "Create a unique VM name"
+        run: echo "VM_NAME=${VM_BASE_NAME}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}" >> $GITHUB_ENV
+      - name: "Create and provision an SGX-enabled IceLake VM"
+        run: |
+          ./bin/inv_wrapper.sh vm.create --sgx --region eastus2 --name ${{ env.VM_NAME }}
+          ./bin/inv_wrapper.sh vm.inventory --prefix ${{ env.VM_NAME }}
+          ./bin/inv_wrapper.sh vm.setup
+      - name: "Fetch the branch code if necessary"
+        if: github.ref != "main"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'"
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "git fetch origin && git checkout ${{ github.ref }}"
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "git submodule update --init -f"
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm/clients/python" \
+            --cmd "git submodule update --init -f third-party/cpp"
+      - name: "Get Faasm version"
+        run: |
+          FAASM_VERSION=$(./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "cat VERSION" | tee | head -n 1)
+          echo ${FAASM_VERSION} >> $GITHUB_ENV
+      - name: "Prepare the tests"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "./bin/refresh_local.sh"
+          # Start the compose cluster
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "FAASM_BUILD_MOUNT=/build/faasm FAASM_LOCAL_MOUNT=/usr/local/faasm FAASM_CLI_IMAGE=faasm/cli-sgx:${{ env.FAASM_VERSION }} docker compose up --no-recreate -d faasm-cli cpp python"
+      - name: "Cross-compile CPP functions"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "docker compose exec cpp ./bin/inv_wrapper.sh func.local libfake"
+      - name: "Cross-compile Python functions"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "docker compose exec python ./bin/inv_wrapper.sh cpython.func func.upload-all --local"
+      - name: "Build Faasm targets"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release"
+      - name: "Run codegen"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "docker compose exec faasm-cli ./bin/inv_wrapper.sh codegen.tests"
+      - name: "Run tests"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path "code/faasm" \
+            --cmd "docker compose exec -e LOG_LEVEL=info -e AZ_ATTESTATION_PROVIDER_URL='' -e CGROUP_MODE=off -e HOST_TYPE=ci faasm-cli tests"
+      - name: "Delete VM"
+        if: always()
+        run: ./bin/inv_wrapper.sh vm.delete --name ${{ env.VM_NAME }}
