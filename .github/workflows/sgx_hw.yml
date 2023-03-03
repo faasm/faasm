@@ -101,7 +101,7 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "docker compose exec -e LOG_LEVEL=info -e AZ_ATTESTATION_PROVIDER_URL='' -e CGROUP_MODE=off -e HOST_TYPE=ci faasm-cli tests"
+            --cmd "docker compose exec -e LOG_LEVEL=info -e AZ_ATTESTATION_PROVIDER_URL='' -e CGROUP_MODE=off -e HOST_TYPE=ci faasm-cli /build/faasm/bin/tests"
       - name: "Delete VM"
         if: always()
         run: ./bin/inv_wrapper.sh vm.delete --name ${{ env.VM_NAME }}
