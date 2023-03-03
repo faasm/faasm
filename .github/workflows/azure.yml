@@ -31,14 +31,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: faasm/experiment-base
-          # TODO: remove after merge
-          ref: gha
           path: experiment-base
       - name: "Create a unique cluster name"
         run: |
           [[ "${{ matrix.sgx }}" == "true" ]] && SUFFIX_SGX="-sgx" || SUFFIX_SGX=""
           echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}${SUFFIX_SGX}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}" >> $GITHUB_ENV
-          echo ${CLUSTER_NAME}
       - name: "Install kubectl"
         run: ./bin/inv_wrapper.sh k8s.install-kubectl
         working-directory: ${{ github.workspace }}/experiment-base
