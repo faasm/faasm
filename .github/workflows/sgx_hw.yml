@@ -46,7 +46,6 @@ jobs:
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
             --cmd "git fetch origin ${{ github.ref }}:ci-branch && git checkout -f ci-branch"
-            # --cmd "git fetch origin && git checkout ${{ github.ref }}"
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
@@ -78,19 +77,19 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "docker compose exec cpp ./bin/inv_wrapper.sh func.local libfake"
+            --cmd "sudo rm -rf ./clients/cpp/venv && docker compose exec cpp ./bin/inv_wrapper.sh func.local libfake"
       - name: "Cross-compile Python functions"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "docker compose exec python ./bin/inv_wrapper.sh cpython.func func.upload-all --local"
+            --cmd "sudo rm -rf ./clients/python/venv && docker compose exec python ./bin/inv_wrapper.sh cpython.func func.upload-all --local"
       - name: "Build Faasm targets"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release"
+            --cmd "sudo rm -rf ./venv && docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release"
       - name: "Run codegen"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
