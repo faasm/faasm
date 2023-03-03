@@ -19,7 +19,7 @@ jobs:
   sgx-hw:
     runs-on: self-hosted
     env:
-      VM_NAME: gha-sgx-hw-vm
+      VM_BASE_NAME: gha-sgx-hw-vm
     steps:
       - name: "Check out the experiment-base code"
         uses: actions/checkout@v3
@@ -35,7 +35,7 @@ jobs:
           ./bin/inv_wrapper.sh vm.inventory --prefix ${{ env.VM_NAME }}
           ./bin/inv_wrapper.sh vm.setup
       - name: "Fetch the branch code if necessary"
-        if: github.ref != "main"
+        # if: github.ref != "main"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
@@ -44,7 +44,8 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "git fetch origin && git checkout ${{ github.ref }}"
+            --cmd "git fetch origin ${{ github.ref }}:ci-branch && git checkout -f ci-branch"
+            # --cmd "git fetch origin && git checkout ${{ github.ref }}"
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
@@ -59,7 +60,7 @@ jobs:
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
             --cmd "cat VERSION" | tee | head -n 1)
-          echo ${FAASM_VERSION} >> $GITHUB_ENV
+          echo "${FAASM_VERSION}" >> $GITHUB_ENV
       - name: "Prepare the tests"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
