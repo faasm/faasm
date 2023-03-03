@@ -20,6 +20,7 @@ jobs:
     runs-on: self-hosted
     env:
       VM_BASE_NAME: gha-sgx-hw-vm
+      FAASM_VERSION: 0.9.3
     steps:
       - name: "Check out the experiment-base code"
         uses: actions/checkout@v3
@@ -54,13 +55,13 @@ jobs:
             --name ${{ env.VM_NAME }} \
             --path "code/faasm/clients/python" \
             --cmd "git submodule update --init -f third-party/cpp"
-      - name: "Get Faasm version"
-        run: |
-          FAASM_VERSION=$(./bin/inv_wrapper.sh vm.run-command \
-            --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "cat VERSION" | tee | head -n 1)
-          echo "${FAASM_VERSION}" >> $GITHUB_ENV
+            #       - name: "Get Faasm version"
+            #         run: |
+            #           FAASM_VERSION=$(./bin/inv_wrapper.sh vm.run-command \
+            #             --name ${{ env.VM_NAME }} \
+            #             --path "code/faasm" \
+            #             --cmd "cat VERSION" | tee | head -n 1)
+            #           echo "${FAASM_VERSION}" >> $GITHUB_ENV
       - name: "Prepare the tests"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
