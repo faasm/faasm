@@ -70,7 +70,7 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "docker compose exec cpp rm -rf ./venv"
+            --cmd "docker compose exec cpp bash-c 'rm -rf ./venv || inv -l'"
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
