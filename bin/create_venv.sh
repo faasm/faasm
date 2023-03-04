@@ -37,4 +37,6 @@ pushd faasmcli >> /dev/null
 pip_cmd install -e .
 popd >> /dev/null
 
+touch ${VENV_PATH}/faasm_venv.BUILT
+
 popd >> /dev/null

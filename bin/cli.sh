@@ -47,21 +47,26 @@ if [[ -z "$1" ]]; then
     exit 1
 elif [[ "$1" == "faasm" ]]; then
     CLI_CONTAINER="faasm-cli"
+    VENV_ROOT=${PROJ_ROOT}/venv
 elif [[ "$1" == "faasm-sgx-sim" ]]; then
     CLI_CONTAINER="faasm-cli"
+    VENV_ROOT=${PROJ_ROOT}/venv
     export FAASM_CLI_IMAGE=${FAASM_SGX_CLI_IMAGE:-faasm/cli-sgx-sim:$(cat ${PROJ_ROOT}/VERSION)}
     export FAASM_WORKER_IMAGE=faasm/worker-sgx-sim:$(cat ${PROJ_ROOT}/VERSION)
     export WASM_VM=sgx
 elif [[ "$1" == "faasm-sgx" ]]; then
     CLI_CONTAINER="faasm-cli"
+    VENV_ROOT=${PROJ_ROOT}/venv
     export FAASM_CLI_IMAGE=${FAASM_SGX_CLI_IMAGE:-faasm/cli-sgx:$(cat ${PROJ_ROOT}/VERSION)}
     export FAASM_WORKER_IMAGE=faasm/worker-sgx:$(cat ${PROJ_ROOT}/VERSION)
     export WASM_VM=sgx
     start_sgx_aesmd_socket
 elif [[ "$1" == "cpp" ]]; then
     CLI_CONTAINER="cpp"
+    VENV_ROOT=${PROJ_ROOT}/clients/cpp/venv
 elif [[ "$1" == "python" ]]; then
     CLI_CONTAINER="python"
+    VENV_ROOT=${PROJ_ROOT}/clients/python/venv
 else
     usage
     exit 1
@@ -81,6 +86,12 @@ docker compose \
     --no-recreate \
     -d \
     ${CLI_CONTAINER}
+
+until test -f ${VENV_ROOT}/faasm_venv.BUILT
+do
+   echo "Waiting for python virtual environment to be ready..."
+   sleep 3
+done
 
 # Attach to the CLI container
 docker compose \
