@@ -20,7 +20,7 @@ jobs:
     runs-on: self-hosted
     env:
       VM_BASE_NAME: gha-sgx-hw-vm
-      FAASM_VERSION: 0.9.3
+      FAASM_VERSION: 0.9.4
     steps:
       - name: "Check out the experiment-base code"
         uses: actions/checkout@v3
