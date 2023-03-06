@@ -26,7 +26,12 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     ~EnclaveWasmModule();
 
-    bool loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize);
+    bool reset(const std::string& user, const std::string& func);
+
+    bool doBindToFunction(const std::string& user,
+                          const std::string& func,
+                          void* wasmOpCodePtr,
+                          uint32_t wasmOpCodeSize);
 
     uint32_t callFunction(uint32_t argcIn, char** argvIn);
 
@@ -34,6 +39,10 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     int executeWasmFunction(const std::string& funcName);
 
     WASMModuleInstanceCommon* getModuleInstance();
+
+    const std::string getBoundUser() const { return boundUser; }
+
+    const std::string getBoundFunction() const { return boundFunction; }
 
     // ---- argc/arv ----
 
@@ -68,6 +77,11 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
+
+    std::string boundUser;
+    std::string boundFunction;
+    bool _isBound = false;
+    bool bindInternal();
 
     // Argc/argv
     uint32_t argc;

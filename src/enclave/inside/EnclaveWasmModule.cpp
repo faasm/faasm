@@ -53,8 +53,45 @@ EnclaveWasmModule::~EnclaveWasmModule()
     wasm_runtime_unload(wasmModule);
 }
 
-bool EnclaveWasmModule::loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize)
+bool EnclaveWasmModule::reset(const std::string& user, const std::string& func)
 {
+    bool sucess = true;
+
+    if (!_isBound) {
+        return sucess;
+    }
+
+    // Sanity check
+    if (boundUser != user || boundFunction != func) {
+        SPDLOG_ERROR_SGX("Mismatch when resetting SGX-WAMR module!");
+        SPDLOG_ERROR_SGX("Bound user/func (%s/%s) != reset user/func (%s/%s)",
+                         boundUser.c_str(),
+                         boundFunction.c_str(),
+                         user.c_str(),
+                         func.c_str());
+
+        sucess = false;
+        return sucess;
+    }
+
+    SPDLOG_DEBUG_SGX(
+      "SGX-WAMR resetting after %s/%s", user.c_str(), func.c_str());
+    wasm_runtime_deinstantiate(moduleInstance);
+    sucess = bindInternal();
+
+    return sucess;
+}
+
+bool EnclaveWasmModule::doBindToFunction(const std::string& user,
+                                         const std::string& func,
+                                         void* wasmOpCodePtr,
+                                         uint32_t wasmOpCodeSize)
+{
+    if (_isBound) {
+        SPDLOG_ERROR_SGX("EnclaveWasmModule already bound!");
+        return false;
+    }
+
     std::vector<uint8_t> wasmBytes((uint8_t*)wasmOpCodePtr,
                                    (uint8_t*)wasmOpCodePtr + wasmOpCodeSize);
 
@@ -62,9 +99,26 @@ bool EnclaveWasmModule::loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize)
       wasmBytes.data(), wasmBytes.size(), errorBuffer, WAMR_ERROR_BUFFER_SIZE);
 
     if (wasmModule == nullptr) {
+        SPDLOG_ERROR_SGX(
+          "Error loading WASM for %s/%s", user.c_str(), func.c_str());
         return false;
     }
 
+    if (!bindInternal()) {
+        SPDLOG_ERROR_SGX(
+          "Error instantiating WASM for %s/%s", user.c_str(), func.c_str());
+        return false;
+    }
+
+    _isBound = true;
+    boundUser = user;
+    boundFunction = func;
+
+    return true;
+}
+
+bool EnclaveWasmModule::bindInternal()
+{
     moduleInstance = wasm_runtime_instantiate(wasmModule,
                                               WAMR_STACK_SIZE,
                                               WAMR_HEAP_SIZE,
@@ -357,7 +411,6 @@ uint32_t EnclaveWasmModule::mmapMemory(size_t nBytes)
     uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);
     return growMemory(pageAligned);
 }
-
 
 void EnclaveWasmModule::unmapMemory(uint32_t offset, size_t nBytes)
 {

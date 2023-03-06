@@ -1,3 +1,4 @@
+#include <enclave/inside/EnclaveWasmModule.h>
 #include <enclave/inside/native.h>
 
 namespace sgx {
@@ -33,8 +34,12 @@ static unsigned int faasm_chain_name_wrapper(wasm_exec_env_t execEnv,
                                              const uint8_t* input,
                                              unsigned int inputSize)
 {
+    GET_EXECUTING_MODULE_AND_CHECK(execEnv);
+
     // TODO - fix first name
-    SPDLOG_DEBUG_SGX("S - faasm_chain_name %s -> %s", name, name);
+    SPDLOG_DEBUG_SGX("S - faasm_chain_name %s -> %s",
+                     module->getBoundFunction().c_str(),
+                     name);
     sgx_status_t sgxReturnValue;
     unsigned int returnValue;
     if ((sgxReturnValue = ocallFaasmChainName(

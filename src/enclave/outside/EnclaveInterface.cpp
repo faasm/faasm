@@ -21,7 +21,15 @@ EnclaveInterface::EnclaveInterface()
 
 EnclaveInterface::~EnclaveInterface()
 {
-    unbindFunction();
+    SPDLOG_TRACE(
+      "Destructing SGX-WAMR wasm module {}/{}", boundUser, boundFunction);
+
+    faasm_sgx_status_t returnValue;
+    sgx_status_t sgxReturnValue =
+      ecallDestroyModule(enclaveId, &returnValue, interfaceId);
+    processECallErrors("Error trying to unload module from enclave",
+                       sgxReturnValue,
+                       returnValue);
 }
 
 EnclaveInterface* getExecutingEnclaveInterface()
@@ -30,8 +38,31 @@ EnclaveInterface* getExecutingEnclaveInterface()
 }
 
 // ----- Module lifecycle -----
+
+void EnclaveInterface::reset(faabric::Message& msg,
+                             const std::string& snapshotKey)
+{
+    if (!_isBound) {
+        return;
+    }
+
+    faasm_sgx_status_t returnValue;
+    sgx_status_t status = ecallReset(enclaveId,
+                                     &returnValue,
+                                     interfaceId,
+                                     msg.user().c_str(),
+                                     msg.function().c_str());
+    processECallErrors("Unable to enter enclave", status, returnValue);
+}
+
 void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
 {
+    SPDLOG_INFO("SGX-WAMR binding to {}/{} via message {} (id: {})",
+                msg.user(),
+                msg.function(),
+                msg.id(),
+                interfaceId);
+
     // Set up filesystem
     // TODO(csegarragonz): do we need to prepare anything inside the enclave?
     filesystem.prepareFilesystem();
@@ -42,14 +73,15 @@ void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
     std::vector<uint8_t> wasmBytes =
       functionLoader.loadFunctionWamrAotFile(msg);
 
-    // Load the wasm module
-    // Note - loading and instantiating happen in the same ecall
+    // Bind the enclave wasm module to the function
     faasm_sgx_status_t returnValue;
-    sgx_status_t status = ecallLoadModule(enclaveId,
-                                          &returnValue,
-                                          (void*)wasmBytes.data(),
-                                          (uint32_t)wasmBytes.size(),
-                                          interfaceId);
+    sgx_status_t status = ecallDoBindToFunction(enclaveId,
+                                                &returnValue,
+                                                msg.user().c_str(),
+                                                msg.function().c_str(),
+                                                (void*)wasmBytes.data(),
+                                                (uint32_t)wasmBytes.size(),
+                                                interfaceId);
     processECallErrors("Unable to enter enclave", status, returnValue);
 
     // Set up the thread stacks
@@ -59,6 +91,7 @@ void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
     threadStacks.push_back(-1);
 }
 
+/*
 bool EnclaveInterface::unbindFunction()
 {
     if (!isBound()) {
@@ -67,15 +100,9 @@ bool EnclaveInterface::unbindFunction()
 
     SPDLOG_DEBUG("Unloading SGX wasm module");
 
-    faasm_sgx_status_t returnValue;
-    sgx_status_t sgxReturnValue =
-      ecallUnloadModule(enclaveId, &returnValue, interfaceId);
-    processECallErrors("Error trying to unload module from enclave",
-                       sgxReturnValue,
-                       returnValue);
-
     return true;
 }
+*/
 
 int32_t EnclaveInterface::executeFunction(faabric::Message& msg)
 {

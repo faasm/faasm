@@ -26,9 +26,11 @@ class EnclaveInterface final : public WasmModule
 
     ~EnclaveInterface() override;
 
+    void reset(faabric::Message& msg, const std::string& snapshotkey) override;
+
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
-    bool unbindFunction();
+    // bool unbindFunction();
 
     int32_t executeFunction(faabric::Message& msg) override;
 

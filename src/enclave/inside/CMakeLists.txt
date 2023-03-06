@@ -39,6 +39,8 @@ set(ENCLAVE_TRUSTED_C_FLAGS
     -ffunction-sections
     -fdata-sections
     -fstack-protector-strong
+    # This works
+    # -DFAASM_SGX_DEBUG
 )
 
 set(ENCLAVE_TRUSTED_CXX_FLAGS

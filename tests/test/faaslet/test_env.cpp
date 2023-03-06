@@ -31,9 +31,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     execFunction(req);
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test exit",
-                 "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test exit", "[faaslet]")
 {
     auto req = setUpContext("demo", "exit");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -107,11 +105,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     SECTION("WAMR") { execWamrFunction(msg); }
 
-    /* 04/03/2023 - This test is failing in hardware mode
-    #ifndef FAASM_SGX_DISABLED_MODE
-        SECTION("SGX") { execSgxFunction(msg); }
-    #endif
-    */
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,

@@ -50,10 +50,38 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t ecallLoadModule(void* wasmOpCodePtr,
-                                       uint32_t wasmOpCodeSize,
-                                       uint32_t faasletId)
+    faasm_sgx_status_t ecallReset(uint32_t faasletId,
+                                  const char* user,
+                                  const char* func)
     {
+        std::shared_ptr<wasm::EnclaveWasmModule> module = nullptr;
+
+        // Acquire a lock just to get the module
+        {
+            std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
+            if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
+                SPDLOG_ERROR_SGX("Faaslet not bound to any module.");
+                return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
+            }
+
+            module = wasm::moduleMap[faasletId];
+        }
+
+        std::string userStr(user);
+        std::string funcStr(func);
+        module->reset(userStr, funcStr);
+
+        return FAASM_SGX_SUCCESS;
+    }
+
+    faasm_sgx_status_t ecallDoBindToFunction(const char* user,
+                                             const char* func,
+                                             void* wasmOpCodePtr,
+                                             uint32_t wasmOpCodeSize,
+                                             uint32_t faasletId)
+    {
+        SPDLOG_DEBUG_SGX("Binding to %s/%s (%i)", user, func, faasletId);
+
         // Check if passed wasm opcode size or wasm opcode ptr is zero
         if (!wasmOpCodeSize) {
             return FAASM_SGX_INVALID_OPCODE_SIZE;
@@ -70,11 +98,15 @@ extern "C"
                 return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
             }
 
+            std::string userStr(user);
+            std::string funcStr(func);
             wasm::moduleMap[faasletId] =
               std::make_shared<wasm::EnclaveWasmModule>();
-            if (!wasm::moduleMap[faasletId]->loadWasm(wasmOpCodePtr,
-                                                      wasmOpCodeSize)) {
-                ocallLogError("Error loading WASM to module");
+            // TODO: add user and function here
+            if (!wasm::moduleMap[faasletId]->doBindToFunction(
+                  userStr, funcStr, wasmOpCodePtr, wasmOpCodeSize)) {
+                SPDLOG_ERROR_SGX(
+                  "Error binding SGX-WAMR module to %s/%s", user, func);
                 return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
             }
         }
@@ -82,7 +114,7 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t ecallUnloadModule(uint32_t faasletId)
+    faasm_sgx_status_t ecallDestroyModule(uint32_t faasletId)
     {
         std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
         if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
