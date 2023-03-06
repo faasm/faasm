@@ -29,7 +29,7 @@ uint32_t wasi_poll_oneoff(wasm_exec_env_t exec_env,
                           int32_t* d)
 {
     SPDLOG_DEBUG_SGX("S - wasi_poll_oneoff");
-    throw std::runtime_error("poll_oneoff not implemented");
+    UNIMPLEMENTED_WASM_INTRINSIC("wasi_poll_oneoff");
 }
 
 static NativeSymbol wasiNs[] = {

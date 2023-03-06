@@ -13,25 +13,25 @@ static uint32_t getpid_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 static uint32_t pclose_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 {
     SPDLOG_DEBUG_SGX("pclose");
-    throw std::runtime_error("pclose not implemented");
+    UNIMPLEMENTED_WASM_INTRINSIC("pclose");
 }
 
 static uint32_t popen_wrapper(wasm_exec_env_t exec_env, uint32_t a, uint32_t b)
 {
     SPDLOG_DEBUG_SGX("popen");
-    throw std::runtime_error("popen not implemented");
+    UNIMPLEMENTED_WASM_INTRINSIC("popen");
 }
 
 static uint32_t raise_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 {
     SPDLOG_DEBUG_SGX("raise");
-    throw std::runtime_error("raise not implemented");
+    UNIMPLEMENTED_WASM_INTRINSIC("raise");
 }
 
 static uint32_t system_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 {
     SPDLOG_DEBUG_SGX("system");
-    throw std::runtime_error("system not implemented");
+    UNIMPLEMENTED_WASM_INTRINSIC("system");
 }
 
 static NativeSymbol ns[] = {

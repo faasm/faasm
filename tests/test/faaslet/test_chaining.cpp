@@ -28,7 +28,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
+#ifndef FAASM_SGX_DISABLED_MODE
     SECTION("SGX") { conf.wasmVm = "sgx"; }
+#endif
 
     faabric::Message call =
       faabric::util::messageFactory("demo", "chain_named_a");

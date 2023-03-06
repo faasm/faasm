@@ -44,12 +44,7 @@ static int32_t mmap_wrapper(wasm_exec_env_t execEnv,
 
     if (fd != -1) {
         SPDLOG_ERROR_SGX("ERROR: mmaping file stil not supported in SGX");
-        throw std::runtime_error("No file mmaping in SGX");
-        /*
-        storage::FileDescriptor& fileDesc =
-          module->getFileSystem().getFileDescriptor(fd);
-        return module->mmapFile(fileDesc.getLinuxFd(), length);
-        */
+        return -1;
     }
 
     // If fd not provided, map memory directly

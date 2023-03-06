@@ -47,7 +47,8 @@ static uint32_t dup_wrapper(wasm_exec_env_t execEnv, uint32_t fd)
 static uint32_t getpwnam_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 {
     SPDLOG_DEBUG_SGX("S - getpwnam");
-    throw std::runtime_error("getpwnam not implemented");
+
+    UNIMPLEMENTED_WASM_INTRINSIC("getpwnam");
 }
 
 static int32_t sendfile_wrapper(wasm_exec_env_t exec_env,
@@ -57,13 +58,15 @@ static int32_t sendfile_wrapper(wasm_exec_env_t exec_env,
                                 int32_t count)
 {
     SPDLOG_DEBUG_SGX("S - sendfile {}");
-    throw std::runtime_error("sendfile not implemented");
+
+    UNIMPLEMENTED_WASM_INTRINSIC("sendfile");
 }
 
 static int32_t tempnam_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
 {
     SPDLOG_DEBUG_SGX("S - tempnam");
-    throw std::runtime_error("sendfile not implemented");
+
+    UNIMPLEMENTED_WASM_INTRINSIC("tempnam");
 }
 
 static NativeSymbol ns[] = {
@@ -88,7 +91,8 @@ static uint32_t wasi_fd_allocate(wasm_exec_env_t exec_env,
                                  __wasi_filesize_t len)
 {
     SPDLOG_DEBUG_SGX("wasi_fd_allocate %i", fd);
-    throw std::runtime_error("wasi_fd_allocate not implemented");
+
+    UNIMPLEMENTED_WASM_INTRINSIC("wasi_fd_allocate");
 }
 
 static int32_t wasi_fd_close(wasm_exec_env_t execEnv, int32_t fd)
@@ -137,8 +141,9 @@ static int32_t wasi_fd_fdstat_set_flags(wasm_exec_env_t exec_env,
                                         int32_t a,
                                         int32_t b)
 {
-    SPDLOG_DEBUG_SGX("S - fd_fdstat_set_flags");
-    throw std::runtime_error("fd_fdstat_set_flags not implemented");
+    SPDLOG_DEBUG_SGX("S - wasi_fd_fdstat_set_flags");
+
+    UNIMPLEMENTED_WASM_INTRINSIC("wasi_fd_fdstat_set_flags");
 }
 
 // To run fd_filestat_get we need to:
@@ -179,8 +184,9 @@ static uint32_t wasi_fd_pread(wasm_exec_env_t exec_env,
                               __wasi_filesize_t offset,
                               uint32_t* nReadWasm)
 {
-    SPDLOG_DEBUG_SGX("S - fd_pread %i", fd);
-    throw std::runtime_error("fd_pread not implemented");
+    SPDLOG_DEBUG_SGX("S - wasi_fd_pread %i", fd);
+
+    UNIMPLEMENTED_WASM_INTRINSIC("wasi_fd_pread");
 }
 
 // To run fd_prestat_dir_name we need to:
@@ -244,8 +250,9 @@ static uint32_t wasi_fd_pwrite(wasm_exec_env_t exec_env,
                                __wasi_filesize_t offset,
                                uint32_t* nWrittenWasm)
 {
-    SPDLOG_DEBUG_SGX("S - fd_pwrite {}");
-    throw std::runtime_error("fd_pwrite not implemented");
+    SPDLOG_DEBUG_SGX("S - wasi_fd_pwrite {}");
+
+    UNIMPLEMENTED_WASM_INTRINSIC("wasi_fd_pwrite");
 }
 
 // To implement fd_read we need to:
@@ -357,7 +364,8 @@ static int wasi_fd_seek(wasm_exec_env_t execEnv,
 static uint32_t wasi_fd_sync(wasm_exec_env_t exec_env, __wasi_fd_t fd)
 {
     SPDLOG_DEBUG_SGX("S - wasi_fd_sync %i", fd);
-    throw std::runtime_error("fd_sync not implemented");
+
+    UNIMPLEMENTED_WASM_INTRINSIC("wasi_fd_sync");
 }
 
 static int32_t wasi_fd_tell(wasm_exec_env_t execEnv,
@@ -441,7 +449,8 @@ static int32_t wasi_path_create_directory(wasm_exec_env_t exec_env,
                                           char* c)
 {
     SPDLOG_DEBUG_SGX("S - wasi_path_create_directory");
-    throw std::runtime_error("wasi_path_create_directory not implemented");
+
+    UNIMPLEMENTED_WASM_INTRINSIC("wasi_path_create_directory");
 }
 
 // To run path_filestat_get we need to:
@@ -490,7 +499,9 @@ static uint32_t wasi_path_filestat_set_times(wasm_exec_env_t exec_env,
                                              __wasi_fstflags_t fstflags)
 {
     SPDLOG_DEBUG_SGX("wasi_path_filestat_set_times %i", fd);
-    throw std::runtime_error("wasi_path_filestat_set_times not implemented");
+
+    SPDLOG_ERROR_SGX("wasi_path_filestat_set_times not implemented!");
+    return 1;
 }
 
 static int32_t wasi_path_link(wasm_exec_env_t exec_env,
@@ -503,7 +514,8 @@ static int32_t wasi_path_link(wasm_exec_env_t exec_env,
                               char* g)
 {
     SPDLOG_DEBUG_SGX("S - wasi_path_link");
-    throw std::runtime_error("wasi_path_link not implemented");
+
+    UNIMPLEMENTED_WASM_INTRINSIC("wasi_path_link");
 }
 
 // To do path_open we need to:
@@ -577,8 +589,9 @@ static int32_t wasi_path_remove_directory(wasm_exec_env_t exec_env,
                                           int32_t* b,
                                           char* c)
 {
-    SPDLOG_DEBUG_SGX("S - path_remove_directory");
-    throw std::runtime_error("path_remove_directory not implemented");
+    SPDLOG_DEBUG_SGX("S - wasi_path_remove_directory");
+
+    UNIMPLEMENTED_WASM_INTRINSIC("wasi_path_remove_directory");
 }
 
 static int32_t wasi_path_rename(wasm_exec_env_t execEnv,
@@ -621,7 +634,8 @@ static int32_t wasi_path_symlink(wasm_exec_env_t exec_env,
                                  uint32_t newPathLen)
 {
     SPDLOG_DEBUG_SGX("S - wasi_path_symlink");
-    throw std::runtime_error("wasi_path_symlink not implemented");
+
+    UNIMPLEMENTED_WASM_INTRINSIC("wasi_path_symlink");
 }
 
 static int32_t wasi_path_unlink_file(wasm_exec_env_t execEnv,

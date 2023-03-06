@@ -35,6 +35,10 @@
         ocallLogError(__buffer);                                               \
     }
 
+#define UNIMPLEMENTED_WASM_INTRINSIC(sym_name)                                 \
+    SPDLOG_ERROR_SGX("Unimlemented WASM import: %s", sym_name);                \
+    return 1
+
 // This file defines the set of functions that can be called from enclave code
 // to the outside (untrusted) Faasm runtime. OCalls in SGX terminology.
 extern "C"
