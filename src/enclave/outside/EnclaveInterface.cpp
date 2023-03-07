@@ -64,7 +64,6 @@ void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
                 interfaceId);
 
     // Set up filesystem
-    // TODO(csegarragonz): do we need to prepare anything inside the enclave?
     filesystem.prepareFilesystem();
 
     // Load AoT

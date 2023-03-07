@@ -30,8 +30,6 @@ class EnclaveInterface final : public WasmModule
 
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
-    // bool unbindFunction();
-
     int32_t executeFunction(faabric::Message& msg) override;
 
     size_t getMemorySizeBytes() override;
@@ -39,6 +37,8 @@ class EnclaveInterface final : public WasmModule
     size_t getMaxMemoryPages() override;
 
     uint8_t* getMemoryBase() override;
+
+    sgx_enclave_id_t getEnclaveId() const { return enclaveId; }
 
     uint32_t interfaceId = 0;
 
