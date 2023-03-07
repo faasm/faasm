@@ -354,7 +354,18 @@ uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
 
     // If we can reclaim old memory, just bump the break
     if (newBrk <= oldBytes) {
-        SPDLOG_ERROR_SGX("We don't reclaim memory inside SGX");
+        SPDLOG_DEBUG_SGX(
+          "MEM - Growing memory using already provisioned %u + %li <= %i",
+          oldBrk,
+          nBytes,
+          oldBytes);
+
+        currentBrk.store(newBrk, std::memory_order_release);
+
+        // TODO: we don't claim the virtual memory, permissions on the memory
+        // pages could be off
+
+        return oldBrk;
     }
 
     uint32_t pageChange = newPages - oldPages;
