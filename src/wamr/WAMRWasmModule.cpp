@@ -39,17 +39,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
         return;
     }
 
-    // Initialise the WAMR runtime
-    /*
-    RuntimeInitArgs wamrRteArgs;
-    memset(&wamrRteArgs, 0x0, sizeof(wamrRteArgs));
-    wamrRteArgs.mem_alloc_type = Alloc_With_Pool;
-    wamrRteArgs.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
-    wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
-    */
-
     // Initialise WAMR runtime
-    // bool success = wasm_runtime_full_init(&wamrRteArgs);
     bool success = wasm_runtime_init();
 
     if (!success) {
@@ -337,7 +327,7 @@ uint8_t* WAMRWasmModule::getMemoryBase()
 
 size_t WAMRWasmModule::getMaxMemoryPages()
 {
-    auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem = ((AOTMemoryInstance**)aotModule->memories)[0];
     return aotMem->max_page_count;
 }

@@ -1,19 +1,23 @@
 #include <catch2/catch.hpp>
 
-#include "faasm_fixtures.h"
-#include "utils.h"
-
-#include <wamr/WAMRWasmModule.h>
-#include <wavm/WAVMWasmModule.h>
-
+#ifndef FAASM_SGX_DISABLED_MODE
+#include <enclave/outside/EnclaveInterface.h>
+#include <enclave/outside/ecalls.h>
+#include <enclave/outside/system.h>
+#endif
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
+#include <wamr/WAMRWasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+
+#include "faasm_fixtures.h"
+#include "utils.h"
 
 using namespace WAVM;
 
@@ -67,7 +71,6 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM")
     {
         wasm::WAVMWasmModule module;
-        conf.wasmVm = "wavm";
         module.bindToFunction(call);
 
         // Check we can mmap less than a page and it rounds up
@@ -155,7 +158,6 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     SECTION("WAMR")
     {
-        conf.wasmVm = "wavm";
         wasm::WAMRWasmModule module;
         module.bindToFunction(call);
 
@@ -242,7 +244,19 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         REQUIRE(newBrk == oldBrk);
     }
 
-    // TODO - call SGX internal test here doing the same
+#ifndef FAASM_SGX_DISABLED_MODE
+    // To test calling sbrk in an enclave, we need to perform the same test
+    // from inside the SGX enclave
+    SECTION("SGX")
+    {
+        wasm::EnclaveInterface ei;
+        ei.bindToFunction(call);
+
+        RUN_SGX_INTERNAL_TEST("memory-growth-shrinkage")
+
+        ei.reset(call, "");
+    }
+#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -252,6 +266,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
     SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { conf.wasmVm = "sgx"; }
+#endif
 
     checkCallingFunctionGivesBoolOutput("demo", "mmap", true);
 }

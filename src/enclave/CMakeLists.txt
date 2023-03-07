@@ -63,6 +63,8 @@ set(WAMR_BUILD_LIB_PTHREAD 0)
 # WAMR features
 set(WAMR_BUILD_SIMD 0)
 set(WAMR_BUILD_BULK_MEMORY 0)
+# TODO: if this is set to 1, the un-patched version of aot_enlarge_memory
+# does not work with SGX
 set(WAMR_DISABLE_HW_BOUND_CHECK 1)
 set(WAMR_BUILD_MULTI_MODULE 1)
 
