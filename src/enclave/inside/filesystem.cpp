@@ -146,6 +146,15 @@ static int32_t wasi_fd_fdstat_set_flags(wasm_exec_env_t exec_env,
     UNIMPLEMENTED_WASM_INTRINSIC("wasi_fd_fdstat_set_flags");
 }
 
+static int32_t wasi_fd_fdstat_set_rights(wasm_exec_env_t exec_env,
+                                         int32_t a,
+                                         int64_t b,
+                                         int64_t c)
+{
+    SPDLOG_DEBUG_SGX("S - fd_fdstat_set_rights");
+    UNIMPLEMENTED_WASM_INTRINSIC("fd_fdstat_set_rights not implemented");
+}
+
 // To run fd_filestat_get we need to:
 // 1. Get the stat from the filedescriptors path
 // 2. Copy the contents into WASM memory
@@ -177,6 +186,14 @@ static int32_t wasi_fd_filestat_get(wasm_exec_env_t execEnv,
     return returnValue;
 }
 
+static int32_t wasi_fd_filestat_set_size(wasm_exec_env_t exec_env,
+                                         int32_t a,
+                                         int32_t b)
+{
+    SPDLOG_DEBUG_SGX("S - wasi_fd_filestat_set_size");
+    UNIMPLEMENTED_WASM_INTRINSIC("wasi_fd_filestat_set_size not implemented");
+}
+
 static uint32_t wasi_fd_pread(wasm_exec_env_t exec_env,
                               __wasi_fd_t fd,
                               iovec_app_t* iovecWasm,
@@ -185,7 +202,6 @@ static uint32_t wasi_fd_pread(wasm_exec_env_t exec_env,
                               uint32_t* nReadWasm)
 {
     SPDLOG_DEBUG_SGX("S - wasi_fd_pread %i", fd);
-
     UNIMPLEMENTED_WASM_INTRINSIC("wasi_fd_pread");
 }
 
@@ -662,7 +678,9 @@ static NativeSymbol wasiNs[] = {
     REG_WASI_NATIVE_FUNC(fd_close, "(i)i"),
     REG_WASI_NATIVE_FUNC(fd_fdstat_get, "(ii)i"),
     REG_WASI_NATIVE_FUNC(fd_fdstat_set_flags, "(ii)i"),
+    REG_WASI_NATIVE_FUNC(fd_fdstat_set_rights, "(iII)i"),
     REG_WASI_NATIVE_FUNC(fd_filestat_get, "(i*)i"),
+    REG_WASI_NATIVE_FUNC(fd_filestat_set_size, "(iI)i"),
     REG_WASI_NATIVE_FUNC(fd_pread, "(i*iI*)i"),
     REG_WASI_NATIVE_FUNC(fd_prestat_dir_name, "(i*~)i"),
     REG_WASI_NATIVE_FUNC(fd_prestat_get, "(i*)i"),

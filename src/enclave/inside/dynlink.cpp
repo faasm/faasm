@@ -1,28 +1,28 @@
-#include <stdexcept>
-#include <wamr/native.h>
-#include <wasm_export.h>
+#include <enclave/inside/native.h>
+#include <enclave/inside/ocalls.h>
 
-namespace wasm {
-// TODO - implement dynamic linking with WAMR
-// See bytecodealliance/wasm-micro-runtime#495
+namespace sgx {
 
 static int32_t dlclose_wrapper(wasm_exec_env_t exec_env, void* handle)
 {
-    throw std::runtime_error("Native dlclose not implemented");
+    SPDLOG_DEBUG_SGX("S - dlclose");
+    UNIMPLEMENTED_WASM_INTRINSIC("dlclose");
 }
 
 static int32_t dlopen_wrapper(wasm_exec_env_t exec_env,
                               char* filename,
                               int32_t flags)
 {
-    throw std::runtime_error("Native dlopen not implemented");
+    SPDLOG_DEBUG_SGX("S - dlopen");
+    UNIMPLEMENTED_WASM_INTRINSIC("dlopen");
 }
 
 static int32_t dlsym_wrapper(wasm_exec_env_t exec_env,
                              void* handle,
                              char* symbol)
 {
-    throw std::runtime_error("Native dlsym not implemented");
+    SPDLOG_DEBUG_SGX("S - dlsym");
+    UNIMPLEMENTED_WASM_INTRINSIC("dlsym");
 }
 
 static NativeSymbol ns[] = {

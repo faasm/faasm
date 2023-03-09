@@ -68,6 +68,7 @@ set(ENCLAVE_TRUSTED_HEADERS
 set(ENCLAVE_TRUSTED_SRC
     EnclaveWasmModule.cpp
     checks.cpp
+    dynlink.cpp
     ecalls.cpp
     env.cpp
     filesystem.cpp
@@ -77,6 +78,7 @@ set(ENCLAVE_TRUSTED_SRC
     process.cpp
     pthread.cpp
     signals.cpp
+    stubs.cpp
     tests.cpp
     timing.cpp
     ${ENCLAVE_TRUSTED_HEADERS}

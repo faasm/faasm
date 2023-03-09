@@ -9,21 +9,6 @@ namespace wasm {
 // expect them to be called, so throw errors when they are.
 // ------------------------------------------
 
-static int32_t syscall_wrapper(wasm_exec_env_t exec_env,
-                               int32_t syscallNo,
-                               int32_t syscallArgs)
-{
-    switch (syscallNo) {
-        case 224:
-            // We only support gettid here
-            SPDLOG_WARN("Using syscall to call gettid (syscall no. {})",
-                        syscallNo);
-            return 0;
-        default:
-            throw std::runtime_error("Native syscall not implemented");
-    }
-}
-
 static int32_t __cxa_allocate_exception_wrapper(wasm_exec_env_t exec_env,
                                                 int32_t a)
 {
@@ -44,6 +29,21 @@ static int32_t shm_open_wrapper(wasm_exec_env_t exec_env,
                                 int32_t c)
 {
     throw std::runtime_error("Native shm_open not implemented");
+}
+
+static int32_t syscall_wrapper(wasm_exec_env_t exec_env,
+                               int32_t syscallNo,
+                               int32_t syscallArgs)
+{
+    switch (syscallNo) {
+        case 224:
+            // We only support gettid here
+            SPDLOG_WARN("Using syscall to call gettid (syscall no. {})",
+                        syscallNo);
+            return 0;
+        default:
+            throw std::runtime_error("Native syscall not implemented");
+    }
 }
 
 static NativeSymbol ns[] = {

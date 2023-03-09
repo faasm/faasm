@@ -32,7 +32,8 @@ static int32_t mmap_wrapper(wasm_exec_env_t execEnv,
       "S - mmap - %i %i %i %i %i %li", addr, length, prot, flags, fd, offset);
 
     if (offset != 0) {
-        SPDLOG_DEBUG_SGX("WARNING: ignoring non-zero mmap offset (%i)", offset);
+        SPDLOG_DEBUG_SGX("WARNING: ignoring non-zero mmap offset (%li)",
+                         offset);
     }
 
     // Likewise with the address hint
