@@ -31,7 +31,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm/worker-sgx:0.9.3
+        - image: faasm/worker-sgx:0.9.4
           name: faasm-worker
           ports:
             - containerPort: 8080
@@ -73,7 +73,7 @@ spec:
             - name: SGX_AESM_ADDR
               value: "1"
             - name: AZ_ATTESTATION_PROVIDER_URL
-              valie: "https://faasmattprov.eus2.attest.azure.net"
+              value: "https://faasmattprov.eus2.attest.azure.net"
 
       volumes:
       - name: var-run-aesmd

@@ -61,11 +61,15 @@ def _get_faasm_worker_pods(label):
     return names, ips
 
 
-@task
+@task(optional=["sgx"])
 def deploy(ctx, workers, sgx=False):
     """
     Deploy Faasm to a k8s cluster
     """
+    # We can disable SGX by either not setting the flag (i.e. no --sgx) or by
+    # setting the flag with value "False" (i.e. --sgx False). Supporting this
+    # makes it possible to enable SGX conditionally from Github Actions
+    sgx = sgx and sgx.lower() != "false"
     _deploy_faasm_services(int(workers), sgx)
 
     ini_file(ctx)

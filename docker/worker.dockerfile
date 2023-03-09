@@ -3,11 +3,16 @@ ARG FAASM_SGX_PARENT_SUFFIX
 FROM faasm/base${FAASM_SGX_PARENT_SUFFIX}:${FAASM_VERSION}
 
 # Build the worker binary
+ARG FAASM_SGX_MODE
+RUN cd /usr/local/code/faasm \
+    && ./bin/create_venv.sh \
+    && source venv/bin/activate \
+    && inv -r faasmcli/faasmcli dev.cmake --build Release --sgx ${FAASM_SGX_MODE} \
+    && inv -r faasmcli/faasmcli dev.cc codegen_shared_obj \
+    && inv -r faasmcli/faasmcli dev.cc codegen_func \
+    && inv -r faasmcli/faasmcli dev.cc pool_runner
+
 WORKDIR /build/faasm
-RUN cd /build/faasm \
-    && cmake --build . --target codegen_shared_obj \
-    && cmake --build . --target codegen_func \
-    && cmake --build . --target pool_runner
 
 # Install hoststats
 RUN pip3 install hoststats==0.1.0
