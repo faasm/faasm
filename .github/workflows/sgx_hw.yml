@@ -1,15 +1,10 @@
 name: "SGX Hardware Mode Tests"
 
 # This workflow runs the set of tests in SGX Hardware mode. We run them on a
-# latest-generation IceLake VM on Azure, so we only run them either on dispatch
-# or when a new commit is pushed to the _main_ branch. Even though this will
-# not catch regressions before merging them in, testing only on commits to main
-# strikes a compromise between testing often and not spending too much money
-# on Azure.
+# latest-generation IceLake VM on Azure, so we only run them manually on
+# workflow dispatch.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 defaults:
   run:
