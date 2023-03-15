@@ -1,5 +1,5 @@
 ARG FAASM_VERSION
-FROM faasm/base:${FAASM_VERSION}
+FROM faasm.azurecr.io/base:${FAASM_VERSION}
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install  -y \

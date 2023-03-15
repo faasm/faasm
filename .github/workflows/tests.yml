@@ -23,7 +23,10 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.9.4
+      image: faasm.azurecr.io/cli:0.9.5
+      credentials:
+        username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
+        password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
@@ -49,7 +52,10 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.9.4
+      image: faasm.azurecr.io/cli:0.9.5
+      credentials:
+        username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
+        password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
@@ -62,7 +68,10 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cpp-sysroot:0.2.3
+      image: faasm.azurecr.io/cpp-sysroot:0.2.4
+      credentials:
+        username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
+        password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
@@ -92,7 +101,10 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cpython:0.2.4
+      image: faasm.azurecr.io/cpython:0.2.5
+      credentials:
+        username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
+        password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
@@ -119,7 +131,10 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm/cli:0.9.4
+      image: faasm.azurecr.io/cli:0.9.5
+      credentials:
+        username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
+        password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
@@ -153,12 +168,21 @@ jobs:
       TSAN_OPTIONS: "history_size=0 halt_on_error=1 suppressions=./thread-sanitizer-ignorelist.txt flush_memory_ms=5000"
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=./ub-sanitizer-ignorelist.txt"
     container:
-      image: faasm/cli:0.9.4
+      image: faasm.azurecr.io/cli:0.9.5
+      credentials:
+        username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
+        password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm/redis:0.9.4
+        image: faasm.azurecr.io/redis:0.9.5
+        credentials:
+          username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
+          password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm/minio:0.9.4
+        image: faasm.azurecr.io/minio:0.9.5
+        credentials:
+          username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
+          password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
@@ -233,12 +257,21 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm/cli-sgx-sim:0.9.4
+      image: faasm.azurecr.io/cli-sgx-sim:0.9.5
+      credentials:
+        username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
+        password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm/redis:0.9.4
+        image: faasm.azurecr.io/redis:0.9.5
+        credentials:
+          username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
+          password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm/minio:0.9.4
+        image: faasm.azurecr.io/minio:0.9.5
+        credentials:
+          username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
+          password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123

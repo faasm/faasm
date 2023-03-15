@@ -1,11 +1,11 @@
-from github import Github
-from invoke import task
-from subprocess import run, PIPE, STDOUT
-from os.path import join
-
 from faasmcli.util.env import PROJ_ROOT
 from faasmcli.util.config import get_faasm_config
 from faasmcli.util.version import get_version
+from faasmtools.docker import ACR_NAME
+from github import Github
+from invoke import task
+from os.path import join
+from subprocess import run, PIPE, STDOUT
 
 REPO_NAME = "faasm/faasm"
 
@@ -127,7 +127,10 @@ def bump(ctx, ver=None, python=False, cpp=False):
         # the version of the client we are interested in
         if python:
             old_ver, new_ver = get_version("python")
-            strings_to_check = [r"faasm\/cpython:", "PYTHON_VERSION="]
+            strings_to_check = [
+                r"{}\/cpython:".format(ACR_NAME),
+                "PYTHON_VERSION=",
+            ]
             for f in VERSIONED_FILES["python"]:
                 for string in strings_to_check:
                     sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
@@ -137,7 +140,10 @@ def bump(ctx, ver=None, python=False, cpp=False):
                     run(sed_cmd, shell=True, check=True)
         if cpp:
             old_ver, new_ver = get_version("cpp")
-            strings_to_check = [r"faasm\/cpp-sysroot:", "CPP_VERSION="]
+            strings_to_check = [
+                r"{}\/cpp-sysroot:".format(ACR_NAME),
+                "CPP_VERSION=",
+            ]
             for f in VERSIONED_FILES["python"]:
                 for string in strings_to_check:
                     sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(

@@ -2,13 +2,13 @@ version: "3"
 
 services:
   redis-state:
-    image: faasm/redis:${FAASM_VERSION}
+    image: faasm.azurecr.io/redis:${FAASM_VERSION}
 
   redis-queue:
-    image: faasm/redis:${FAASM_VERSION}
+    image: faasm.azurecr.io/redis:${FAASM_VERSION}
 
   minio:
-    image: faasm/minio:${FAASM_VERSION}
+    image: faasm.azurecr.io/minio:${FAASM_VERSION}
     ports:
       - "9000:9000"
     environment:
@@ -23,7 +23,7 @@ services:
       retries: 3
 
   upload:
-    image: faasm/upload:${FAASM_VERSION}
+    image: faasm.azurecr.io/upload:${FAASM_VERSION}
     ports:
       - "8002:8002"
     expose:
@@ -149,7 +149,7 @@ services:
   # There is no need to re-create the image every time, as it does not depend
   # on Faasm's code
   aesmd:
-    image: faasm/sgx-aesmd:0.8.9
+    image: faasm.azurecr.io/sgx-aesmd:0.9.5
     devices:
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}/enclave
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}/provision
