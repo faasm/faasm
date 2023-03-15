@@ -1,5 +1,5 @@
 ARG FAASM_VERSION
-FROM faasm/base:${FAASM_VERSION}
+FROM faasm.azurecr.io/base:${FAASM_VERSION}
 
 # Build the upload and codegen targets
 RUN cd /build/faasm \

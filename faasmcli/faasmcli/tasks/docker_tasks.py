@@ -1,13 +1,5 @@
-import os
-import docker
-from packaging import version
-
 from copy import copy
-from os.path import join
-from subprocess import run, PIPE
-
-from invoke import task
-
+from docker import from_env as from_docker_env
 from faasmcli.util.env import (
     FAASM_SGX_MODE_DISABLED,
     FAASM_SGX_MODE_HARDWARE,
@@ -15,6 +7,12 @@ from faasmcli.util.env import (
     PROJ_ROOT,
 )
 from faasmcli.util.version import get_version
+from faasmtools.docker import ACR_NAME
+from invoke import task
+from os import environ
+from os.path import join
+from packaging import version
+from subprocess import run, PIPE
 
 SGX_HW_CONTAINER_SUFFIX = "-sgx"
 SGX_SIMULATION_CONTAINER_SUFFIX = "-sgx-sim"
@@ -67,7 +65,7 @@ def _check_valid_containers(containers):
 
 def _do_push(container, version):
     run(
-        "docker push faasm/{}:{}".format(container, version),
+        "docker push {}/{}:{}".format(ACR_NAME, container, version),
         shell=True,
         cwd=PROJ_ROOT,
         check=True,
@@ -80,7 +78,7 @@ def build(ctx, c, nocache=False, push=False):
     Build latest version of container images
     """
     # Use buildkit for nicer logging
-    shell_env = copy(os.environ)
+    shell_env = copy(environ)
     shell_env["DOCKER_BUILDKIT"] = "1"
 
     _check_valid_containers(c)
@@ -90,7 +88,7 @@ def build(ctx, c, nocache=False, push=False):
     for container_name in c:
         # Prepare dockerfile and tag name
         dockerfile = join("docker", CONTAINER_NAME2FILE_MAP[container_name])
-        tag_name = "faasm/{}:{}".format(container_name, faasm_ver)
+        tag_name = "{}/{}:{}".format(ACR_NAME, container_name, faasm_ver)
 
         # Prepare build arguments
         build_args = {"FAASM_VERSION": faasm_ver}
@@ -160,7 +158,7 @@ def pull(ctx, c):
 
     for container in c:
         run(
-            "docker pull faasm/{}:{}".format(container, faasm_ver),
+            "docker pull {}/{}:{}".format(ACR_NAME, container, faasm_ver),
             shell=True,
             check=True,
             cwd=PROJ_ROOT,
@@ -174,11 +172,11 @@ def delete_old(ctx):
     """
     faasm_ver = get_version()
 
-    dock = docker.from_env()
+    dock = from_docker_env()
     images = dock.images.list()
     for image in images:
         for t in image.tags:
-            if not t.startswith("faasm/"):
+            if not t.startswith("{}".format(ACR_NAME)):
                 continue
 
             tag_ver = t.split(":")[-1]
