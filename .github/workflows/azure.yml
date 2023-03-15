@@ -32,6 +32,7 @@ jobs:
         with:
           repository: faasm/experiment-base
           path: experiment-base
+          ref: acr
       - name: "Create a unique cluster name"
         run: |
           [[ "${{ matrix.sgx }}" == "true" ]] && SUFFIX_SGX="-sgx" || SUFFIX_SGX=""
