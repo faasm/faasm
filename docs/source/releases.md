@@ -97,6 +97,11 @@ while though):
 inv docker.build-all --push --nocache
 ```
 
+> If you want to `--push` docker images, you will need push access to Faasm's
+> container registry on Azure. If you have a working `az` environment, and are
+> a member of the `faasm` resource group, you only need to run:
+> `az acr login -n faasm`
+
 # Github config
 
 If this is your first time releasing, you'll need to
