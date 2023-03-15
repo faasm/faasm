@@ -771,9 +771,27 @@ uint32_t WasmModule::mmapMemory(size_t nBytes)
     return growMemory(pageAligned);
 }
 
-uint32_t WasmModule::mmapFile(uint32_t fp, size_t length)
+uint32_t WasmModule::mmapFile(uint32_t fd, size_t length)
 {
-    throw std::runtime_error("mmapFile not implemented");
+    uint32_t wasmPtr = mmapMemory(length);
+    uint8_t* nativePtr = wasmPointerToNative(wasmPtr);
+
+    // Unmap, then do the actual mmap-ing
+    munmap(nativePtr, length);
+    uint8_t* mmappedPtr = reinterpret_cast<uint8_t*>(mmap(nativePtr, length, PROT_READ, MAP_SHARED, fd, 0));
+    if (mmappedPtr == MAP_FAILED) {
+        SPDLOG_ERROR("Failed mmapping file descriptor {} ({} - {})",
+                     fd,
+                     errno,
+                     strerror(errno));
+        throw std::runtime_error("Unable to mmap file");
+    }
+
+    if (mmappedPtr != nativePtr) {
+        throw std::runtime_error("Unable to map file into required location");
+    }
+
+    return wasmPtr;
 }
 
 void WasmModule::unmapMemory(uint32_t offset, size_t nBytes)

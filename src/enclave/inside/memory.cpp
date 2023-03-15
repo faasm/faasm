@@ -44,8 +44,7 @@ static int32_t mmap_wrapper(wasm_exec_env_t execEnv,
     GET_EXECUTING_MODULE_AND_CHECK(execEnv);
 
     if (fd != -1) {
-        SPDLOG_ERROR_SGX("ERROR: mmaping file stil not supported in SGX");
-        return -1;
+        return module->mmapFile(fd, length);
     }
 
     // If fd not provided, map memory directly

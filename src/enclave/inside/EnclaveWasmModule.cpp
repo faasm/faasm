@@ -1,6 +1,7 @@
 #include <enclave/inside/EnclaveWasmModule.h>
 #include <enclave/inside/native.h>
 #include <enclave/inside/ocalls.h>
+#include <enclave/inside/sgx.h>
 #include <wasm/WasmCommon.h>
 
 #include <aot_runtime.h>
@@ -419,8 +420,79 @@ size_t EnclaveWasmModule::getMaxMemoryPages()
 uint32_t EnclaveWasmModule::mmapMemory(size_t nBytes)
 {
     // The mmap interface allows non page-aligned values, and rounds up
+    // TODO - shouldn't this use our mmap implementation?
     uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);
     return growMemory(pageAligned);
+}
+
+uint32_t EnclaveWasmModule::mmapFile(uint32_t wasmFd, size_t length)
+{
+    // mmap the pages in the WebAssembly module
+    uint32_t wasmPtr = mmapMemory(length);
+    uint8_t* nativePtr = wamrWasmPointerToNative(wasmPtr);
+
+    // Load length-bytes of the file pointed by wasmFd into the pointed-to
+    // memory address. The file lives outside the enclave, so we need to make
+    // an OCall to transfer the contents
+    char* curPtr = reinterpret_cast<char*>(nativePtr);
+    uint32_t returnValue;
+    sgx_status_t sgxReturnValue;
+    size_t nRead = 0;
+    size_t offset = 0;
+    // TODO - populate config file with some constants
+    size_t enclaveStackSize = 100000;
+    while (length > 0) {
+        size_t bytesToRead = std::min(length, enclaveStackSize / 1);
+        // Note that 'length' (i.e. the bytes to mmap) may be arbitrarily
+        // large. In particular, it may be larger than the enclave's stack
+        // size (as defined in the enclave's configuration file). SGX-SDK
+        // uses the enclave's stack to perform ECall/OCall-s. Thus, we
+        // split the ocall in different chunks. Note that this
+        // may harm performance as we need to do several OCalls
+        SPDLOG_DEBUG_SGX("pread-ing %li bytes from fd %i", bytesToRead, wasmFd);
+        if ((sgxReturnValue = ocallPread(&returnValue, &nRead, wasmFd, curPtr, bytesToRead, offset)) != SGX_SUCCESS) {
+            SPDLOG_ERROR_SGX("Error executing pread ocall");
+            // TODO - how to return an error here
+            return 1;
+        }
+        if (nRead < 0) {
+            SPDLOG_ERROR_SGX("Error pread-ing from fd %i", wasmFd);
+            // TODO - how to return an error here
+            return 1;
+        }
+        if (nRead == 0) {
+            break;
+        }
+        if (nRead != bytesToRead) {
+            SPDLOG_ERROR_SGX("Read different bytes than expected (%li != %li)", nRead, bytesToRead);
+            // TODO - how to return an error here
+            return 1;
+        }
+        length -= nRead;
+        offset += nRead;
+        curPtr += nRead;
+    }
+
+    /*
+    // Unmap and mmap the file to memory pages in the SGX enclave (outside the
+    // WebAssembly module)
+    sgx::munmap(reinterpret_cast<void*>(nativePtr), length);
+    uint8_t* mmappedPtr = reinterpret_cast<uint8_t*>(sgx::mmap(reinterpret_cast<void*>(nativePtr), length, PROT_READ | PROT_WRITE, MAP_SHARED, wasmFd, 0));
+    if (mmappedPtr == MAP_FAILED) {
+        SPDLOG_ERROR_SGX("Failed mmapping file descriptor %i", wasmFd);
+        // TODO - how to return an error here
+        return 1;
+    }
+
+    if (mmappedPtr != nativePtr) {
+        SPDLOG_ERROR_SGX("Pointers mismatch");
+        // TODO - how to return an error here
+        return 1;
+    }
+    */
+
+    SPDLOG_DEBUG_SGX("mmap finished with ptr: %i", wasmPtr);
+    return wasmPtr;
 }
 
 void EnclaveWasmModule::unmapMemory(uint32_t offset, size_t nBytes)

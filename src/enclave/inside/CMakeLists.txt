@@ -62,6 +62,7 @@ set(ENCLAVE_TRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/inside/EnclaveWasmModule.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/native.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/ocalls.h
+    ${FAASM_INCLUDE_DIR}/enclave/inside/sgx.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/tests.h
 )
 
@@ -78,6 +79,7 @@ set(ENCLAVE_TRUSTED_SRC
     process.cpp
     pthread.cpp
     signals.cpp
+    sgx.cpp
     stubs.cpp
     tests.cpp
     timing.cpp

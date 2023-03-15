@@ -93,6 +93,17 @@ extern "C"
 
     extern sgx_status_t SGX_CDECL ocallDup(uint32_t* returnValue, uint32_t fd);
 
+    extern sgx_status_t SGX_CDECL ocallGetLinuxFd(uint32_t* returnValue,
+                                                  uint32_t wasmFd,
+                                                  uint32_t* nativeFd);
+
+    extern sgx_status_t SGX_CDECL ocallPread(uint32_t* returnValue,
+                                             size_t* nRead,
+                                             uint32_t fd,
+                                             char* curPtr,
+                                             uint32_t length,
+                                             uint32_t offset);
+
     // ----- WASI Filesystem Calls -----
 
     extern sgx_status_t SGX_CDECL

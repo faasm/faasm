@@ -70,6 +70,8 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     uint32_t mmapMemory(size_t nBytes);
 
+    uint32_t mmapFile(uint32_t fd, size_t length);
+
     void unmapMemory(uint32_t offset, size_t nBytes);
 
   private:

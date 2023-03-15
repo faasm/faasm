@@ -985,31 +985,6 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     return returnValue.i32;
 }
 
-U32 WAVMWasmModule::mmapFile(U32 fd, size_t length)
-{
-    // Create a new memory region
-    U32 wasmPtr = mmapMemory(length);
-    U32* targetPtr = &Runtime::memoryRef<U32>(defaultMemory, wasmPtr);
-
-    // Unmap and remap the memory
-    munmap(targetPtr, length);
-    U32* mmappedPtr =
-      (U32*)mmap(targetPtr, length, PROT_READ, MAP_SHARED, fd, 0);
-    if (mmappedPtr == MAP_FAILED) {
-        SPDLOG_ERROR("Failed mmapping file descriptor {} ({} - {})",
-                     fd,
-                     errno,
-                     strerror(errno));
-        throw std::runtime_error("Unable to map file");
-    }
-
-    if (mmappedPtr != targetPtr) {
-        throw std::runtime_error("Unable to map file into required location");
-    }
-
-    return wasmPtr;
-}
-
 bool WAVMWasmModule::doGrowMemory(uint32_t pageChange)
 {
     size_t oldPages = Runtime::getMemoryNumPages(defaultMemory);

@@ -345,10 +345,4 @@ std::vector<std::string> WAMRWasmModule::getArgv()
 {
     return argv;
 }
-
-uint32_t WAMRWasmModule::mmapFile(uint32_t fp, size_t length)
-{
-    // TODO - implement
-    return 0;
-}
 }

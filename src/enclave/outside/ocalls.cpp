@@ -7,6 +7,9 @@
 #include <cstdio>
 #include <cstring>
 
+// TODO - remove me
+#include <sys/mman.h>
+
 using namespace faabric::scheduler;
 
 extern "C"
@@ -136,6 +139,49 @@ extern "C"
     }
 
     uint32_t ocallDup(uint32_t fd) { return doWasiDup(fd); }
+
+    uint32_t ocallGetLinuxFd(uint32_t wasmFd, uint32_t* nativeFd)
+    {
+        wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
+        storage::FileSystem& fileSystem = ei->getFileSystem();
+        storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(wasmFd);
+        *nativeFd = fileDesc.getLinuxFd();
+
+        return 0;
+    }
+
+    uint32_t ocallPread(size_t* nRead,
+                        uint32_t wasmFd,
+                        char* curPtr,
+                        uint32_t length,
+                        uint32_t offset)
+    {
+        // First, get the native fd for the wasm fd
+        wasm::EnclaveInterface* ei = wasm::getExecutingEnclaveInterface();
+        storage::FileSystem& fileSystem = ei->getFileSystem();
+        storage::FileDescriptor& fileDesc = fileSystem.getFileDescriptor(wasmFd);
+        uint32_t nativeFd = fileDesc.getLinuxFd();
+
+        // Debug: the first time we call it, mmap the fd to host memory to
+        // compare the memory contents
+        void* mmapPtr = ::mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+        if (mmapPtr == MAP_FAILED) {
+            SPDLOG_ERROR("Map failed: {} ({})", errno, strerror(errno));
+            throw std::runtime_error("MAP FAILED");
+        }
+        // void* mmapPtr = ::mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED, nativeFd, offset);
+        size_t debugNumRead = ::pread(nativeFd, mmapPtr, length, offset);
+
+        *nRead = ::pread(nativeFd, curPtr, length, offset);
+        ::memset(curPtr, 0, length);
+        *nRead = ::pread(nativeFd, curPtr, length, offset);
+        ::memcpy(curPtr, mmapPtr, length);
+
+        // Debug: cleanup
+        ::munmap(mmapPtr, length);
+
+        return 0;
+    }
 
     // ---------------------------------------
     // WASI Filesystem calls

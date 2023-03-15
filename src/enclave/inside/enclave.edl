@@ -112,6 +112,19 @@ enclave{
 
         uint32_t ocallDup(uint32_t fd);
 
+        uint32_t ocallGetLinuxFd(
+                    uint32_t wasmFd,
+            [out]   uint32_t* nativeFd
+        );
+
+        uint32_t ocallPread(
+            [out]                   uint32_t* nRead,
+                                    uint32_t wasmFd,
+            [in,out,size=length]    char* curPtr,
+                                    uint32_t length,
+                                    uint32_t offset
+        );
+
         // ----- WASI Filesystem Calls -----
 
         int32_t ocallWasiFdFdstatGet(
