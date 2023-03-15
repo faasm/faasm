@@ -1,5 +1,5 @@
 # Stage to extract Python runtime files
-FROM faasm.azurecr.io/cpython:0.2.4 as python
+FROM faasm.azurecr.io/cpython:0.2.5 as python
 
 # Note - we don't often rebuild cpp-root so this dep may be behind
 FROM faasm.azurecr.io/cpp-root:0.9.5
