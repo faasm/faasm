@@ -13,7 +13,7 @@ namespace tests {
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test fixed input with colon",
-                 "[faaslet][wamr]")
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "check_input");
     faabric::Message& call = req->mutable_messages()->at(0);
@@ -22,6 +22,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { execFunction(call); }
 
     SECTION("WAMR") { execWamrFunction(call); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(call); }
+#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -37,6 +41,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
     SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { conf.wasmVm = "sgx"; }
+#endif
 
     const std::string actual = execFunctionWithStringResult(call);
     REQUIRE(actual == inputData);
@@ -56,6 +64,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
         SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
+#ifndef FAASM_SGX_DISABLED_MODE
+        SECTION("SGX") { conf.wasmVm = "sgx"; }
+#endif
+
         call.set_inputdata("21");
         conf.captureStdout = "off";
         expected = "Normal Faasm output";
@@ -66,6 +78,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
         SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+        SECTION("SGX") { conf.wasmVm = "sgx"; }
+#endif
 
         call.set_inputdata("23");
         conf.captureStdout = "on";
@@ -96,6 +112,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
         SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
+#ifndef FAASM_SGX_DISABLED_MODE
+        SECTION("SGX") { conf.wasmVm = "sgx"; }
+#endif
+
         conf.captureStdout = "off";
     }
 
@@ -104,6 +124,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
         SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+        SECTION("SGX") { conf.wasmVm = "sgx"; }
+#endif
 
         conf.captureStdout = "on";
         expected = "stdin=0  stdout=1  stderr=2\n"

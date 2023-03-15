@@ -9,7 +9,7 @@
 namespace tests {
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test getenv",
-                 "[faaslet][wamr]")
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "getenv");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -17,6 +17,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -27,17 +31,20 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     execFunction(req);
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test exit",
-                 "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test exit", "[faaslet]")
 {
     auto req = setUpContext("demo", "exit");
     faabric::Message& msg = req->mutable_messages()->at(0);
 
     SECTION("WAVM") { execFunction(msg); }
 
-    // 21/02/2023 - See bytecodealliance/wasm-micro-runtime#1979
-    // SECTION("WAMR") { execWamrFunction(msg); }
+    /* 21/02/2023 - See bytecodealliance/wasm-micro-runtime#1979
+        SECTION("WAMR") { execWamrFunction(msg); }
+
+    #ifndef FAASM_SGX_DISABLED_MODE
+        SECTION("SGX") { execSgxFunction(msg); }
+    #endif
+    */
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -75,7 +82,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "getcwd");
-    execFunction(req);
+    faabric::Message& msg = req->mutable_messages()->at(0);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -90,11 +105,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     SECTION("WAMR") { execWamrFunction(msg); }
 
-    /* 04/03/2023 - This test is failing in hardware mode
-    #ifndef FAASM_SGX_DISABLED_MODE
-        SECTION("SGX") { execSgxFunction(msg); }
-    #endif
-    */
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,

@@ -11,6 +11,15 @@
 
 #include <faabric/util/files.h>
 
+#define RUN_SGX_INTERNAL_TEST(test_name)                                       \
+    wasm::WasmExecutionContext __ctx(dynamic_cast<wasm::WasmModule*>(&ei));    \
+    faasm_sgx_status_t __returnValue;                                          \
+    sgx_status_t __sgxReturnValue = ecallRunInternalTest(                      \
+      ei.getEnclaveId(), &__returnValue, ei.interfaceId, test_name);           \
+    sgx::processECallErrors(                                                   \
+      "Error running internal test: sbrk", __sgxReturnValue, __returnValue);   \
+    REQUIRE(__returnValue == FAASM_SGX_SUCCESS);
+
 namespace tests {
 
 /**

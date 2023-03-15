@@ -1,12 +1,23 @@
 #include <enclave/inside/EnclaveWasmModule.h>
 #include <enclave/inside/native.h>
 #include <enclave/inside/ocalls.h>
+#include <enclave/inside/tests.h>
 
 #include <memory>
+
+#include "bh_platform.h"
+#include "wasm_export.h"
 
 #include <sgx_report.h>
 #include <sgx_trts.h>
 #include <sgx_utils.h>
+
+// TODO: move elsewhere
+#define REQUIRE(cond)                                                          \
+    if (!(cond)) {                                                             \
+        SPDLOG_ERROR_SGX("Error testing assertion!");                          \
+        return FAASM_SGX_INTERNAL_TEST_ERROR;                                  \
+    }
 
 // Implementation of the ECalls API
 extern "C"
@@ -37,16 +48,41 @@ extern "C"
             return FAASM_SGX_WAMR_RTE_INIT_FAILED;
         }
 
-        // Register native symbols
-        sgx::initialiseSGXWAMRNatives();
+        return FAASM_SGX_SUCCESS;
+    }
+
+    faasm_sgx_status_t ecallReset(uint32_t faasletId,
+                                  const char* user,
+                                  const char* func)
+    {
+        std::shared_ptr<wasm::EnclaveWasmModule> module = nullptr;
+
+        // Acquire a lock just to get the module
+        {
+            std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
+            if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
+                SPDLOG_ERROR_SGX("Faaslet not bound to any module.");
+                return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
+            }
+
+            module = wasm::moduleMap[faasletId];
+        }
+
+        std::string userStr(user);
+        std::string funcStr(func);
+        module->reset(userStr, funcStr);
 
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t ecallLoadModule(void* wasmOpCodePtr,
-                                       uint32_t wasmOpCodeSize,
-                                       uint32_t faasletId)
+    faasm_sgx_status_t ecallDoBindToFunction(const char* user,
+                                             const char* func,
+                                             void* wasmOpCodePtr,
+                                             uint32_t wasmOpCodeSize,
+                                             uint32_t faasletId)
     {
+        SPDLOG_DEBUG_SGX("Binding to %s/%s (%i)", user, func, faasletId);
+
         // Check if passed wasm opcode size or wasm opcode ptr is zero
         if (!wasmOpCodeSize) {
             return FAASM_SGX_INVALID_OPCODE_SIZE;
@@ -63,11 +99,15 @@ extern "C"
                 return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
             }
 
+            std::string userStr(user);
+            std::string funcStr(func);
             wasm::moduleMap[faasletId] =
               std::make_shared<wasm::EnclaveWasmModule>();
-            if (!wasm::moduleMap[faasletId]->loadWasm(wasmOpCodePtr,
-                                                      wasmOpCodeSize)) {
-                ocallLogError("Error loading WASM to module");
+            // TODO: add user and function here
+            if (!wasm::moduleMap[faasletId]->doBindToFunction(
+                  userStr, funcStr, wasmOpCodePtr, wasmOpCodeSize)) {
+                SPDLOG_ERROR_SGX(
+                  "Error binding SGX-WAMR module to %s/%s", user, func);
                 return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
             }
         }
@@ -75,7 +115,7 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t ecallUnloadModule(uint32_t faasletId)
+    faasm_sgx_status_t ecallDestroyModule(uint32_t faasletId)
     {
         std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
         if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
@@ -99,7 +139,7 @@ extern "C"
         {
             std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
             if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
-                ocallLogError("Faaslet not bound to any module.");
+                SPDLOG_ERROR_SGX("Faaslet not bound to any module.");
                 return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
             }
 
@@ -108,9 +148,38 @@ extern "C"
 
         // Call the function without a lock on the module map, to allow for
         // chaining on the same enclave
-        if (!module->callFunction(argc, argv)) {
-            ocallLogError("Error trying to call function");
+        uint32_t returnValue = module->callFunction(argc, argv);
+        if (returnValue != 0) {
+            SPDLOG_ERROR_SGX("Error trying to call function. Return value: %i",
+                             returnValue);
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
+        }
+
+        return FAASM_SGX_SUCCESS;
+    }
+
+    // TODO: switch on the test case
+    faasm_sgx_status_t ecallRunInternalTest(uint32_t faasletId,
+                                            const char* testCase)
+    {
+        std::shared_ptr<wasm::EnclaveWasmModule> module = nullptr;
+
+        // Acquire a lock just to get the module
+        {
+            std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
+            if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
+                SPDLOG_ERROR_SGX("Faaslet not bound to any module.");
+                return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
+            }
+
+            module = wasm::moduleMap[faasletId];
+        }
+
+        SPDLOG_DEBUG_SGX("Running test: %s", testCase);
+        if (std::string(testCase) == "sbrk") {
+            return tests::testSbrk(module);
+        } else if (std::string(testCase) == "memory-growth-shrinkage") {
+            return tests::testMemoryGrowthShrinkage(module);
         }
 
         return FAASM_SGX_SUCCESS;

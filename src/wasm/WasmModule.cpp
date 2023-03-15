@@ -1,5 +1,6 @@
 #include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
+#include <wasm/WasmCommon.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 
@@ -24,30 +25,6 @@
 #include <sys/uio.h>
 
 namespace wasm {
-
-bool isWasmPageAligned(int32_t offset)
-{
-    if (offset & (WASM_BYTES_PER_PAGE - 1)) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
-size_t getNumberOfWasmPagesForBytes(size_t nBytes)
-{
-    // Round up to nearest page
-    size_t pageCount =
-      (size_t(nBytes) + WASM_BYTES_PER_PAGE - 1) / WASM_BYTES_PER_PAGE;
-
-    return pageCount;
-}
-
-uint32_t roundUpToWasmPageAligned(uint32_t nBytes)
-{
-    size_t nPages = getNumberOfWasmPagesForBytes(nBytes);
-    return (uint32_t)(nPages * WASM_BYTES_PER_PAGE);
-}
 
 size_t getPagesForGuardRegion()
 {
@@ -709,7 +686,7 @@ uint32_t WasmModule::growMemory(size_t nBytes)
 
     // If we can reclaim old memory, just bump the break
     if (newBrk <= oldBytes) {
-        SPDLOG_TRACE(
+        SPDLOG_DEBUG(
           "MEM - Growing memory using already provisioned {} + {} <= {}",
           oldBrk,
           nBytes,
@@ -737,7 +714,7 @@ uint32_t WasmModule::growMemory(size_t nBytes)
         throw std::runtime_error("Failed to grow memory");
     }
 
-    SPDLOG_TRACE("Growing memory from {} to {} pages (max {})",
+    SPDLOG_DEBUG("Growing memory from {} to {} pages (max {})",
                  oldPages,
                  newPages,
                  maxPages);
@@ -794,9 +771,27 @@ uint32_t WasmModule::mmapMemory(size_t nBytes)
     return growMemory(pageAligned);
 }
 
-uint32_t WasmModule::mmapFile(uint32_t fp, size_t length)
+uint32_t WasmModule::mmapFile(uint32_t fd, size_t length)
 {
-    throw std::runtime_error("mmapFile not implemented");
+    uint32_t wasmPtr = mmapMemory(length);
+    uint8_t* nativePtr = wasmPointerToNative(wasmPtr);
+
+    // Unmap, then do the actual mmap-ing
+    munmap(nativePtr, length);
+    uint8_t* mmappedPtr = reinterpret_cast<uint8_t*>(mmap(nativePtr, length, PROT_READ, MAP_SHARED, fd, 0));
+    if (mmappedPtr == MAP_FAILED) {
+        SPDLOG_ERROR("Failed mmapping file descriptor {} ({} - {})",
+                     fd,
+                     errno,
+                     strerror(errno));
+        throw std::runtime_error("Unable to mmap file");
+    }
+
+    if (mmappedPtr != nativePtr) {
+        throw std::runtime_error("Unable to map file into required location");
+    }
+
+    return wasmPtr;
 }
 
 void WasmModule::unmapMemory(uint32_t offset, size_t nBytes)

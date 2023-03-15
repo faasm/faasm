@@ -38,6 +38,17 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     auto req = setUpContext("demo", "getdents");
     faabric::Message& msg = req->mutable_messages()->at(0);
 
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    const std::string originalVm = conf.wasmVm;
+
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { conf.wasmVm = "sgx"; }
+#endif
+
     const std::string result = execFunctionWithStringResult(msg);
     std::vector<std::string> actual = splitString(result, ",");
 
@@ -59,12 +70,18 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "listdir");
-    execFunction(req);
+    faabric::Message& msg = req->mutable_messages()->at(0);
+
+    SECTION("WAVM") { execFunction(msg); }
+
+    SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test fcntl",
-                 "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fcntl", "[faaslet]")
 {
     auto req = setUpContext("demo", "fcntl");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -72,6 +89,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
@@ -82,11 +103,13 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test fstat",
-                 "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fstat", "[faaslet]")
 {
     auto req = setUpContext("demo", "fstat");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -94,11 +117,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test file operations",
-                 "[faaslet][wamr]")
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "file");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -106,11 +133,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test file descriptors",
-                 "[faaslet][wamr]")
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "filedescriptor");
     faabric::Message& msg = req->mutable_messages()->at(0);
@@ -118,5 +149,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAVM") { execFunction(msg); }
 
     SECTION("WAMR") { execWamrFunction(msg); }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX") { execSgxFunction(msg); }
+#endif
 }
 }

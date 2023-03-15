@@ -18,44 +18,6 @@ LIB_FAKE_FILES = [
     join(FAASM_RUNTIME_ROOT, "lib", "fake", "libfakeLibB.so"),
 ]
 
-WAMR_ALLOWED_FUNCS = [
-    # Misc
-    ["demo", "chain"],
-    ["demo", "chain_named_a"],
-    ["demo", "chain_named_b"],
-    ["demo", "chain_named_c"],
-    # Environment
-    ["demo", "argc_argv_test"],
-    ["demo", "exit"],
-    ["demo", "getenv"],
-    ["errors", "ret_one"],
-    # Memory
-    ["demo", "brk"],
-    ["demo", "mmap"],
-    ["demo", "mmap_big"],
-    # Filesystem
-    ["demo", "fcntl"],
-    ["demo", "file"],
-    ["demo", "filedescriptor"],
-    ["demo", "fstat"],
-    ["demo", "fread"],
-    ["demo", "shared_file"],
-    # Input output
-    ["demo", "check_input"],
-    ["demo", "echo"],
-    ["demo", "stdout"],
-    ["demo", "stderr"],
-]
-
-SGX_ALLOWED_FUNCS = [
-    ["demo", "hello"],
-    ["demo", "chain_named_a"],
-    ["demo", "chain_named_b"],
-    ["demo", "chain_named_c"],
-    # Environment
-    ["demo", "argc_argv_test"],
-]
-
 
 @task(default=True)
 def codegen(ctx, user, function, clean=False):
@@ -81,11 +43,11 @@ def codegen(ctx, user, function, clean=False):
 
 
 @task
-def user(ctx, user):
+def user(ctx, user, clean=False):
     """
     Generates machine for all the functions belonging to the given user
     """
-    _do_codegen_user(user)
+    _do_codegen_user(user, clean)
 
 
 def _do_codegen_user(user, clean=False):
@@ -95,7 +57,6 @@ def _do_codegen_user(user, clean=False):
     env = copy(environ)
     env.update(
         {
-            "WASM_VM": "wavm",
             "LD_LIBRARY_PATH": "/usr/local/lib/",
         }
     )
@@ -158,8 +119,7 @@ def wamr(ctx, clean=False):
     """
     env = copy(environ)
     env.update({"WASM_VM": "wamr"})
-    for user, func in WAMR_ALLOWED_FUNCS:
-        codegen(ctx, user, func, clean)
+    _do_codegen_user("demo", clean)
 
 
 @task
@@ -169,8 +129,7 @@ def sgx(ctx, clean=False):
     """
     env = copy(environ)
     env.update({"WASM_VM": "sgx"})
-    for user, func in SGX_ALLOWED_FUNCS:
-        codegen(ctx, user, func, clean)
+    _do_codegen_user("demo", clean)
 
 
 @task

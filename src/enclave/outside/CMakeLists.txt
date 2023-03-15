@@ -15,7 +15,7 @@ target_compile_options(wamrlib_untrusted PRIVATE
 # Untrusted SGX Compilation Flags
 # --------------------------------------------------------
 
-if(CMAKE_BUILD_TYPE EQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(ENCLAVE_UNTRUSTED_C_FLAGS
         ${SGX_C_GLOBAL_FLAGS}
         -fPIC
@@ -24,8 +24,6 @@ if(CMAKE_BUILD_TYPE EQUAL "Debug")
         -UNDEBUG
         -UEDEBUG
     )
-
-    add_definitions(-DFAASM_SGX_DEBUG)
 else()
     set(ENCLAVE_UNTRUSTED_C_FLAGS
         ${SGX_C_GLOBAL_FLAGS}

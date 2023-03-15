@@ -39,6 +39,8 @@ set(ENCLAVE_TRUSTED_C_FLAGS
     -ffunction-sections
     -fdata-sections
     -fstack-protector-strong
+    # This works
+    # -DFAASM_SGX_DEBUG
 )
 
 set(ENCLAVE_TRUSTED_CXX_FLAGS
@@ -60,18 +62,27 @@ set(ENCLAVE_TRUSTED_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/inside/EnclaveWasmModule.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/native.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/ocalls.h
+    ${FAASM_INCLUDE_DIR}/enclave/inside/sgx.h
+    ${FAASM_INCLUDE_DIR}/enclave/inside/tests.h
 )
 
 set(ENCLAVE_TRUSTED_SRC
     EnclaveWasmModule.cpp
     checks.cpp
+    dynlink.cpp
     ecalls.cpp
     env.cpp
     filesystem.cpp
     funcs.cpp
     memory.cpp
     native.cpp
+    process.cpp
     pthread.cpp
+    signals.cpp
+    sgx.cpp
+    stubs.cpp
+    tests.cpp
+    timing.cpp
     ${ENCLAVE_TRUSTED_HEADERS}
 )
 

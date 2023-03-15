@@ -70,6 +70,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     if (isSgx) {
         option.size_level = 1;
         option.is_sgx_platform = true;
+        option.enable_aux_stack_frame = true;
     }
 
     using aot_comp_context =

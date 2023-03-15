@@ -30,8 +30,6 @@ enum ThreadRequestType
     OPENMP = 2,
 };
 
-bool isWasmPageAligned(int32_t offset);
-
 class WasmModule
 {
   public:
@@ -96,7 +94,7 @@ class WasmModule
 
     uint32_t mmapMemory(size_t nBytes);
 
-    virtual uint32_t mmapFile(uint32_t fp, size_t length);
+    uint32_t mmapFile(uint32_t fd, size_t length);
 
     void unmapMemory(uint32_t offset, size_t nBytes);
 
@@ -223,10 +221,6 @@ class WasmModule
 };
 
 // Convenience functions
-size_t getNumberOfWasmPagesForBytes(size_t nBytes);
-
-uint32_t roundUpToWasmPageAligned(uint32_t nBytes);
-
 size_t getPagesForGuardRegion();
 
 /*

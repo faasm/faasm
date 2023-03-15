@@ -1,6 +1,7 @@
 #include <storage/FileLoader.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
+#include <wasm/WasmCommon.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 
@@ -28,6 +29,8 @@ static bool wamrInitialised = false;
 // so it may cause performance issues under high churn of short-lived functions.
 static std::mutex wamrGlobalsMutex;
 
+// static uint8_t wamrHeapBuffer[WAMR_HEAP_BUFFER_SIZE];
+
 void WAMRWasmModule::initialiseWAMRGlobally()
 {
     faabric::util::UniqueLock lock(wamrGlobalsMutex);
@@ -38,6 +41,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
 
     // Initialise WAMR runtime
     bool success = wasm_runtime_init();
+
     if (!success) {
         throw std::runtime_error("Failed to initialise WAMR");
     }
@@ -110,8 +114,10 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     {
         faabric::util::UniqueLock lock(wamrGlobalsMutex);
         SPDLOG_TRACE("WAMR loading {} wasm bytes\n", wasmBytes.size());
-        wasmModule = wasm_runtime_load(
-          wasmBytes.data(), wasmBytes.size(), errorBuffer, ERROR_BUFFER_SIZE);
+        wasmModule = wasm_runtime_load(wasmBytes.data(),
+                                       wasmBytes.size(),
+                                       errorBuffer,
+                                       WAMR_ERROR_BUFFER_SIZE);
 
         if (wasmModule == nullptr) {
             std::string errorMsg = std::string(errorBuffer);
@@ -126,8 +132,11 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 void WAMRWasmModule::bindInternal(faabric::Message& msg)
 {
     // Instantiate module
-    moduleInstance = wasm_runtime_instantiate(
-      wasmModule, STACK_SIZE_KB, HEAP_SIZE_KB, errorBuffer, ERROR_BUFFER_SIZE);
+    moduleInstance = wasm_runtime_instantiate(wasmModule,
+                                              WAMR_STACK_SIZE,
+                                              WAMR_HEAP_SIZE,
+                                              errorBuffer,
+                                              WAMR_ERROR_BUFFER_SIZE);
 
     // Sense-check the module
     auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
@@ -146,7 +155,7 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
     currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
-    // Set up thread stacks
+
     createThreadStacks();
 }
 
@@ -184,7 +193,7 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
     // get it to work.
 
     std::unique_ptr<WASMExecEnv, decltype(&wasm_exec_env_destroy)> execEnv(
-      wasm_exec_env_create(moduleInstance, STACK_SIZE_KB),
+      wasm_exec_env_create(moduleInstance, WAMR_STACK_SIZE),
       &wasm_exec_env_destroy);
     if (execEnv == nullptr) {
         SPDLOG_ERROR("Failed to create exec env for func ptr {}", wasmFuncPtr);
@@ -282,13 +291,6 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     return returnValue;
 }
 
-void WAMRWasmModule::writeStringToWasmMemory(const std::string& strHost,
-                                             char* strWasm)
-{
-    validateNativePointer(strWasm, strHost.size());
-    std::copy(strHost.begin(), strHost.end(), strWasm);
-}
-
 void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
                                               char* envBuffWasm)
 {
@@ -296,26 +298,11 @@ void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
       wasmEnvironment.getVars(), envOffsetsWasm, envBuffWasm);
 }
 
-void WAMRWasmModule::validateWasmOffset(uint32_t wasmOffset, size_t size)
-{
-    if (!wasm_runtime_validate_app_addr(moduleInstance, wasmOffset, size)) {
-        SPDLOG_ERROR("WASM offset outside WAMR module instance memory"
-                     "(offset: {}, size: {})",
-                     wasmOffset,
-                     size);
-        throw std::runtime_error("Offset outside WAMR's memory");
-    }
-}
-
 uint8_t* WAMRWasmModule::wasmPointerToNative(uint32_t wasmPtr)
 {
-    void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
-    if (nativePtr == nullptr) {
-        SPDLOG_ERROR("WASM offset {} is out of the WAMR module's address space",
-                     wasmPtr);
-        throw std::runtime_error("Offset out of WAMR memory");
-    }
-    return static_cast<uint8_t*>(nativePtr);
+    // We call the mixin method directly to share the implementation with the
+    // EnclaveWasmModule
+    return wamrWasmPointerToNative(wasmPtr);
 }
 
 bool WAMRWasmModule::doGrowMemory(uint32_t pageChange)
@@ -340,7 +327,7 @@ uint8_t* WAMRWasmModule::getMemoryBase()
 
 size_t WAMRWasmModule::getMaxMemoryPages()
 {
-    auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem = ((AOTMemoryInstance**)aotModule->memories)[0];
     return aotMem->max_page_count;
 }
@@ -357,11 +344,5 @@ WASMModuleInstanceCommon* WAMRWasmModule::getModuleInstance()
 std::vector<std::string> WAMRWasmModule::getArgv()
 {
     return argv;
-}
-
-uint32_t WAMRWasmModule::mmapFile(uint32_t fp, size_t length)
-{
-    // TODO - implement
-    return 0;
 }
 }
