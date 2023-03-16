@@ -75,14 +75,12 @@ bool EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
                                             argv.data());
 
     if (success) {
-        ocallLogDebug("Success calling WASM function");
+        SPDLOG_DEBUG_SGX("Success calling WASM function");
     } else {
         std::string errorMessage(
           ((AOTModuleInstance*)moduleInstance)->cur_exception);
-        // TODO - better logging
-        std::string errorText =
-          "Caught WASM runtime exception: " + errorMessage;
-        ocallLogError(errorText.c_str());
+        SPDLOG_ERROR_SGX("Caught WASM runtime exception: %s",
+                         errorMessage.c_str());
     }
 
     return success;
@@ -136,8 +134,8 @@ std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
     // execution environment to any of the registered modules. This is a fatal
     // error, but we expect the caller to handle it, as throwing exceptions
     // is not supported.
-    ocallLogError("Can not find any registered module corresponding to the "
-                  "supplied execution environment, this is a fatal error");
+    SPDLOG_ERROR_SGX("Can not find any registered module corresponding to the "
+                     "supplied execution environment, this is a fatal error");
 
     return nullptr;
 }
