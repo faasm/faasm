@@ -81,6 +81,7 @@ faasm_private_lib(wamrmodule
     filesystem.cpp
     funcs.cpp
     memory.cpp
+    mpi.cpp
     native.cpp
     process.cpp
     pthread.cpp

@@ -36,6 +36,12 @@ struct WAMRModuleMixin
           moduleInstance, nativePtr, size);
     }
 
+    void* wasmOffsetToNativePointer(uint32_t wasmOffset)
+    {
+        auto moduleInstance = this->underlying().getModuleInstance();
+        return wasm_runtime_addr_app_to_native(moduleInstance, wasmOffset);
+    }
+
     // Convert a native pointer to the corresponding offset in the WASM linear
     // memory.
     uint32_t nativePointerToWasmOffset(void* nativePtr)

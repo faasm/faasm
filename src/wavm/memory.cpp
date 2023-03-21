@@ -65,7 +65,7 @@ std::shared_ptr<faabric::state::StateKeyValue> getStateKV(I32 keyPtr)
 I32 doMmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset)
 {
 
-    SPDLOG_DEBUG(
+    SPDLOG_TRACE(
       "S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
     // Although we are ignoring the offset we should probably
@@ -146,7 +146,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__sbrk", I32, __sbrk, I32 increment)
 {
-    SPDLOG_DEBUG("S - sbrk - {}", increment);
+    SPDLOG_TRACE("S - sbrk - {}", increment);
 
     WAVMWasmModule* module = getExecutingWAVMModule();
     I32 result;

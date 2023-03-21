@@ -827,7 +827,9 @@ void WasmModule::unmapMemory(uint32_t offset, size_t nBytes)
         SPDLOG_TRACE("MEM - munmapping top of memory by {}", pageAligned);
         shrinkMemory(pageAligned);
     } else {
-        SPDLOG_WARN("MEM - unable to reclaim unmapped memory {} at {}",
+        // TODO: why are we hitting this warning so much now? Is this something
+        // we need to worry about? Move to debug temporarily
+        SPDLOG_DEBUG("MEM - unable to reclaim unmapped memory {} at {}",
                     pageAligned,
                     offset);
     }
