@@ -9,6 +9,12 @@
 
 using namespace faabric::scheduler;
 
+#define MPI_FUNC(str)                                                          \
+    SPDLOG_TRACE("MPI-{} {}", executingContext.getRank(), str);
+
+#define MPI_FUNC_ARGS(formatStr, ...)                                          \
+    SPDLOG_TRACE("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
+
 namespace wasm {
 static thread_local faabric::scheduler::MpiContext executingContext;
 
@@ -122,6 +128,8 @@ static int terminateMpi()
 
 static int32_t MPI_Abort_wrapper(wasm_exec_env_t execEnv, int32_t a, int32_t b)
 {
+    MPI_FUNC_ARGS("S - MPI_Abort {} {}", a, b);
+
     return terminateMpi();
 }
 
@@ -134,6 +142,15 @@ static int32_t MPI_Allgather_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* recvType,
                                      int32_t* comm)
 {
+    MPI_FUNC_ARGS("S - MPI_Allgather {} {} {} {} {} {} {}",
+                  (uintptr_t)sendBuf,
+                  sendCount,
+                  (uintptr_t)sendType,
+                  (uintptr_t)recvBuf,
+                  recvCount,
+                  (uintptr_t)recvType,
+                  (uintptr_t)comm);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
@@ -180,6 +197,14 @@ static int32_t MPI_Allreduce_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* op,
                                      int32_t* comm)
 {
+    MPI_FUNC_ARGS("S - MPI_Allreduce {} {} {} {} {} {}",
+                  (uintptr_t)sendBuf,
+                  (uintptr_t)recvBuf,
+                  count,
+                  (uintptr_t)datatype,
+                  (uintptr_t)op,
+                  (uintptr_t)comm);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
     faabric_op_t* hostOp = ctx->getFaasmOp(op);
@@ -211,6 +236,15 @@ static int32_t MPI_Alltoall_wrapper(wasm_exec_env_t execEnv,
                                     int32_t* recvType,
                                     int32_t* comm)
 {
+    MPI_FUNC_ARGS("S - MPI_Alltoall {} {} {} {} {} {} {}",
+                  (uintptr_t)sendBuf,
+                  sendCount,
+                  (uintptr_t)sendType,
+                  (uintptr_t)recvBuf,
+                  recvCount,
+                  (uintptr_t)recvType,
+                  (uintptr_t)comm);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
@@ -247,6 +281,8 @@ static int32_t MPI_Alltoallv_wrapper(wasm_exec_env_t execEnv,
 
 static int32_t MPI_Barrier_wrapper(wasm_exec_env_t execEnv, int32_t* comm)
 {
+    MPI_FUNC_ARGS("S - MPI_Barrier {}", (uintptr_t)comm);
+
     ctx->checkMpiComm(comm);
     ctx->world.barrier(ctx->rank);
 
@@ -260,6 +296,13 @@ static int32_t MPI_Bcast_wrapper(wasm_exec_env_t execEnv,
                                  int32_t root,
                                  int32_t* comm)
 {
+    MPI_FUNC_ARGS("S - MPI_Bcast {} {} {} {} {}",
+                  (uintptr_t)buffer,
+                  count,
+                  (uintptr_t)datatype,
+                  root,
+                  (uintptr_t)comm);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
 
@@ -283,6 +326,14 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
                                        int32_t reorder,
                                        int32_t* newCommPtrPtr)
 {
+    MPI_FUNC_ARGS("S - MPI_Cart_create {} {} {} {} {} {}",
+                  (uintptr_t)oldCommPtrPtr,
+                  ndims,
+                  dims,
+                  periods,
+                  reorder,
+                  (uintptr_t)newCommPtrPtr);
+
     // Note that the communicator pointers are, in fact, double pointers.
     // Double pointers are particularly missleading because the first pointer
     // is converted from a wasm offset into a native pointer by WAMR, but the
@@ -323,6 +374,13 @@ static int32_t MPI_Cart_get_wrapper(wasm_exec_env_t execEnv,
                                     int32_t* periods,
                                     int32_t* coords)
 {
+    MPI_FUNC_ARGS("S - MPI_Cart_get {} {} {} {} {}",
+                  (uintptr_t)comm,
+                  maxdims,
+                  (uintptr_t)dims,
+                  (uintptr_t)periods,
+                  (uintptr_t)coords);
+
     if (maxdims < MPI_CART_MAX_DIMENSIONS) {
         SPDLOG_ERROR("Unexpected number of max. dimensions: {}", maxdims);
         throw std::runtime_error("Bad dimensions in MPI_Cart_get");
@@ -342,6 +400,11 @@ static int32_t MPI_Cart_rank_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* coords,
                                      int32_t* rank)
 {
+    MPI_FUNC_ARGS("S - MPI_Cart_rank {} {} {}",
+                  (uintptr_t)comm,
+                  (uintptr_t)coords,
+                  (uintptr_t)rank);
+
     ctx->module->validateNativePointer(coords,
                                        sizeof(int) * MPI_CART_MAX_DIMENSIONS);
     ctx->world.getRankFromCoords(rank, coords);
@@ -356,6 +419,13 @@ static int32_t MPI_Cart_shift_wrapper(wasm_exec_env_t execEnv,
                                       int32_t* sourceRank,
                                       int32_t* destRank)
 {
+    MPI_FUNC_ARGS("S - MPI_Cart_shift {} {} {} {} {}",
+                  (uintptr_t)comm,
+                  direction,
+                  disp,
+                  (uintptr_t)sourceRank,
+                  (uintptr_t)destRank);
+
     ctx->world.shiftCartesianCoords(
       ctx->rank, direction, disp, sourceRank, destRank);
 
@@ -371,6 +441,7 @@ static int32_t MPI_Comm_dup_wrapper(wasm_exec_env_t execEnv,
 
 static int32_t MPI_Comm_free_wrapper(wasm_exec_env_t execEnv, int32_t* comm)
 {
+    MPI_FUNC_ARGS("MPI_Comm_free {}", (uintptr_t)comm);
     // Deallocation is handled outside of MPI
 
     return MPI_SUCCESS;
@@ -380,6 +451,8 @@ static int32_t MPI_Comm_rank_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* comm,
                                      int32_t* resPtr)
 {
+    MPI_FUNC_ARGS("S - MPI_Comm_rank {} {}", (uintptr_t)comm, (uintptr_t)resPtr);
+
     ctx->checkMpiComm(comm);
     ctx->writeMpiResult<int>(resPtr, ctx->rank);
 
@@ -390,6 +463,8 @@ static int32_t MPI_Comm_size_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* comm,
                                      int32_t* resPtr)
 {
+    MPI_FUNC_ARGS("S - MPI_Comm_size {} {}", (uintptr_t)comm, (uintptr_t)resPtr);
+
     ctx->checkMpiComm(comm);
     ctx->writeMpiResult<int>(resPtr, ctx->world.getSize());
 
@@ -407,7 +482,7 @@ static int32_t MPI_Comm_split_wrapper(wasm_exec_env_t execEnv,
 
 static int32_t MPI_Finalize_wrapper(wasm_exec_env_t execEnv)
 {
-    SPDLOG_DEBUG("MPI-{} MPI_Finalize", executingContext.getRank());
+    MPI_FUNC("S - MPI_Finalize");
 
     return terminateMpi();
 }
@@ -422,6 +497,16 @@ static int32_t MPI_Gather_wrapper(wasm_exec_env_t execEnv,
                                   int32_t root,
                                   int32_t* comm)
 {
+    MPI_FUNC_ARGS("S - MPI_Gather {} {} {} {} {} {} {} {}",
+                  (uintptr_t)sendBuf,
+                  sendCount,
+                  (uintptr_t)sendType,
+                  (uintptr_t)recvBuf,
+                  recvCount,
+                  (uintptr_t)recvType,
+                  root,
+                  (uintptr_t)comm);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
@@ -453,6 +538,11 @@ static int32_t MPI_Get_count_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* datatype,
                                      int32_t* countPtr)
 {
+    MPI_FUNC_ARGS("MPI_Get_count {} {} {}",
+                  (uintptr_t)statusPtr,
+                  (uintptr_t)datatype,
+                  (uintptr_t)countPtr);
+
     ctx->module->validateNativePointer(statusPtr, sizeof(MPI_Status));
     MPI_Status* status = reinterpret_cast<MPI_Status*>(statusPtr);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
@@ -474,6 +564,8 @@ static int32_t MPI_Get_processor_name_wrapper(wasm_exec_env_t execEnv,
                                               int32_t* buf,
                                               int32_t bufLen)
 {
+    MPI_FUNC("MPI_Get_processor_name");
+
     const std::string host = faabric::util::getSystemConfig().endpointHost;
     ctx->module->validateNativePointer(buf, sizeof(char) * bufLen);
     strncpy(reinterpret_cast<char*>(buf), host.c_str(), bufLen);
@@ -521,6 +613,15 @@ static int32_t MPI_Irecv_wrapper(wasm_exec_env_t execEnv,
                                  int32_t* comm,
                                  int32_t* requestPtrPtr)
 {
+    MPI_FUNC_ARGS("S - MPI_Irecv {} {} {} {} {} {} {}",
+                  (uintptr_t)buffer,
+                  count,
+                  (uintptr_t)datatype,
+                  sourceRank,
+                  tag,
+                  (uintptr_t)comm,
+                  (uintptr_t)requestPtrPtr);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
 
@@ -542,6 +643,15 @@ static int32_t MPI_Isend_wrapper(wasm_exec_env_t execEnv,
                                  int32_t* comm,
                                  int32_t* requestPtrPtr)
 {
+    MPI_FUNC_ARGS("S - MPI_Isend {} {} {} {} {} {} {}",
+                  (uintptr_t)buffer,
+                  count,
+                  (uintptr_t)datatype,
+                  destRank,
+                  tag,
+                  (uintptr_t)comm,
+                  (uintptr_t)requestPtrPtr);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
 
@@ -573,6 +683,12 @@ static int32_t MPI_Probe_wrapper(wasm_exec_env_t execEnv,
                                  int32_t* comm,
                                  int32_t* statusPtr)
 {
+    MPI_FUNC_ARGS("S - MPI_Probe {} {} {} {}",
+                  source,
+                  tag,
+                  (uintptr_t)comm,
+                  (uintptr_t)statusPtr);
+
     throw std::runtime_error("MPI_Probe not implemented!");
 }
 
@@ -585,6 +701,15 @@ static int32_t MPI_Recv_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* comm,
                                 int32_t* statusPtr)
 {
+    MPI_FUNC_ARGS("S - MPI_Recv {} {} {} {} {} {} {}",
+                  (uintptr_t)buffer,
+                  count,
+                  (uintptr_t)datatype,
+                  sourceRank,
+                  tag,
+                  (uintptr_t)comm,
+                  (uintptr_t)statusPtr);
+
     ctx->checkMpiComm(comm);
     ctx->module->validateNativePointer(statusPtr, sizeof(MPI_Status));
     MPI_Status* status = reinterpret_cast<MPI_Status*>(statusPtr);
@@ -607,6 +732,15 @@ static int32_t MPI_Reduce_wrapper(wasm_exec_env_t execEnv,
                                   int32_t root,
                                   int32_t* comm)
 {
+    MPI_FUNC_ARGS("S - MPI_Reduce {} {} {} {} {} {} {}",
+                  (uintptr_t)sendBuf,
+                  (uintptr_t)recvBuf,
+                  count,
+                  (uintptr_t)datatype,
+                  (uintptr_t)op,
+                  root,
+                  (uintptr_t)comm);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
     faabric_op_t* hostOp = ctx->getFaasmOp(op);
@@ -666,6 +800,14 @@ static int32_t MPI_Scan_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* op,
                                 int32_t* comm)
 {
+    MPI_FUNC_ARGS("S - MPI_Scan {} {} {} {} {} {}",
+                  (uintptr_t)sendBuf,
+                  (uintptr_t)recvBuf,
+                  count,
+                  (uintptr_t)datatype,
+                  (uintptr_t)op,
+                  (uintptr_t)comm);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
     faabric_op_t* hostOp = ctx->getFaasmOp(op);
@@ -698,6 +840,16 @@ static int32_t MPI_Scatter_wrapper(wasm_exec_env_t execEnv,
                                    int32_t root,
                                    int32_t* comm)
 {
+    MPI_FUNC_ARGS("S - MPI_Scatter {} {} {} {} {} {} {} {}",
+                  (uintptr_t)sendBuf,
+                  sendCount,
+                  (uintptr_t)sendType,
+                  (uintptr_t)recvBuf,
+                  recvCount,
+                  (uintptr_t)recvType,
+                  root,
+                  (uintptr_t)comm);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
@@ -727,6 +879,14 @@ static int32_t MPI_Send_wrapper(wasm_exec_env_t execEnv,
                                 int32_t tag,
                                 int32_t* comm)
 {
+    MPI_FUNC_ARGS("S - MPI_Send {} {} {} {} {} {}",
+                  (uintptr_t)buffer,
+                  count,
+                  (uintptr_t)datatype,
+                  destRank,
+                  tag,
+                  (uintptr_t)comm);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
 
@@ -751,6 +911,20 @@ static int32_t MPI_Sendrecv_wrapper(wasm_exec_env_t execEnv,
                                     int32_t* comm,
                                     int32_t* statusPtr)
 {
+    MPI_FUNC_ARGS("S - MPI_Sendrecv {} {} {} {} {} {} {} {} {} {} {} {}",
+                  (uintptr_t)sendBuf,
+                  sendCount,
+                  (uintptr_t)sendType,
+                  destination,
+                  sendTag,
+                  (uintptr_t)recvBuf,
+                  recvCount,
+                  (uintptr_t)recvType,
+                  source,
+                  recvTag,
+                  (uintptr_t)comm,
+                  (uintptr_t)statusPtr);
+
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
@@ -780,6 +954,8 @@ static int32_t MPI_Sendrecv_wrapper(wasm_exec_env_t execEnv,
 static int32_t MPI_Type_commit_wrapper(wasm_exec_env_t execEnv,
                                        int32_t* datatypePtrPtr)
 {
+    MPI_FUNC("MPI_Type_commit");
+
     return MPI_SUCCESS;
 }
 
@@ -788,6 +964,8 @@ static int32_t MPI_Type_contiguous_wrapper(wasm_exec_env_t execEnv,
                                            int32_t* oldDataTypePtr,
                                            int32_t* newDataTypePtr)
 {
+    MPI_FUNC("MPI_Type_contiguous");
+
     return MPI_SUCCESS;
 }
 
@@ -800,6 +978,10 @@ static int32_t MPI_Type_size_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* typePtr,
                                      int32_t* res)
 {
+    MPI_FUNC_ARGS("MPI_Type_size {} {}",
+                  (uintptr_t)typePtr,
+                  (uintptr_t)res);
+
     faabric_datatype_t* hostType = ctx->getFaasmDataType(typePtr);
     ctx->writeMpiResult<int>(res, hostType->size);
 
@@ -811,6 +993,10 @@ static int32_t MPI_Wait_wrapper(wasm_exec_env_t execEnv,
                                 int32_t status)
 {
     int32_t requestId = ctx->getFaasmRequestId(requestPtrPtr);
+
+    MPI_FUNC_ARGS("S - MPI_Wait {} {}",
+                  (uintptr_t)requestPtrPtr,
+                  requestId);
 
     ctx->world.awaitAsyncRequest(requestId);
 
@@ -836,6 +1022,8 @@ static int32_t MPI_Waitany_wrapper(wasm_exec_env_t execEnv,
 
 static double MPI_Wtime_wrapper()
 {
+    MPI_FUNC("MPI_Wtime");
+
     return ctx->world.getWTime();
 }
 
