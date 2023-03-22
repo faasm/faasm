@@ -13,11 +13,6 @@ using namespace faabric::scheduler;
 namespace wasm {
 static thread_local faabric::scheduler::MpiContext executingContext;
 
-bool isInPlace(int32_t* wasmPtr)
-{
-    return wasmPtr == MPI_IN_PLACE;
-}
-
 static faabric::scheduler::MpiWorld& getExecutingWorld()
 {
     faabric::scheduler::MpiWorldRegistry& reg =
@@ -78,6 +73,17 @@ class WamrMpiContextWrapper
         int32_t requestId = reinterpret_cast<uintptr_t>(*requestPtr);
 
         return requestId;
+    }
+
+    // In place execution of reduce-like calls is indicated by setting the send
+    // buffer to the MPI_IN_PLACE constant, which is a special pointer to 0x2.
+    // WAMR automatially converts the wasm offset to a native pointer as part
+    // of the native symbol call, so we convert it back to a wasm offset and
+    // check its value
+    bool isInPlace(int32_t* wasmPtr)
+    {
+        int wasmOffset = module->nativePointerToWasmOffset(wasmPtr);
+        return wasmOffset == FAABRIC_IN_PLACE;
     }
 
     /*
@@ -142,7 +148,7 @@ static int32_t MPI_Allgather_wrapper(wasm_exec_env_t execEnv,
 
     ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
 
-    if (isInPlace(sendBuf)) {
+    if (ctx->isInPlace(sendBuf)) {
         sendBuf = recvBuf;
     } else {
         ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
@@ -186,7 +192,7 @@ static int32_t MPI_Allreduce_wrapper(wasm_exec_env_t execEnv,
 
     ctx->module->validateNativePointer(recvBuf, count * hostDtype->size);
 
-    if (isInPlace(sendBuf)) {
+    if (ctx->isInPlace(sendBuf)) {
         sendBuf = recvBuf;
     } else {
         ctx->module->validateNativePointer(sendBuf, count * hostDtype->size);
@@ -432,7 +438,7 @@ static int32_t MPI_Reduce_wrapper(wasm_exec_env_t execEnv,
 
     ctx->module->validateNativePointer(recvBuf, count * hostDtype->size);
 
-    if (isInPlace(sendBuf)) {
+    if (ctx->isInPlace(sendBuf)) {
         sendBuf = recvBuf;
     } else {
         ctx->module->validateNativePointer(sendBuf, count * hostDtype->size);
@@ -463,7 +469,7 @@ static int32_t MPI_Scan_wrapper(wasm_exec_env_t execEnv,
 
     ctx->module->validateNativePointer(recvBuf, count * hostDtype->size);
 
-    if (isInPlace(sendBuf)) {
+    if (ctx->isInPlace(sendBuf)) {
         sendBuf = recvBuf;
     } else {
         ctx->module->validateNativePointer(sendBuf, count * hostDtype->size);
