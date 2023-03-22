@@ -1003,6 +1003,35 @@ static int32_t MPI_Scan_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+static int32_t MPI_Scatter_wrapper(wasm_exec_env_t execEnv,
+                                   int32_t* sendBuf,
+                                   int32_t sendCount,
+                                   int32_t* sendType,
+                                   int32_t* recvBuf,
+                                   int32_t recvCount,
+                                   int32_t* recvType,
+                                   int32_t root,
+                                   int32_t* comm)
+{
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
+    faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
+
+    ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
+    ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
+
+    ctx->world.scatter(root,
+                       ctx->rank,
+                       (uint8_t*)sendBuf,
+                       hostSendDtype,
+                       sendCount,
+                       (uint8_t*)recvBuf,
+                       hostRecvDtype,
+                       recvCount);
+
+    return MPI_SUCCESS;
+}
+
 static int32_t MPI_Send_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* buffer,
                                 int32_t count,
