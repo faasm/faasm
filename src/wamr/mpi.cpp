@@ -416,7 +416,7 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
     faabric_communicator_t* hostOldCommPtr =
       reinterpret_cast<faabric_communicator_t*>(
         ctx->module->wasmOffsetToNativePointer((uintptr_t)*oldCommPtr));
-    *hostNewCommPtr = *hostOldCommPtr;
+    faabric::util::unalignedWrite<faabric_communicator_t>(*hostOldCommPtr, (uint8_t*)hostNewCommPtr);
 
     return MPI_SUCCESS;
 }
