@@ -13,6 +13,7 @@ static int32_t syscall_wrapper(wasm_exec_env_t exec_env,
                                int32_t syscallNo,
                                int32_t syscallArgs)
 {
+    SPDLOG_DEBUG("syscall - {}", syscallNo);
     switch (syscallNo) {
         case 224:
             // We only support gettid here

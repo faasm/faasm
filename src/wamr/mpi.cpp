@@ -36,7 +36,8 @@ class WamrMpiContextWrapper
     void checkMpiComm(int32_t* wasmPtr) const
     {
         module->validateNativePointer(wasmPtr, sizeof(faabric_communicator_t));
-        faabric_communicator_t* hostComm = reinterpret_cast<faabric_communicator_t*>(wasmPtr);
+        faabric_communicator_t* hostComm =
+          reinterpret_cast<faabric_communicator_t*>(wasmPtr);
 
         if (hostComm->id != FAABRIC_COMM_WORLD) {
             SPDLOG_ERROR("Unrecognised communicator type {}", hostComm->id);
@@ -47,7 +48,8 @@ class WamrMpiContextWrapper
     faabric_datatype_t* getFaasmDataType(int32_t* wasmPtr) const
     {
         module->validateNativePointer(wasmPtr, sizeof(faabric_datatype_t));
-        faabric_datatype_t* hostDataType = reinterpret_cast<faabric_datatype_t*>(wasmPtr);
+        faabric_datatype_t* hostDataType =
+          reinterpret_cast<faabric_datatype_t*>(wasmPtr);
 
         return hostDataType;
     }
@@ -146,12 +148,14 @@ static int32_t MPI_Allgather_wrapper(wasm_exec_env_t execEnv,
     faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
 
-    ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
+    ctx->module->validateNativePointer(recvBuf,
+                                       recvCount * hostRecvDtype->size);
 
     if (ctx->isInPlace(sendBuf)) {
         sendBuf = recvBuf;
     } else {
-        ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
+        ctx->module->validateNativePointer(sendBuf,
+                                           sendCount * hostSendDtype->size);
     }
 
     ctx->world.allGather(ctx->rank,
@@ -198,8 +202,12 @@ static int32_t MPI_Allreduce_wrapper(wasm_exec_env_t execEnv,
         ctx->module->validateNativePointer(sendBuf, count * hostDtype->size);
     }
 
-    ctx->world.allReduce(
-      ctx->rank, (uint8_t*)sendBuf, (uint8_t*)recvBuf, hostDtype, count, hostOp);
+    ctx->world.allReduce(ctx->rank,
+                         (uint8_t*)sendBuf,
+                         (uint8_t*)recvBuf,
+                         hostDtype,
+                         count,
+                         hostOp);
 
     return MPI_SUCCESS;
 }
@@ -217,8 +225,10 @@ static int32_t MPI_Alltoall_wrapper(wasm_exec_env_t execEnv,
     faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
 
-    ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
-    ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
+    ctx->module->validateNativePointer(sendBuf,
+                                       sendCount * hostSendDtype->size);
+    ctx->module->validateNativePointer(recvBuf,
+                                       recvCount * hostRecvDtype->size);
 
     ctx->world.allToAll(ctx->rank,
                         (uint8_t*)sendBuf,
@@ -245,8 +255,7 @@ static int32_t MPI_Alltoallv_wrapper(wasm_exec_env_t execEnv,
     throw std::runtime_error("MPI_Alltoallv not implemented!");
 }
 
-static int32_t MPI_Barrier_wrapper(wasm_exec_env_t execEnv,
-                                   int32_t* comm)
+static int32_t MPI_Barrier_wrapper(wasm_exec_env_t execEnv, int32_t* comm)
 {
     ctx->checkMpiComm(comm);
     ctx->world.barrier(ctx->rank);
@@ -293,7 +302,8 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
     MPI_Comm* newCommPtr = reinterpret_cast<MPI_Comm*>(newCommPtrPtr);
 
     // Allocate memory for the pointed-to faabric_communicator_t
-    size_t pageAlignedMemSize = roundUpToWasmPageAligned(sizeof(faabric_communicator_t));
+    size_t pageAlignedMemSize =
+      roundUpToWasmPageAligned(sizeof(faabric_communicator_t));
     uint32_t wasmPtr = ctx->module->growMemory(pageAlignedMemSize);
 
     // Assign the new memory to the MPI_Comm value
@@ -305,8 +315,12 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
 
     // Be careful, as *newCommPtr is a WASM offset, not a native pointer. We
     // need the native pointer to copy the values from the old communicator
-    faabric_communicator_t* hostNewCommPtr = reinterpret_cast<faabric_communicator_t*>(ctx->module->wasmOffsetToNativePointer(wasmPtr));
-    faabric_communicator_t* hostOldCommPtr = reinterpret_cast<faabric_communicator_t*>(ctx->module->wasmOffsetToNativePointer((uintptr_t) *oldCommPtr));
+    faabric_communicator_t* hostNewCommPtr =
+      reinterpret_cast<faabric_communicator_t*>(
+        ctx->module->wasmOffsetToNativePointer(wasmPtr));
+    faabric_communicator_t* hostOldCommPtr =
+      reinterpret_cast<faabric_communicator_t*>(
+        ctx->module->wasmOffsetToNativePointer((uintptr_t)*oldCommPtr));
     *hostNewCommPtr = *hostOldCommPtr;
 
     return MPI_SUCCESS;
@@ -334,11 +348,12 @@ static int32_t MPI_Cart_get_wrapper(wasm_exec_env_t execEnv,
 }
 
 static int32_t MPI_Cart_rank_wrapper(wasm_exec_env_t execEnv,
-                                    int32_t* comm,
-                                    int32_t* coords,
-                                    int32_t* rank)
+                                     int32_t* comm,
+                                     int32_t* coords,
+                                     int32_t* rank)
 {
-    ctx->module->validateNativePointer(coords, sizeof(int) * MPI_CART_MAX_DIMENSIONS);
+    ctx->module->validateNativePointer(coords,
+                                       sizeof(int) * MPI_CART_MAX_DIMENSIONS);
     ctx->world.getRankFromCoords(rank, coords);
 
     return MPI_SUCCESS;
@@ -364,8 +379,7 @@ static int32_t MPI_Comm_dup_wrapper(wasm_exec_env_t execEnv,
     throw std::runtime_error("MPI_Comm_dup not implemented!");
 }
 
-static int32_t MPI_Comm_free_wrapper(wasm_exec_env_t execEnv,
-                                     int32_t* comm)
+static int32_t MPI_Comm_free_wrapper(wasm_exec_env_t execEnv, int32_t* comm)
 {
     // Deallocation is handled outside of MPI
 
@@ -376,8 +390,6 @@ static int32_t MPI_Comm_rank_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* comm,
                                      int32_t* resPtr)
 {
-    SPDLOG_DEBUG("MPI-{} MPI_Comm_rank", executingContext.getRank());
-
     ctx->checkMpiComm(comm);
     ctx->writeMpiResult<int>(resPtr, ctx->rank);
 
@@ -388,8 +400,6 @@ static int32_t MPI_Comm_size_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* comm,
                                      int32_t* resPtr)
 {
-    SPDLOG_DEBUG("MPI-{} MPI_Comm_size", executingContext.getRank());
-
     ctx->checkMpiComm(comm);
     ctx->writeMpiResult<int>(resPtr, ctx->world.getSize());
 
@@ -426,12 +436,14 @@ static int32_t MPI_Gather_wrapper(wasm_exec_env_t execEnv,
     faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
 
-    ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
+    ctx->module->validateNativePointer(recvBuf,
+                                       recvCount * hostRecvDtype->size);
 
     if (ctx->isInPlace(sendBuf)) {
         sendBuf = recvBuf;
     } else {
-        ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
+        ctx->module->validateNativePointer(sendBuf,
+                                           sendCount * hostSendDtype->size);
     }
 
     ctx->world.gather(ctx->rank,
@@ -523,8 +535,8 @@ static int32_t MPI_Irecv_wrapper(wasm_exec_env_t execEnv,
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
 
     ctx->module->validateNativePointer(buffer, count * hostDtype->size);
-    int requestId =
-      ctx->world.irecv(sourceRank, ctx->rank, (uint8_t*)buffer, hostDtype, count);
+    int requestId = ctx->world.irecv(
+      sourceRank, ctx->rank, (uint8_t*)buffer, hostDtype, count);
 
     ctx->writeFaasmRequestId(requestPtrPtr, requestId);
 
@@ -565,6 +577,15 @@ static int32_t MPI_Op_free_wrapper(wasm_exec_env_t execEnv, int32_t* op)
     throw std::runtime_error("MPI_Op_free not implemented!");
 }
 
+static int32_t MPI_Probe_wrapper(wasm_exec_env_t execEnv,
+                                 int32_t source,
+                                 int32_t tag,
+                                 int32_t* comm,
+                                 int32_t* statusPtr)
+{
+    throw std::runtime_error("MPI_Probe not implemented!");
+}
+
 static int32_t MPI_Recv_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* buffer,
                                 int32_t count,
@@ -581,7 +602,8 @@ static int32_t MPI_Recv_wrapper(wasm_exec_env_t execEnv,
 
     ctx->module->validateNativePointer(buffer, count * hostDtype->size);
 
-    ctx->world.recv(sourceRank, ctx->rank, (uint8_t*)buffer, hostDtype, count, status);
+    ctx->world.recv(
+      sourceRank, ctx->rank, (uint8_t*)buffer, hostDtype, count, status);
 
     return MPI_SUCCESS;
 }
@@ -666,8 +688,12 @@ static int32_t MPI_Scan_wrapper(wasm_exec_env_t execEnv,
         ctx->module->validateNativePointer(sendBuf, count * hostDtype->size);
     }
 
-    ctx->world.scan(
-      ctx->rank, (uint8_t*)sendBuf, (uint8_t*)recvBuf, hostDtype, count, hostOp);
+    ctx->world.scan(ctx->rank,
+                    (uint8_t*)sendBuf,
+                    (uint8_t*)recvBuf,
+                    hostDtype,
+                    count,
+                    hostOp);
 
     return MPI_SUCCESS;
 }
@@ -686,8 +712,10 @@ static int32_t MPI_Scatter_wrapper(wasm_exec_env_t execEnv,
     faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
 
-    ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
-    ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
+    ctx->module->validateNativePointer(sendBuf,
+                                       sendCount * hostSendDtype->size);
+    ctx->module->validateNativePointer(recvBuf,
+                                       recvCount * hostRecvDtype->size);
 
     ctx->world.scatter(root,
                        ctx->rank,
@@ -740,8 +768,10 @@ static int32_t MPI_Sendrecv_wrapper(wasm_exec_env_t execEnv,
     ctx->module->validateNativePointer(statusPtr, sizeof(MPI_Status));
     MPI_Status* status = reinterpret_cast<MPI_Status*>(statusPtr);
 
-    ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
-    ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
+    ctx->module->validateNativePointer(sendBuf,
+                                       sendCount * hostSendDtype->size);
+    ctx->module->validateNativePointer(recvBuf,
+                                       recvCount * hostRecvDtype->size);
 
     ctx->world.sendRecv((uint8_t*)sendBuf,
                         sendCount,
@@ -847,6 +877,7 @@ static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(MPI_Isend, "(*i*ii**)i"),
     REG_NATIVE_FUNC(MPI_Op_create, "(*ii)i"),
     REG_NATIVE_FUNC(MPI_Op_free, "(*)i"),
+    REG_NATIVE_FUNC(MPI_Probe, "(ii**)i"),
     REG_NATIVE_FUNC(MPI_Recv, "(*i*ii**)i"),
     REG_NATIVE_FUNC(MPI_Reduce, "(**i**i*)i"),
     REG_NATIVE_FUNC(MPI_Reduce_scatter, "(**i***)i"),
