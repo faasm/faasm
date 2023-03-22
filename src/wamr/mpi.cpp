@@ -57,30 +57,28 @@ class WamrMpiContextWrapper
         return hostDataType;
     }
 
-    /**
-     * We use a trick here to avoid allocating extra memory. Rather than create
-     * an actual struct for the MPI_Request, we just use the pointer to hold the
-     * value of its ID
-     */
-    /*
-    void writeFaasmRequestId(I32 requestPtrPtr, I32 requestId)
+    // MPI passes an MPI_Request* as part of the asynchronous API calls.
+    // MPI_Request is in itself a faabric_request_t* so, to write a value to
+    // it, we'd have to allocate memory for the faabric_reques_t. To aovid
+    // doing that, we write the actual request id to a faabric_reques_t*.
+    void writeFaasmRequestId(int32_t* requestPtrPtr, int32_t requestId)
     {
-        writeMpiResult<int>(requestPtrPtr, requestId);
+        module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
+        MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
+        *requestPtr = reinterpret_cast<faabric_request_t*>(requestId);
     }
-    */
 
-    /**
-     * This uses the same trick, where we read the value of the pointer as the
-     * request ID.
-     */
-    /*
-    I32 getFaasmRequestId(I32 requestPtrPtr)
+    // We use the same trick described before here. We take the value of
+    // MPI_Request (which is a faabric_request_t*) and interpret it as an int,
+    // the request id
+    int32_t getFaasmRequestId(int32_t* requestPtrPtr)
     {
-        I32 requestId = Runtime::memoryRef<I32>(
-          getExecutingWAVMModule()->defaultMemory, requestPtrPtr);
+        module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
+        MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
+        int32_t requestId = reinterpret_cast<uintptr_t>(*requestPtr);
+
         return requestId;
     }
-    */
 
     /*
     faabric_info_t* getFaasmInfoType(I32 wasmPtr)
@@ -257,10 +255,7 @@ static int32_t MPI_Irecv_wrapper(wasm_exec_env_t execEnv,
     int requestId =
       ctx->world.irecv(sourceRank, ctx->rank, (uint8_t*)buffer, hostDtype, count);
 
-    ctx->module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
-    MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
-    SPDLOG_INFO("irecv gonna segfault");
-    (*requestPtr)->id = requestId;
+    ctx->writeFaasmRequestId(requestPtrPtr, requestId);
 
     return MPI_SUCCESS;
 }
@@ -281,13 +276,7 @@ static int32_t MPI_Isend_wrapper(wasm_exec_env_t execEnv,
     int requestId =
       ctx->world.isend(ctx->rank, destRank, (uint8_t*)buffer, hostDtype, count);
 
-    ctx->module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
-    MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
-    // *requestPtr is a pointer in WASM!
-    uint32_t wasmOffset = reinterpret_cast<uint32_t>(*requestPtr);
-    faabric_request_t*  request = reinterpret_cast<faabric_request_t*>(wasmOffsetToNativePointer((uint32_t)*requestPtr));
-    SPDLOG_INFO("isend gonna segfault");
-    (*requestPtr)->id = requestId;
+    ctx->writeFaasmRequestId(requestPtrPtr, requestId);
 
     return MPI_SUCCESS;
 }
@@ -331,15 +320,51 @@ static int32_t MPI_Send_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+static int32_t MPI_Sendrecv_wrapper(wasm_exec_env_t execEnv,
+                                    int32_t* sendBuf,
+                                    int32_t sendCount,
+                                    int32_t* sendType,
+                                    int32_t destination,
+                                    int32_t sendTag,
+                                    int32_t* recvBuf,
+                                    int32_t recvCount,
+                                    int32_t* recvType,
+                                    int32_t source,
+                                    int32_t recvTag,
+                                    int32_t* comm,
+                                    int32_t* statusPtr)
+{
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
+    faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
+
+    ctx->module->validateNativePointer(statusPtr, sizeof(MPI_Status));
+    MPI_Status* status = reinterpret_cast<MPI_Status*>(statusPtr);
+
+    ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
+    ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
+
+    ctx->world.sendRecv((uint8_t*)sendBuf,
+                        sendCount,
+                        hostSendDtype,
+                        destination,
+                        (uint8_t*)recvBuf,
+                        recvCount,
+                        hostRecvDtype,
+                        source,
+                        ctx->rank,
+                        status);
+
+    return MPI_SUCCESS;
+}
+
 static int32_t MPI_Wait_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* requestPtrPtr,
                                 int32_t status)
 {
-    ctx->module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
-    MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
+    int32_t requestId = ctx->getFaasmRequestId(requestPtrPtr);
 
-    SPDLOG_INFO("wait gonna segfault");
-    ctx->world.awaitAsyncRequest((*requestPtr)->id);
+    ctx->world.awaitAsyncRequest(requestId);
 
     return MPI_SUCCESS;
 }
@@ -362,6 +387,7 @@ static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(MPI_Isend, "(*i*ii**)i"),
     REG_NATIVE_FUNC(MPI_Recv, "(*i*ii**)i"),
     REG_NATIVE_FUNC(MPI_Send, "(*i*ii*)i"),
+    REG_NATIVE_FUNC(MPI_Sendrecv, "(*i*ii*i*ii**)i"),
     REG_NATIVE_FUNC(MPI_Wait, "(*i)i"),
     REG_NATIVE_FUNC(MPI_Wtime, "()F"),
 };
