@@ -276,6 +276,99 @@ static int32_t MPI_Bcast_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
+                                       int32_t* oldCommPtrPtr,
+                                       int32_t ndims,
+                                       int32_t dims,
+                                       int32_t periods,
+                                       int32_t reorder,
+                                       int32_t* newCommPtrPtr)
+{
+    // Note that here MPI gives us the pointer to the new communicator, but no
+    // memory has been allocated for it, hence why we need to allocate it here.
+    // Note that we are given an MPI_Comm*, where MPI_Comm is a
+    // faabric_communicator_t*, we need to allocate memory for the faabric
+    // communicator, and use the pointed-to value to populate the MPI_Comm
+    ctx->module->validateNativePointer(newCommPtrPtr, sizeof(MPI_Comm));
+    MPI_Comm* newCommPtr = reinterpret_cast<MPI_Comm*>(newCommPtrPtr);
+
+    // Allocate memory for the pointed-to faabric_communicator_t
+    size_t pageAlignedMemSize = roundUpToWasmPageAligned(sizeof(faabric_communicator_t));
+    uint32_t wasmPtr = ctx->module->growMemory(pageAlignedMemSize);
+    /*
+    void* nativeAddr;
+    *newCommPtr = (faabric_communicator_t*)wasm_runtime_module_malloc(ctx->module->getModuleInstance(),
+                                                                     sizeof(faabric_communicator_t),
+                                                                     &nativeAddr);
+    */
+
+
+    // Assign the new memory to the MPI_Comm value
+    // TODO: do we assign as wasm offset or the native pointer??
+    // *newCommPtr = reinterpret_cast<faabric_communicator_t*>(wasmPtr);
+    // *newCommPtr = reinterpret_cast<faabric_communicator_t*>(ctx->module->wasmOffsetToNativePointer(wasmPtr));
+
+    // Populate the new communicator with values from the old communicator
+    ctx->module->validateNativePointer(oldCommPtrPtr, sizeof(MPI_Comm));
+    MPI_Comm* oldCommPtr = reinterpret_cast<MPI_Comm*>(oldCommPtrPtr);
+    **newCommPtr = **oldCommPtr;
+
+    return MPI_SUCCESS;
+}
+
+static int32_t MPI_Cart_get_wrapper(wasm_exec_env_t execEnv,
+                                    int32_t* comm,
+                                    int32_t maxdims,
+                                    int32_t* dims,
+                                    int32_t* periods,
+                                    int32_t* coords)
+{
+    if (maxdims < MPI_CART_MAX_DIMENSIONS) {
+        SPDLOG_ERROR("Unexpected number of max. dimensions: {}", maxdims);
+        throw std::runtime_error("Bad dimensions in MPI_Cart_get");
+    }
+
+    ctx->module->validateNativePointer(dims, sizeof(int) * maxdims);
+    ctx->module->validateNativePointer(periods, sizeof(int) * maxdims);
+    ctx->module->validateNativePointer(coords, sizeof(int) * maxdims);
+
+    ctx->world.getCartesianRank(ctx->rank, maxdims, dims, periods, coords);
+
+    return MPI_SUCCESS;
+}
+
+static int32_t MPI_Cart_rank_wrapper(wasm_exec_env_t execEnv,
+                                    int32_t* comm,
+                                    int32_t* coords,
+                                    int32_t* rank)
+{
+    ctx->module->validateNativePointer(coords, sizeof(int) * MPI_CART_MAX_DIMENSIONS);
+    ctx->world.getRankFromCoords(rank, coords);
+
+    return MPI_SUCCESS;
+}
+
+static int32_t MPI_Cart_shift_wrapper(wasm_exec_env_t execEnv,
+                                      int32_t* comm,
+                                      int32_t direction,
+                                      int32_t disp,
+                                      int32_t* sourceRank,
+                                      int32_t* destRank)
+{
+    ctx->world.shiftCartesianCoords(
+      ctx->rank, direction, disp, sourceRank, destRank);
+
+    return MPI_SUCCESS;
+}
+
+static int32_t MPI_Comm_free_wrapper(wasm_exec_env_t execEnv,
+                                     int32_t* comm)
+{
+    // Deallocation is handled outside of MPI
+
+    return MPI_SUCCESS;
+}
+
 static int32_t MPI_Comm_rank_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* comm,
                                      int32_t* resPtr)
@@ -300,11 +393,54 @@ static int32_t MPI_Comm_size_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+static int32_t MPI_Comm_split_wrapper(wasm_exec_env_t execEnv,
+                                      int32_t* comm,
+                                      int32_t color,
+                                      int32_t key,
+                                      int32_t* newComm)
+{
+    throw std::runtime_error("MPI_Comm_split not implemented!");
+}
+
 static int32_t MPI_Finalize_wrapper(wasm_exec_env_t execEnv)
 {
     SPDLOG_DEBUG("MPI-{} MPI_Finalize", executingContext.getRank());
 
     return terminateMpi();
+}
+
+static int32_t MPI_Gather_wrapper(wasm_exec_env_t execEnv,
+                                  int32_t* sendBuf,
+                                  int32_t sendCount,
+                                  int32_t* sendType,
+                                  int32_t* recvBuf,
+                                  int32_t recvCount,
+                                  int32_t* recvType,
+                                  int32_t root,
+                                  int32_t* comm)
+{
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
+    faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
+
+    ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
+
+    if (ctx->isInPlace(sendBuf)) {
+        sendBuf = recvBuf;
+    } else {
+        ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
+    }
+
+    ctx->world.gather(ctx->rank,
+                      root,
+                      (uint8_t*)sendBuf,
+                      hostSendDtype,
+                      sendCount,
+                      (uint8_t*)recvBuf,
+                      hostRecvDtype,
+                      recvCount);
+
+    return MPI_SUCCESS;
 }
 
 static int32_t MPI_Get_count_wrapper(wasm_exec_env_t execEnv,
@@ -325,6 +461,17 @@ static int32_t MPI_Get_count_wrapper(wasm_exec_env_t execEnv,
 
     int nVals = status->bytesSize / hostDtype->size;
     ctx->writeMpiResult<int>(countPtr, nVals);
+
+    return MPI_SUCCESS;
+}
+
+static int32_t MPI_Get_processor_name_wrapper(wasm_exec_env_t execEnv,
+                                              int32_t* buf,
+                                              int32_t bufLen)
+{
+    const std::string host = faabric::util::getSystemConfig().endpointHost;
+    ctx->module->validateNativePointer(buf, sizeof(char) * bufLen);
+    strncpy(reinterpret_cast<char*>(buf), host.c_str(), bufLen);
 
     return MPI_SUCCESS;
 }
@@ -455,6 +602,34 @@ static int32_t MPI_Reduce_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+static int32_t MPI_Reduce_scatter_wrapper(wasm_exec_env_t execEnv,
+                                          int32_t* sendBuf,
+                                          int32_t* recvBuf,
+                                          int32_t recvCount,
+                                          int32_t* datatype,
+                                          int32_t* op,
+                                          int32_t* comm)
+{
+    throw std::runtime_error("MPI_Reduce_scatter not implemented!");
+}
+
+static int32_t MPI_Request_free_wrapper(wasm_exec_env_t execEnv,
+                                        int32_t* requestPtr)
+{
+    throw std::runtime_error("MPI_Request_free not implemented!");
+}
+
+static int32_t MPI_Rsend_wrapper(wasm_exec_env_t execEnv,
+                                 int32_t* buffer,
+                                 int32_t count,
+                                 int32_t* datatype,
+                                 int32_t destRank,
+                                 int32_t tag,
+                                 int32_t* comm)
+{
+    throw std::runtime_error("MPI_Rsend not implemented!");
+}
+
 static int32_t MPI_Scan_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* sendBuf,
                                 int32_t* recvBuf,
@@ -537,6 +712,16 @@ static int32_t MPI_Sendrecv_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+static int32_t MPI_Type_size_wrapper(wasm_exec_env_t execEnv,
+                                     int32_t* typePtr,
+                                     int32_t* res)
+{
+    faabric_datatype_t* hostType = ctx->getFaasmDataType(typePtr);
+    ctx->writeMpiResult<int>(res, hostType->size);
+
+    return MPI_SUCCESS;
+}
+
 static int32_t MPI_Wait_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* requestPtrPtr,
                                 int32_t status)
@@ -546,6 +731,23 @@ static int32_t MPI_Wait_wrapper(wasm_exec_env_t execEnv,
     ctx->world.awaitAsyncRequest(requestId);
 
     return MPI_SUCCESS;
+}
+
+static int32_t MPI_Waitall_wrapper(wasm_exec_env_t execEnv,
+                                   int32_t count,
+                                   int32_t* requestArray,
+                                   int32_t* statusArray)
+{
+    throw std::runtime_error("MPI_Waitall is not implemented!");
+}
+
+static int32_t MPI_Waitany_wrapper(wasm_exec_env_t execEnv,
+                                   int32_t count,
+                                   int32_t* requestArray,
+                                   int32_t idx,
+                                   int32_t* status)
+{
+    throw std::runtime_error("MPI_Waitany is not implemented!");
 }
 
 static double MPI_Wtime_wrapper()
@@ -562,20 +764,34 @@ static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(MPI_Alltoallv, "(*ii**ii**)i"),
     REG_NATIVE_FUNC(MPI_Barrier, "(*)i"),
     REG_NATIVE_FUNC(MPI_Bcast, "(*i*i*)i"),
+    REG_NATIVE_FUNC(MPI_Cart_create, "(*iiii*)i"),
+    REG_NATIVE_FUNC(MPI_Cart_get, "(*i***)i"),
+    REG_NATIVE_FUNC(MPI_Cart_rank, "(***)i"),
+    REG_NATIVE_FUNC(MPI_Cart_shift, "(*ii**)i"),
+    REG_NATIVE_FUNC(MPI_Comm_free, "(*)i"),
     REG_NATIVE_FUNC(MPI_Comm_rank, "(**)i"),
     REG_NATIVE_FUNC(MPI_Comm_size, "(**)i"),
+    REG_NATIVE_FUNC(MPI_Comm_split, "(*ii*)i"),
     REG_NATIVE_FUNC(MPI_Finalize, "()i"),
+    REG_NATIVE_FUNC(MPI_Gather, "(*i**i*i*)i"),
     REG_NATIVE_FUNC(MPI_Get_count, "(***)i"),
+    REG_NATIVE_FUNC(MPI_Get_processor_name, "(*i)i"),
     REG_NATIVE_FUNC(MPI_Get_version, "(**)i"),
     REG_NATIVE_FUNC(MPI_Init, "(ii)i"),
     REG_NATIVE_FUNC(MPI_Irecv, "(*i*ii**)i"),
     REG_NATIVE_FUNC(MPI_Isend, "(*i*ii**)i"),
     REG_NATIVE_FUNC(MPI_Recv, "(*i*ii**)i"),
     REG_NATIVE_FUNC(MPI_Reduce, "(**i**i*)i"),
+    REG_NATIVE_FUNC(MPI_Reduce_scatter, "(**i***)i"),
+    REG_NATIVE_FUNC(MPI_Request_free, "(*)i"),
+    REG_NATIVE_FUNC(MPI_Rsend, "(*i*ii*)i"),
     REG_NATIVE_FUNC(MPI_Scan, "(**i***)i"),
     REG_NATIVE_FUNC(MPI_Send, "(*i*ii*)i"),
     REG_NATIVE_FUNC(MPI_Sendrecv, "(*i*ii*i*ii**)i"),
+    REG_NATIVE_FUNC(MPI_Type_size, "(**)i"),
     REG_NATIVE_FUNC(MPI_Wait, "(*i)i"),
+    REG_NATIVE_FUNC(MPI_Waitall, "(i**)i"),
+    REG_NATIVE_FUNC(MPI_Waitany, "(i*i*)i"),
     REG_NATIVE_FUNC(MPI_Wtime, "()F"),
 };
 
