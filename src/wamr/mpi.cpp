@@ -949,6 +949,34 @@ static int32_t MPI_Reduce_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+static int32_t MPI_Reduce_scatter_wrapper(wasm_exec_env_t execEnv,
+                                          int32_t* sendBuf,
+                                          int32_t* recvBuf,
+                                          int32_t recvCount,
+                                          int32_t* datatype,
+                                          int32_t* op,
+                                          int32_t* comm)
+{
+    throw std::runtime_error("MPI_Reduce_scatter not implemented!");
+}
+
+static int32_t MPI_Request_free_wrapper(wasm_exec_env_t execEnv,
+                                        int32_t* requestPtr)
+{
+    throw std::runtime_error("MPI_Request_free not implemented!");
+}
+
+static int32_t MPI_Rsend_wrapper(wasm_exec_env_t execEnv,
+                                 int32_t* buffer,
+                                 int32_t count,
+                                 int32_t* datatype,
+                                 int32_t destRank,
+                                 int32_t tag,
+                                 int32_t* comm)
+{
+    throw std::runtime_error("MPI_Rsend not implemented!");
+}
+
 static int32_t MPI_Scan_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* sendBuf,
                                 int32_t* recvBuf,
