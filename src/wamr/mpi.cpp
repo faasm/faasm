@@ -244,8 +244,10 @@ static int32_t MPI_Alltoall_wrapper(wasm_exec_env_t execEnv,
     faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
 
-    ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
-    ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
+    ctx->module->validateNativePointer(sendBuf,
+                                       sendCount * hostSendDtype->size);
+    ctx->module->validateNativePointer(recvBuf,
+                                       recvCount * hostRecvDtype->size);
 
     ctx->world.allToAll(ctx->rank,
                         (uint8_t*)sendBuf,
@@ -272,8 +274,7 @@ static int32_t MPI_Alltoallv_wrapper(wasm_exec_env_t execEnv,
     throw std::runtime_error("MPI_Alltoallv not implemented!");
 }
 
-static int32_t MPI_Barrier_wrapper(wasm_exec_env_t execEnv,
-                                   int32_t* comm)
+static int32_t MPI_Barrier_wrapper(wasm_exec_env_t execEnv, int32_t* comm)
 {
     MPI_FUNC_ARGS("S - MPI_Alltoall {} {} {} {} {} {} {}",
                   (uintptr_t)sendBuf,
@@ -997,8 +998,12 @@ static int32_t MPI_Scan_wrapper(wasm_exec_env_t execEnv,
         ctx->module->validateNativePointer(sendBuf, count * hostDtype->size);
     }
 
-    ctx->world.scan(
-      ctx->rank, (uint8_t*)sendBuf, (uint8_t*)recvBuf, hostDtype, count, hostOp);
+    ctx->world.scan(ctx->rank,
+                    (uint8_t*)sendBuf,
+                    (uint8_t*)recvBuf,
+                    hostDtype,
+                    count,
+                    hostOp);
 
     return MPI_SUCCESS;
 }
@@ -1017,8 +1022,10 @@ static int32_t MPI_Scatter_wrapper(wasm_exec_env_t execEnv,
     faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
     faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
 
-    ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
-    ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
+    ctx->module->validateNativePointer(sendBuf,
+                                       sendCount * hostSendDtype->size);
+    ctx->module->validateNativePointer(recvBuf,
+                                       recvCount * hostRecvDtype->size);
 
     ctx->world.scatter(root,
                        ctx->rank,
