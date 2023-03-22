@@ -357,6 +357,13 @@ static int32_t MPI_Cart_shift_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+static int32_t MPI_Comm_dup_wrapper(wasm_exec_env_t execEnv,
+                                    int32_t* comm,
+                                    int32_t* newComm)
+{
+    throw std::runtime_error("MPI_Comm_dup not implemented!");
+}
+
 static int32_t MPI_Comm_free_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* comm)
 {
@@ -545,6 +552,19 @@ static int32_t MPI_Isend_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+static int32_t MPI_Op_create_wrapper(wasm_exec_env_t execEnv,
+                                     int32_t* userFn,
+                                     int32_t commute,
+                                     int32_t op)
+{
+    throw std::runtime_error("MPI_Op_create not implemented!");
+}
+
+static int32_t MPI_Op_free_wrapper(wasm_exec_env_t execEnv, int32_t* op)
+{
+    throw std::runtime_error("MPI_Op_free not implemented!");
+}
+
 static int32_t MPI_Recv_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* buffer,
                                 int32_t count,
@@ -652,6 +672,35 @@ static int32_t MPI_Scan_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+static int32_t MPI_Scatter_wrapper(wasm_exec_env_t execEnv,
+                                   int32_t* sendBuf,
+                                   int32_t sendCount,
+                                   int32_t* sendType,
+                                   int32_t* recvBuf,
+                                   int32_t recvCount,
+                                   int32_t* recvType,
+                                   int32_t root,
+                                   int32_t* comm)
+{
+    ctx->checkMpiComm(comm);
+    faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
+    faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
+
+    ctx->module->validateNativePointer(sendBuf, sendCount * hostSendDtype->size);
+    ctx->module->validateNativePointer(recvBuf, recvCount * hostRecvDtype->size);
+
+    ctx->world.scatter(root,
+                       ctx->rank,
+                       (uint8_t*)sendBuf,
+                       hostSendDtype,
+                       sendCount,
+                       (uint8_t*)recvBuf,
+                       hostRecvDtype,
+                       recvCount);
+
+    return MPI_SUCCESS;
+}
+
 static int32_t MPI_Send_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* buffer,
                                 int32_t count,
@@ -706,6 +755,25 @@ static int32_t MPI_Sendrecv_wrapper(wasm_exec_env_t execEnv,
                         status);
 
     return MPI_SUCCESS;
+}
+
+static int32_t MPI_Type_commit_wrapper(wasm_exec_env_t execEnv,
+                                       int32_t* datatypePtrPtr)
+{
+    return MPI_SUCCESS;
+}
+
+static int32_t MPI_Type_contiguous_wrapper(wasm_exec_env_t execEnv,
+                                           int32_t count,
+                                           int32_t* oldDataTypePtr,
+                                           int32_t* newDataTypePtr)
+{
+    return MPI_SUCCESS;
+}
+
+static int32_t MPI_Type_free_wrapper(wasm_exec_env_t execEnv, int32_t* datatype)
+{
+    throw std::runtime_error("MPI_Type_free is not implemented!");
 }
 
 static int32_t MPI_Type_size_wrapper(wasm_exec_env_t execEnv,
@@ -764,6 +832,7 @@ static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(MPI_Cart_get, "(*i***)i"),
     REG_NATIVE_FUNC(MPI_Cart_rank, "(***)i"),
     REG_NATIVE_FUNC(MPI_Cart_shift, "(*ii**)i"),
+    REG_NATIVE_FUNC(MPI_Comm_dup, "(**)i"),
     REG_NATIVE_FUNC(MPI_Comm_free, "(*)i"),
     REG_NATIVE_FUNC(MPI_Comm_rank, "(**)i"),
     REG_NATIVE_FUNC(MPI_Comm_size, "(**)i"),
@@ -776,14 +845,20 @@ static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(MPI_Init, "(ii)i"),
     REG_NATIVE_FUNC(MPI_Irecv, "(*i*ii**)i"),
     REG_NATIVE_FUNC(MPI_Isend, "(*i*ii**)i"),
+    REG_NATIVE_FUNC(MPI_Op_create, "(*ii)i"),
+    REG_NATIVE_FUNC(MPI_Op_free, "(*)i"),
     REG_NATIVE_FUNC(MPI_Recv, "(*i*ii**)i"),
     REG_NATIVE_FUNC(MPI_Reduce, "(**i**i*)i"),
     REG_NATIVE_FUNC(MPI_Reduce_scatter, "(**i***)i"),
     REG_NATIVE_FUNC(MPI_Request_free, "(*)i"),
     REG_NATIVE_FUNC(MPI_Rsend, "(*i*ii*)i"),
     REG_NATIVE_FUNC(MPI_Scan, "(**i***)i"),
+    REG_NATIVE_FUNC(MPI_Scatter, "(*i**i*i*)i"),
     REG_NATIVE_FUNC(MPI_Send, "(*i*ii*)i"),
     REG_NATIVE_FUNC(MPI_Sendrecv, "(*i*ii*i*ii**)i"),
+    REG_NATIVE_FUNC(MPI_Type_commit, "(*)i"),
+    REG_NATIVE_FUNC(MPI_Type_contiguous, "(i**)i"),
+    REG_NATIVE_FUNC(MPI_Type_free, "(*)i"),
     REG_NATIVE_FUNC(MPI_Type_size, "(**)i"),
     REG_NATIVE_FUNC(MPI_Wait, "(*i)i"),
     REG_NATIVE_FUNC(MPI_Waitall, "(i**)i"),
