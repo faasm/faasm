@@ -932,7 +932,7 @@ static int32_t MPI_Reduce_wrapper(wasm_exec_env_t execEnv,
 
     ctx->module->validateNativePointer(recvBuf, count * hostDtype->size);
 
-    if (isInPlace(sendBuf)) {
+    if (ctx->isInPlace(sendBuf)) {
         sendBuf = recvBuf;
     } else {
         ctx->module->validateNativePointer(sendBuf, count * hostDtype->size);
@@ -963,7 +963,7 @@ static int32_t MPI_Scan_wrapper(wasm_exec_env_t execEnv,
 
     ctx->module->validateNativePointer(recvBuf, count * hostDtype->size);
 
-    if (isInPlace(sendBuf)) {
+    if (ctx->isInPlace(sendBuf)) {
         sendBuf = recvBuf;
     } else {
         ctx->module->validateNativePointer(sendBuf, count * hostDtype->size);
