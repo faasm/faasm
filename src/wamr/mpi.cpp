@@ -284,34 +284,30 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
                                        int32_t reorder,
                                        int32_t* newCommPtrPtr)
 {
-    // Note that here MPI gives us the pointer to the new communicator, but no
-    // memory has been allocated for it, hence why we need to allocate it here.
-    // Note that we are given an MPI_Comm*, where MPI_Comm is a
-    // faabric_communicator_t*, we need to allocate memory for the faabric
-    // communicator, and use the pointed-to value to populate the MPI_Comm
+    // Note that the communicator pointers are, in fact, double pointers.
+    // Double pointers are particularly missleading because the first pointer
+    // is converted from a wasm offset into a native pointer by WAMR, but the
+    // second one is not. Therefore, when operating on a double pointer, we
+    // need to convert the pointed to offset into a native pointer
     ctx->module->validateNativePointer(newCommPtrPtr, sizeof(MPI_Comm));
     MPI_Comm* newCommPtr = reinterpret_cast<MPI_Comm*>(newCommPtrPtr);
 
     // Allocate memory for the pointed-to faabric_communicator_t
     size_t pageAlignedMemSize = roundUpToWasmPageAligned(sizeof(faabric_communicator_t));
     uint32_t wasmPtr = ctx->module->growMemory(pageAlignedMemSize);
-    /*
-    void* nativeAddr;
-    *newCommPtr = (faabric_communicator_t*)wasm_runtime_module_malloc(ctx->module->getModuleInstance(),
-                                                                     sizeof(faabric_communicator_t),
-                                                                     &nativeAddr);
-    */
-
 
     // Assign the new memory to the MPI_Comm value
-    // TODO: do we assign as wasm offset or the native pointer??
-    // *newCommPtr = reinterpret_cast<faabric_communicator_t*>(wasmPtr);
-    // *newCommPtr = reinterpret_cast<faabric_communicator_t*>(ctx->module->wasmOffsetToNativePointer(wasmPtr));
+    *newCommPtr = reinterpret_cast<faabric_communicator_t*>(wasmPtr);
 
     // Populate the new communicator with values from the old communicator
     ctx->module->validateNativePointer(oldCommPtrPtr, sizeof(MPI_Comm));
     MPI_Comm* oldCommPtr = reinterpret_cast<MPI_Comm*>(oldCommPtrPtr);
-    **newCommPtr = **oldCommPtr;
+
+    // Be careful, as *newCommPtr is a WASM offset, not a native pointer. We
+    // need the native pointer to copy the values from the old communicator
+    faabric_communicator_t* hostNewCommPtr = reinterpret_cast<faabric_communicator_t*>(ctx->module->wasmOffsetToNativePointer(wasmPtr));
+    faabric_communicator_t* hostOldCommPtr = reinterpret_cast<faabric_communicator_t*>(ctx->module->wasmOffsetToNativePointer((uintptr_t) *oldCommPtr));
+    *hostNewCommPtr = *hostOldCommPtr;
 
     return MPI_SUCCESS;
 }
