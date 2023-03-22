@@ -9,7 +9,6 @@
 
 using namespace faabric::scheduler;
 
-// TODO: remove the duplication with WAVM's MPI implementation
 namespace wasm {
 static thread_local faabric::scheduler::MpiContext executingContext;
 
@@ -87,15 +86,6 @@ class WamrMpiContextWrapper
         int wasmOffset = module->nativePointerToWasmOffset(wasmPtr);
         return wasmOffset == FAABRIC_IN_PLACE;
     }
-
-    /*
-    faabric_info_t* getFaasmInfoType(I32 wasmPtr)
-    {
-        faabric_info_t* hostInfoType =
-          &Runtime::memoryRef<faabric_info_t>(memory, wasmPtr);
-        return hostInfoType;
-    }
-    */
 
     faabric_op_t* getFaasmOp(int32_t* wasmPtr) const
     {
