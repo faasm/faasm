@@ -11,10 +11,10 @@
 using namespace faabric::scheduler;
 
 #define MPI_FUNC(str)                                                          \
-    SPDLOG_DEBUG("MPI-{} {}", executingContext.getRank(), str);
+    SPDLOG_TRACE("MPI-{} {}", executingContext.getRank(), str);
 
 #define MPI_FUNC_ARGS(formatStr, ...)                                          \
-    SPDLOG_DEBUG("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
+    SPDLOG_TRACE("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
 
 namespace wasm {
 static thread_local faabric::scheduler::MpiContext executingContext;
@@ -390,12 +390,6 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
     // need to convert the pointed to offset into a native pointer
     ctx->module->validateNativePointer(newCommPtrPtr, sizeof(MPI_Comm));
     MPI_Comm* newCommPtr = reinterpret_cast<MPI_Comm*>(newCommPtrPtr);
-    /*
-    MPI_Comm* newCommPtr = nullptr;
-    faabric::util::unalignedWrite<MPI_Comm>(
-        reinterpret_cast<MPI_Comm>(*newCommPtrPtr),
-        reinterpret_cast<uint8_t*>(newCommPtr));
-        */
 
     // Allocate memory for the pointed-to faabric_communicator_t
     size_t pageAlignedMemSize =
