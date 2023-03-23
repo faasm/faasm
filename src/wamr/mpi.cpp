@@ -11,10 +11,10 @@
 using namespace faabric::scheduler;
 
 #define MPI_FUNC(str)                                                          \
-    SPDLOG_TRACE("MPI-{} {}", executingContext.getRank(), str);
+    SPDLOG_DEBUG("MPI-{} {}", executingContext.getRank(), str);
 
 #define MPI_FUNC_ARGS(formatStr, ...)                                          \
-    SPDLOG_TRACE("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
+    SPDLOG_DEBUG("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
 
 namespace wasm {
 static thread_local faabric::scheduler::MpiContext executingContext;
@@ -336,20 +336,32 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
                   (uintptr_t)newCommPtrPtr);
 
     // Note that the communicator pointers are, in fact, double pointers.
-    // Double pointers are particularly missleading because the first pointer
+    // Double pointers are particularly confusing because the first pointer
     // is converted from a wasm offset into a native pointer by WAMR, but the
     // second one is not. Therefore, when operating on a double pointer, we
     // need to convert the pointed to offset into a native pointer
     ctx->module->validateNativePointer(newCommPtrPtr, sizeof(MPI_Comm));
     MPI_Comm* newCommPtr = reinterpret_cast<MPI_Comm*>(newCommPtrPtr);
+    /*
+    MPI_Comm* newCommPtr = nullptr;
+    faabric::util::unalignedWrite<MPI_Comm>(
+        reinterpret_cast<MPI_Comm>(*newCommPtrPtr),
+        reinterpret_cast<uint8_t*>(newCommPtr));
+        */
 
     // Allocate memory for the pointed-to faabric_communicator_t
     size_t pageAlignedMemSize =
       roundUpToWasmPageAligned(sizeof(faabric_communicator_t));
     uint32_t wasmPtr = ctx->module->growMemory(pageAlignedMemSize);
 
-    // Assign the new memory to the MPI_Comm value
-    *newCommPtr = reinterpret_cast<faabric_communicator_t*>(wasmPtr);
+    // Assign the new offset (i.e. wasm pointer) to the MPI_Comm value. Note
+    // that we are assigning a WASM offset to a native pointer, hence why we
+    // need to force the casting to let the compiler know we know what we are
+    // doing
+    // *newCommPtr = reinterpret_cast<faabric_communicator_t*>(wasmPtr);
+    faabric::util::unalignedWrite<faabric_communicator_t*>(
+      reinterpret_cast<faabric_communicator_t*>(wasmPtr),
+      reinterpret_cast<uint8_t*>(newCommPtr));
 
     // Populate the new communicator with values from the old communicator
     ctx->module->validateNativePointer(oldCommPtrPtr, sizeof(MPI_Comm));
@@ -363,7 +375,7 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
     faabric_communicator_t* hostOldCommPtr =
       reinterpret_cast<faabric_communicator_t*>(
         ctx->module->wasmOffsetToNativePointer((uintptr_t)*oldCommPtr));
-    faabric::util::unalignedWrite<faabric_communicator_t>(*hostOldCommPtr, (uint8_t*)hostNewCommPtr);
+    *hostNewCommPtr = *hostOldCommPtr;
 
     return MPI_SUCCESS;
 }
@@ -452,7 +464,8 @@ static int32_t MPI_Comm_rank_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* comm,
                                      int32_t* resPtr)
 {
-    MPI_FUNC_ARGS("S - MPI_Comm_rank {} {}", (uintptr_t)comm, (uintptr_t)resPtr);
+    MPI_FUNC_ARGS(
+      "S - MPI_Comm_rank {} {}", (uintptr_t)comm, (uintptr_t)resPtr);
 
     ctx->checkMpiComm(comm);
     ctx->writeMpiResult<int>(resPtr, ctx->rank);
@@ -464,7 +477,8 @@ static int32_t MPI_Comm_size_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* comm,
                                      int32_t* resPtr)
 {
-    MPI_FUNC_ARGS("S - MPI_Comm_size {} {}", (uintptr_t)comm, (uintptr_t)resPtr);
+    MPI_FUNC_ARGS(
+      "S - MPI_Comm_size {} {}", (uintptr_t)comm, (uintptr_t)resPtr);
 
     ctx->checkMpiComm(comm);
     ctx->writeMpiResult<int>(resPtr, ctx->world.getSize());
@@ -979,9 +993,7 @@ static int32_t MPI_Type_size_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* typePtr,
                                      int32_t* res)
 {
-    MPI_FUNC_ARGS("MPI_Type_size {} {}",
-                  (uintptr_t)typePtr,
-                  (uintptr_t)res);
+    MPI_FUNC_ARGS("MPI_Type_size {} {}", (uintptr_t)typePtr, (uintptr_t)res);
 
     faabric_datatype_t* hostType = ctx->getFaasmDataType(typePtr);
     ctx->writeMpiResult<int>(res, hostType->size);
@@ -995,9 +1007,7 @@ static int32_t MPI_Wait_wrapper(wasm_exec_env_t execEnv,
 {
     int32_t requestId = ctx->getFaasmRequestId(requestPtrPtr);
 
-    MPI_FUNC_ARGS("S - MPI_Wait {} {}",
-                  (uintptr_t)requestPtrPtr,
-                  requestId);
+    MPI_FUNC_ARGS("S - MPI_Wait {} {}", (uintptr_t)requestPtrPtr, requestId);
 
     ctx->world.awaitAsyncRequest(requestId);
 
