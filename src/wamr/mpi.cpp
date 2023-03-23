@@ -11,10 +11,10 @@
 using namespace faabric::scheduler;
 
 #define MPI_FUNC(str)                                                          \
-    SPDLOG_DEBUG("MPI-{} {}", executingContext.getRank(), str);
+    SPDLOG_TRACE("MPI-{} {}", executingContext.getRank(), str);
 
 #define MPI_FUNC_ARGS(formatStr, ...)                                          \
-    SPDLOG_DEBUG("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
+    SPDLOG_TRACE("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
 
 namespace wasm {
 static thread_local faabric::scheduler::MpiContext executingContext;
@@ -68,7 +68,9 @@ class WamrMpiContextWrapper
     {
         module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
         MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
-        *requestPtr = reinterpret_cast<faabric_request_t*>(requestId);
+        faabric::util::unalignedWrite<faabric_request_t*>(
+          reinterpret_cast<faabric_request_t*>(requestId),
+          reinterpret_cast<uint8_t*>(requestPtr));
     }
 
     // We use the same trick described before here. We take the value of
@@ -78,7 +80,8 @@ class WamrMpiContextWrapper
     {
         module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
         MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
-        int32_t requestId = reinterpret_cast<uintptr_t>(*requestPtr);
+        int32_t requestId = faabric::util::unalignedRead<int32_t>(
+          reinterpret_cast<uint8_t*>(requestPtr));
 
         return requestId;
     }
@@ -342,12 +345,6 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
     // need to convert the pointed to offset into a native pointer
     ctx->module->validateNativePointer(newCommPtrPtr, sizeof(MPI_Comm));
     MPI_Comm* newCommPtr = reinterpret_cast<MPI_Comm*>(newCommPtrPtr);
-    /*
-    MPI_Comm* newCommPtr = nullptr;
-    faabric::util::unalignedWrite<MPI_Comm>(
-        reinterpret_cast<MPI_Comm>(*newCommPtrPtr),
-        reinterpret_cast<uint8_t*>(newCommPtr));
-        */
 
     // Allocate memory for the pointed-to faabric_communicator_t
     size_t pageAlignedMemSize =
@@ -358,7 +355,6 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
     // that we are assigning a WASM offset to a native pointer, hence why we
     // need to force the casting to let the compiler know we know what we are
     // doing
-    // *newCommPtr = reinterpret_cast<faabric_communicator_t*>(wasmPtr);
     faabric::util::unalignedWrite<faabric_communicator_t*>(
       reinterpret_cast<faabric_communicator_t*>(wasmPtr),
       reinterpret_cast<uint8_t*>(newCommPtr));
