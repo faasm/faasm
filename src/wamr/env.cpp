@@ -87,14 +87,14 @@ uint32_t wasi_environ_sizes_get(wasm_exec_env_t exec_env,
     return __WASI_ESUCCESS;
 }
 
-void wasi_proc_exit(wasm_exec_env_t exec_env, int32_t retCode)
+void wasi_proc_exit(wasm_exec_env_t execEnv, int32_t retCode)
 {
     SPDLOG_DEBUG("S - proc_exit {}", retCode);
-
-    WAMRWasmModule* module = getExecutingWAMRModule();
-    std::string resStr = WAMR_EXIT_PREFIX;
-    resStr += std::to_string(retCode);
-    wasm_runtime_set_exception(module->getModuleInstance(), resStr.c_str());
+    // WAMRWasmModule* module = getExecutingWAMRModule();
+    WASMModuleInstanceCommon* module_inst = wasm_runtime_get_module_inst(execEnv);
+    WASIContext* wasiCtx = wasm_runtime_get_wasi_ctx(module_inst);
+    wasm_runtime_set_exception(module_inst, "wasi proc exit");
+    wasiCtx->exit_code = retCode;
 }
 
 static uint32_t wasi_random_get(wasm_exec_env_t exec_env,

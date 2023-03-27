@@ -32,7 +32,7 @@ int doRunner(int argc, char* argv[])
     usleep(1000 * 500);
 
     for (const auto& m : req->messages()) {
-        faabric::Message result = sch.getFunctionResult(m.id(), 20000);
+        faabric::Message result = sch.getFunctionResult(m.id(), 20000 * 1000);
         if (result.returnvalue() != 0) {
             SPDLOG_ERROR("Message ({}) returned error code: {}",
                          m.id(),
@@ -52,6 +52,13 @@ int main(int argc, char* argv[])
     auto& sch = faabric::scheduler::getScheduler();
     sch.shutdown();
     sch.addHostToGlobalSet();
+
+    // Set timeout to ensure longer functions can finish
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+    conf.boundTimeout = 120000 * 100;
+    conf.globalMessageTimeout = 120000 * 100;
+    faasmConf.chainedCallTimeout = 120000 * 100;
 
     // WARNING: All 0MQ-related operations must take place in a self-contined
     // scope to ensure all sockets are destructed before closing the context.

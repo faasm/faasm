@@ -709,7 +709,7 @@ uint32_t WasmModule::growMemory(size_t nBytes)
 
     // If we can reclaim old memory, just bump the break
     if (newBrk <= oldBytes) {
-        SPDLOG_TRACE(
+        SPDLOG_DEBUG(
           "MEM - Growing memory using already provisioned {} + {} <= {}",
           oldBrk,
           nBytes,
@@ -737,7 +737,7 @@ uint32_t WasmModule::growMemory(size_t nBytes)
         throw std::runtime_error("Failed to grow memory");
     }
 
-    SPDLOG_TRACE("Growing memory from {} to {} pages (max {})",
+    SPDLOG_DEBUG("Growing memory from {} to {} pages (max {})",
                  oldPages,
                  newPages,
                  maxPages);

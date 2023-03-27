@@ -146,6 +146,7 @@ TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI message ordering", "[mpi]")
 }
 
 // 31/12/21 - Probe support is broken after faasm/faabric#205
+/*
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI probe", "[.]")
 {
     SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
@@ -154,6 +155,7 @@ TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI probe", "[.]")
 
     checkMpiFunc("mpi_probe");
 }
+*/
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI reduce", "[mpi]")
 {

@@ -106,6 +106,46 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test WAMR sbrk", "[wamr]")
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture,
+                 "Test allocating memory in the WASM module from the runtime",
+                 "[wamr]")
+{
+    std::string user;
+    std::string function;
+
+    SECTION("Simple function")
+    {
+        user = "demo";
+        function = "echo";
+    }
+
+    SECTION("Complex function")
+    {
+        user = "mpi";
+        function = "mpi_isendrecv";
+    }
+
+    auto req = setUpContext("demo", "echo");
+    faabric::Message& call = req->mutable_messages()->at(0);
+    std::string inputData = "hello there";
+    call.set_inputdata(inputData);
+
+    wasm::WAMRWasmModule module;
+    module.bindToFunction(call);
+
+    std::vector<int> nums = { 1, 2, 3 };
+    void* nativePtr = nullptr;
+    uint32_t wasmOffset = module.wasmModuleMalloc(3 * sizeof(int), &nativePtr);
+    REQUIRE(wasmOffset != 0);
+
+
+    SPDLOG_INFO("WASM offset: {}", wasmOffset);
+    if (wasmOffset == 0) {
+        SPDLOG_ERROR("WASM module malloc failed!");
+    }
+}
+
+// TODO - move to WASM chaining tests
+TEST_CASE_METHOD(FunctionExecTestFixture,
                  "Test executing chain function with WAMR",
                  "[wamr]")
 {

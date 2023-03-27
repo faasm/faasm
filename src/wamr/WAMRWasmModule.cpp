@@ -1,15 +1,16 @@
+#include <faabric/util/files.h>
+#include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/string_tools.h>
 #include <storage/FileLoader.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 
-#include <faabric/util/locks.h>
-#include <faabric/util/logging.h>
-#include <faabric/util/string_tools.h>
-
 #include <cstdint>
 #include <stdexcept>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 
@@ -37,7 +38,16 @@ void WAMRWasmModule::initialiseWAMRGlobally()
     }
 
     // Initialise WAMR runtime
-    bool success = wasm_runtime_init();
+    RuntimeInitArgs initArgs;
+    memset(&initArgs, 0, sizeof(RuntimeInitArgs));
+
+    // Memory configuration
+    initArgs.mem_alloc_type = Alloc_With_Allocator;
+    initArgs.mem_alloc_option.allocator.malloc_func = (void*) ::malloc;
+    initArgs.mem_alloc_option.allocator.realloc_func = (void*) ::realloc;
+    initArgs.mem_alloc_option.allocator.free_func = (void*) ::free;
+
+    bool success = wasm_runtime_full_init(&initArgs);
     if (!success) {
         throw std::runtime_error("Failed to initialise WAMR");
     }
@@ -46,6 +56,9 @@ void WAMRWasmModule::initialiseWAMRGlobally()
 
     // Initialise Faasm's own native symbols
     initialiseWAMRNatives();
+
+    // Set log level: BH_LOG_LEVEL_{FATAL,ERROR,WARNING,DEBUG,VERBOSE}
+    bh_log_set_verbose_level(BH_LOG_LEVEL_VERBOSE);
 
     wamrInitialised = true;
 }
@@ -103,6 +116,7 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     // Load the wasm file
     storage::FileLoader& functionLoader = storage::getFileLoader();
     wasmBytes = functionLoader.loadFunctionWamrAotFile(msg);
+    // wasmBytes = faabric::util::readFileToBytes("/usr/local/faasm/wasm/demo/exit/function.wasm");
 
     {
         faabric::util::UniqueLock lock(wamrGlobalsMutex);
@@ -125,9 +139,11 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     // Prepare the filesystem
     filesystem.prepareFilesystem();
 
-    // Instantiate module
+    // Instantiate module. Set the app-managed heap size to 0 to use
+    // wasi-libc's managed heap. See:
+    // https://bytecodealliance.github.io/wamr.dev/blog/understand-the-wamr-heap/
     moduleInstance = wasm_runtime_instantiate(
-      wasmModule, STACK_SIZE_KB, HEAP_SIZE_KB, errorBuffer, ERROR_BUFFER_SIZE);
+      wasmModule, STACK_SIZE_KB, 0, errorBuffer, ERROR_BUFFER_SIZE);
 
     // Sense-check the module
     auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
@@ -146,8 +162,10 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
     currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
+
     // Set up thread stacks
-    createThreadStacks();
+    // createThreadStacks();
+    threadStacks.push_back(-1);
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
@@ -159,7 +177,7 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     int returnValue = 0;
 
     // Run wasm initialisers
-    executeWasmFunction(WASM_CTORS_FUNC_NAME);
+    // executeWasmFunction(WASM_CTORS_FUNC_NAME);
 
     if (msg.funcptr() > 0) {
         // Run the function from the pointer
@@ -220,8 +238,44 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
 
 int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
-    SPDLOG_TRACE("WAMR executing function from string {}", funcName);
+    SPDLOG_DEBUG("WAMR executing function from string {}", funcName);
 
+    /*
+    std::unique_ptr<WASMExecEnv, decltype(&wasm_runtime_destroy_exec_env)>
+      execEnv(wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE_KB),
+              &wasm_runtime_destroy_exec_env);
+    */
+    WASMExecEnv* execEnv = wasm_runtime_get_exec_env_singleton(moduleInstance);
+    if (execEnv == nullptr) {
+        SPDLOG_ERROR("Failed to create exec env for func {}", funcName);
+        throw std::runtime_error("Failed to create WAMR exec env");
+    }
+
+    WASMFunctionInstanceCommon* func =
+      wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
+    if (func == nullptr) {
+        SPDLOG_ERROR("Did not find function {} for module {}/{}",
+                     funcName,
+                     boundUser,
+                     boundFunction);
+        throw std::runtime_error("Did not find named wasm function");
+    }
+    // Note, for some reason WAMR sets the return value in the argv array you
+    // pass it, therefore we should provide a single integer argv even though
+    // it's not actually used
+    std::vector<uint32_t> argv = { 0 };
+    bool success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
+    uint32_t returnValue = argv[0];
+    // std::vector<char*> argv = { "0" };
+    /*
+    char* argv = { 0 };
+    bool success = wasm_application_execute_main(moduleInstance, 0, &argv[0]);
+    uint32_t returnValue = *(int*)argv;
+    */
+
+    // TODO: error checking?
+
+    /*
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
     if (func == nullptr) {
@@ -239,10 +293,10 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 
     // Invoke the function
     bool success = aot_create_exec_env_and_call_function(
-      reinterpret_cast<AOTModuleInstance*>(moduleInstance),
-      reinterpret_cast<AOTFunctionInstance*>(func),
-      0,
-      argv.data());
+          reinterpret_cast<AOTModuleInstance*>(moduleInstance),
+          reinterpret_cast<AOTFunctionInstance*>(func),
+          0,
+          argv.data());
 
     uint32_t returnValue = argv[0];
 
@@ -257,6 +311,7 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 
         // Special case where we've set the exit code from within the host
         // interface
+        // TODO: update
         if (faabric::util::startsWith(errorMessage, WAMR_EXIT_PREFIX)) {
             std::string returnValueString =
               faabric::util::removeSubstr(errorMessage, WAMR_EXIT_PREFIX);
@@ -278,6 +333,7 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
         return returnValue;
     }
 
+    */
     SPDLOG_DEBUG("WAMR finished executing {}", funcName);
     return returnValue;
 }

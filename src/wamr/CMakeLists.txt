@@ -11,6 +11,7 @@ set(WAMR_BUILD_SPEC_TEST 0)
 add_definitions(-DWAMR_FAASM=1)
 
 # Set AOT mode and JIT for code generation
+set(WAMR_BUILD_INTERPRETER 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
 set(WAMR_BUILD_LAZY_JIT 0)
@@ -21,6 +22,8 @@ set(WAMR_BUILD_LIBC_WASI 1)
 set(WAMR_BUILD_LIB_PTHREAD 0)
 
 # WAMR features
+# Do we actually need this?
+# set(WAMR_BUILD_SHARED_MEMORY 1)
 set(WAMR_BUILD_SIMD 1)
 
 set(WAMR_BUILD_MULTI_MODULE 1)
