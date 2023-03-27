@@ -19,7 +19,7 @@ pyaes==1.6.1
 PyGithub==1.55
 pycairo==1.20.0
 PyOpenSSL==20.0.1
-redis==3.5.3
+redis==4.5.3
 requests==2.25.1
 setuptools==65.5.1
 sphinx-rtd-theme==1.0.0
