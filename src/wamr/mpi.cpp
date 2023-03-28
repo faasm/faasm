@@ -77,18 +77,13 @@ class WamrMpiContextWrapper
         MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
 
         // Allocate memory for the pointed-to faabric_request_t
-        /*
-        size_t pageAlignedMemSize =
-          roundUpToWasmPageAligned(sizeof(faabric_request_t));
-        uint32_t wasmPtr = module->growMemory(pageAlignedMemSize);
-        */
-        // Alternative strategy using wasmModuleMalloc (not working)
         faabric_request_t* hostRequestPtr = nullptr;
         uint32_t wasmPtr = module->wasmModuleMalloc(sizeof(faabric_request_t),
                                                     (void**)&hostRequestPtr);
         if (wasmPtr == 0) {
             SPDLOG_ERROR("Error allocating memory in the WASM's heap");
-            throw std::runtime_error("Error allocating memory in the WASM heap");
+            throw std::runtime_error(
+              "Error allocating memory in the WASM heap");
         }
         assert(hostRequestPtr != nullptr);
 
@@ -102,11 +97,6 @@ class WamrMpiContextWrapper
 
         // Be careful as requestPtr is a WASM offset, not a native pointer. We
         // need a naitive pointer to de-reference it and access the id field
-        /*
-        faabric_request_t* hostRequestPtr =
-          reinterpret_cast<faabric_request_t*>(module->wasmOffsetToNativePointer(wasmPtr));
-        module->validateNativePointer(hostRequestPtr, sizeof(faabric_communicator_t));
-        */
         hostRequestPtr->id = requestId;
     }
 
@@ -120,8 +110,10 @@ class WamrMpiContextWrapper
 
         // Second level of indirection
         faabric_request_t* hostRequestPtr =
-          reinterpret_cast<faabric_request_t*>(module->wasmOffsetToNativePointer(*requestPtrPtr));
-        module->validateNativePointer(hostRequestPtr, sizeof(faabric_communicator_t));
+          reinterpret_cast<faabric_request_t*>(
+            module->wasmOffsetToNativePointer(*requestPtrPtr));
+        module->validateNativePointer(hostRequestPtr,
+                                      sizeof(faabric_communicator_t));
 
         return hostRequestPtr->id;
     }
@@ -395,9 +387,14 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
     MPI_Comm* newCommPtr = reinterpret_cast<MPI_Comm*>(newCommPtrPtr);
 
     // Allocate memory for the pointed-to faabric_communicator_t
-    size_t pageAlignedMemSize =
-      roundUpToWasmPageAligned(sizeof(faabric_communicator_t));
-    uint32_t wasmPtr = ctx->module->growMemory(pageAlignedMemSize);
+    faabric_communicator_t* hostNewCommPtr = nullptr;
+    uint32_t wasmPtr = ctx->module->wasmModuleMalloc(
+      sizeof(faabric_communicator_t), (void**)&hostNewCommPtr);
+    if (wasmPtr == 0) {
+        SPDLOG_ERROR("Error allocating memory in the WASM's heap");
+        throw std::runtime_error("Error allocating memory in the WASM heap");
+    }
+    assert(hostNewCommPtr != nullptr);
 
     // Assign the new offset (i.e. wasm pointer) to the MPI_Comm value. Note
     // that we are assigning a WASM offset to a native pointer, hence why we
@@ -413,9 +410,6 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
 
     // Be careful, as *newCommPtr is a WASM offset, not a native pointer. We
     // need the native pointer to copy the values from the old communicator
-    faabric_communicator_t* hostNewCommPtr =
-      reinterpret_cast<faabric_communicator_t*>(
-        ctx->module->wasmOffsetToNativePointer(wasmPtr));
     faabric_communicator_t* hostOldCommPtr =
       reinterpret_cast<faabric_communicator_t*>(
         ctx->module->wasmOffsetToNativePointer((uintptr_t)*oldCommPtr));
@@ -694,15 +688,16 @@ static int32_t MPI_Irecv_wrapper(wasm_exec_env_t execEnv,
       sourceRank, ctx->rank, (uint8_t*)buffer, hostDtype, count);
     */
     std::vector<uint8_t> ourBuf(count * hostDtype->size);
-    std::copy_n(reinterpret_cast<uint8_t*>(buffer), count * hostDtype->size, ourBuf.data());
-    int requestId = ctx->world.irecv(
-      sourceRank, ctx->rank, ourBuf.data(), hostDtype, count);
+    std::copy_n(reinterpret_cast<uint8_t*>(buffer),
+                count * hostDtype->size,
+                ourBuf.data());
+    int requestId =
+      ctx->world.irecv(sourceRank, ctx->rank, ourBuf.data(), hostDtype, count);
     // Make sure we are not copying
     SPDLOG_INFO("Irecv inserting key: {}", requestId);
     ctx->offsetToBufferMap[requestId] =
       std::make_pair<uint32_t, std::vector<uint8_t>>(
-        ctx->module->nativePointerToWasmOffset(buffer),
-        std::move(ourBuf));
+        ctx->module->nativePointerToWasmOffset(buffer), std::move(ourBuf));
 
     ctx->writeFaasmRequestId(requestPtrPtr, requestId);
 
@@ -744,9 +739,8 @@ static int32_t MPI_Isend_wrapper(wasm_exec_env_t execEnv,
       ctx->world.isend(ctx->rank, destRank, (uint8_t*)buffer, hostDtype, count);
     SPDLOG_INFO("Isend inserting key: {}", requestId);
     ctx->offsetToBufferMap[requestId] =
-      std::make_pair<uint32_t, std::vector<uint8_t>>(
-        WASM_OFFSET_ISEND,
-        std::vector<uint8_t>());
+      std::make_pair<uint32_t, std::vector<uint8_t>>(WASM_OFFSET_ISEND,
+                                                     std::vector<uint8_t>());
 
     ctx->writeFaasmRequestId(requestPtrPtr, requestId);
 
@@ -1106,8 +1100,10 @@ static int32_t MPI_Wait_wrapper(wasm_exec_env_t execEnv,
 
     // If wainting for an Irecv request, copy the received contents into the
     // right wasm offset we stored when the request was first received
-    uint8_t* nativePtr = (uint8_t*) ctx->module->wasmOffsetToNativePointer(wasmOffset);
-    ctx->module->validateNativePointer(nativePtr, ctx->offsetToBufferMap.at(requestId).second.size());
+    uint8_t* nativePtr =
+      (uint8_t*)ctx->module->wasmOffsetToNativePointer(wasmOffset);
+    ctx->module->validateNativePointer(
+      nativePtr, ctx->offsetToBufferMap.at(requestId).second.size());
     std::copy_n(ctx->offsetToBufferMap.at(requestId).second.data(),
                 ctx->offsetToBufferMap.at(requestId).second.size(),
                 nativePtr);

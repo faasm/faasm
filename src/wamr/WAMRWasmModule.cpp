@@ -43,9 +43,9 @@ void WAMRWasmModule::initialiseWAMRGlobally()
 
     // Memory configuration
     initArgs.mem_alloc_type = Alloc_With_Allocator;
-    initArgs.mem_alloc_option.allocator.malloc_func = (void*) ::malloc;
-    initArgs.mem_alloc_option.allocator.realloc_func = (void*) ::realloc;
-    initArgs.mem_alloc_option.allocator.free_func = (void*) ::free;
+    initArgs.mem_alloc_option.allocator.malloc_func = (void*)::malloc;
+    initArgs.mem_alloc_option.allocator.realloc_func = (void*)::realloc;
+    initArgs.mem_alloc_option.allocator.free_func = (void*)::free;
 
     bool success = wasm_runtime_full_init(&initArgs);
     if (!success) {
@@ -116,7 +116,8 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
     // Load the wasm file
     storage::FileLoader& functionLoader = storage::getFileLoader();
     wasmBytes = functionLoader.loadFunctionWamrAotFile(msg);
-    // wasmBytes = faabric::util::readFileToBytes("/usr/local/faasm/wasm/demo/exit/function.wasm");
+    // wasmBytes =
+    // faabric::util::readFileToBytes("/usr/local/faasm/wasm/demo/exit/function.wasm");
 
     {
         faabric::util::UniqueLock lock(wamrGlobalsMutex);

@@ -35,8 +35,8 @@ struct WAMRModuleMixin
     {
         auto moduleInstance = this->underlying().getModuleInstance();
         // TODO: can we throw exceptions in SGX?
-        bool success = wasm_runtime_validate_native_addr(
-          moduleInstance, nativePtr, size);
+        bool success =
+          wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size);
 
         if (!success) {
             throw std::runtime_error("Failed validating native pointer!");

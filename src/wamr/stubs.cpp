@@ -56,7 +56,7 @@ static void __faasm_interrupt_wrapper(wasm_exec_env_t execEnv)
 
     wasm::WAMRWasmModule* module = getExecutingWAMRModule();
 
-    void *nativePtr;
+    void* nativePtr;
     size_t mallocSize = 3 * sizeof(int);
     module->wasmModuleMalloc(mallocSize, &nativePtr);
 }

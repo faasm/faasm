@@ -137,7 +137,6 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     uint32_t wasmOffset = module.wasmModuleMalloc(3 * sizeof(int), &nativePtr);
     REQUIRE(wasmOffset != 0);
 
-
     SPDLOG_INFO("WASM offset: {}", wasmOffset);
     if (wasmOffset == 0) {
         SPDLOG_ERROR("WASM module malloc failed!");

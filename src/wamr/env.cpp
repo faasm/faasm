@@ -91,7 +91,8 @@ void wasi_proc_exit(wasm_exec_env_t execEnv, int32_t retCode)
 {
     SPDLOG_DEBUG("S - proc_exit {}", retCode);
     // WAMRWasmModule* module = getExecutingWAMRModule();
-    WASMModuleInstanceCommon* module_inst = wasm_runtime_get_module_inst(execEnv);
+    WASMModuleInstanceCommon* module_inst =
+      wasm_runtime_get_module_inst(execEnv);
     WASIContext* wasiCtx = wasm_runtime_get_wasi_ctx(module_inst);
     wasm_runtime_set_exception(module_inst, "wasi proc exit");
     wasiCtx->exit_code = retCode;
