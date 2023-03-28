@@ -33,7 +33,7 @@ static int32_t mmap_wrapper(wasm_exec_env_t exec_env,
                             int32_t fd,
                             int64_t offset)
 {
-    SPDLOG_DEBUG(
+    SPDLOG_TRACE(
       "S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
     if (offset != 0) {

@@ -467,8 +467,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 /**
  * Sends and receives a message.
- *
- * TODO not implemented.
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "MPI_Sendrecv",

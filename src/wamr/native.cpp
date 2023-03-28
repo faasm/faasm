@@ -26,6 +26,7 @@ void initialiseWAMRNatives()
     doSymbolRegistration(getFaasmFilesystemApi);
     doSymbolRegistration(getFaasmFunctionsApi);
     doSymbolRegistration(getFaasmMemoryApi);
+    doSymbolRegistration(getFaasmMpiApi);
     doSymbolRegistration(getFaasmProcessApi);
     doSymbolRegistration(getFaasmPthreadApi);
     doSymbolRegistration(getFaasmSignalApi);

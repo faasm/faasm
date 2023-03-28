@@ -178,6 +178,13 @@ static int32_t wasi_fd_filestat_get(wasm_exec_env_t exec_env,
     return doFileStat(fd, "", statWasm);
 }
 
+static int32_t wasi_fd_filestat_set_size(wasm_exec_env_t execEnv,
+                                         int32_t a,
+                                         int64_t b)
+{
+    throw std::runtime_error("wasi_fd_filestat_set_size not implemented!");
+}
+
 static uint32_t wasi_fd_pread(wasm_exec_env_t exec_env,
                               __wasi_fd_t fd,
                               iovec_app_t* iovecWasm,
@@ -251,7 +258,7 @@ static int32_t wasi_fd_read(wasm_exec_env_t exec_env,
     storage::FileSystem& fileSystem = module->getFileSystem();
     std::string path = fileSystem.getPathForFd(fd);
 
-    SPDLOG_DEBUG("S - fd_read {} ({})", fd, path);
+    SPDLOG_TRACE("S - fd_read {} ({})", fd, path);
 
     storage::FileDescriptor fileDesc = fileSystem.getFileDescriptor(fd);
 
@@ -334,7 +341,7 @@ static int32_t wasi_fd_write(wasm_exec_env_t exec_env,
     storage::FileSystem& fileSystem = module->getFileSystem();
     std::string path = fileSystem.getPathForFd(fd);
 
-    SPDLOG_DEBUG("S - fd_write {} ({})", fd, path);
+    SPDLOG_TRACE("S - fd_write {} ({})", fd, path);
 
     // Check pointers
     module->validateNativePointer(reinterpret_cast<void*>(ioVecBuffWasm),
@@ -559,6 +566,7 @@ static NativeSymbol wasiNs[] = {
     REG_WASI_NATIVE_FUNC(fd_fdstat_set_flags, "(ii)i"),
     REG_WASI_NATIVE_FUNC(fd_fdstat_set_rights, "(iII)i"),
     REG_WASI_NATIVE_FUNC(fd_filestat_get, "(i*)i"),
+    REG_WASI_NATIVE_FUNC(fd_filestat_set_size, "(iI)i"),
     REG_WASI_NATIVE_FUNC(fd_pread, "(i*iI*)i"),
     REG_WASI_NATIVE_FUNC(fd_prestat_dir_name, "(i*~)i"),
     REG_WASI_NATIVE_FUNC(fd_prestat_get, "(i*)i"),

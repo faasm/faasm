@@ -140,7 +140,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I64 precision,
                                I32 resultPtr)
 {
-    SPDLOG_DEBUG(
+    SPDLOG_TRACE(
       "S - clock_time_get - {} {} {}", clockId, precision, resultPtr);
 
     timespec ts{};
