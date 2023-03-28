@@ -131,7 +131,7 @@ class WamrMpiContextWrapper
     // WAMR automatially converts the wasm offset to a native pointer as part
     // of the native symbol call, so we convert it back to a wasm offset and
     // check its value
-    bool isInPlace(int32_t* wasmPtr)
+    bool isInPlace(int32_t* wasmPtr) const
     {
         int wasmOffset = module->nativePointerToWasmOffset(wasmPtr);
         return wasmOffset == FAABRIC_IN_PLACE;
@@ -287,51 +287,6 @@ static int32_t MPI_Alltoall_wrapper(wasm_exec_env_t execEnv,
                                     int32_t recvCount,
                                     int32_t* recvType,
                                     int32_t* comm)
-{
-    MPI_FUNC_ARGS("S - MPI_Alltoall {} {} {} {} {} {} {}",
-                  (uintptr_t)sendBuf,
-                  sendCount,
-                  (uintptr_t)sendType,
-                  (uintptr_t)recvBuf,
-                  recvCount,
-                  (uintptr_t)recvType,
-                  (uintptr_t)comm);
-
-    ctx->checkMpiComm(comm);
-    faabric_datatype_t* hostSendDtype = ctx->getFaasmDataType(sendType);
-    faabric_datatype_t* hostRecvDtype = ctx->getFaasmDataType(recvType);
-
-    ctx->module->validateNativePointer(sendBuf,
-                                       sendCount * hostSendDtype->size);
-    ctx->module->validateNativePointer(recvBuf,
-                                       recvCount * hostRecvDtype->size);
-
-    ctx->world.allToAll(ctx->rank,
-                        (uint8_t*)sendBuf,
-                        hostSendDtype,
-                        sendCount,
-                        (uint8_t*)recvBuf,
-                        hostRecvDtype,
-                        recvCount);
-
-    return MPI_SUCCESS;
-}
-
-static int32_t MPI_Alltoallv_wrapper(wasm_exec_env_t execEnv,
-                                     int32_t* sendBuf,
-                                     int32_t sendCount,
-                                     int32_t sdispls,
-                                     int32_t* sendType,
-                                     int32_t* recvBuf,
-                                     int32_t recvCount,
-                                     int32_t rdispls,
-                                     int32_t* recvType,
-                                     int32_t* comm)
-{
-    throw std::runtime_error("MPI_Alltoallv not implemented!");
-}
-
-static int32_t MPI_Barrier_wrapper(wasm_exec_env_t execEnv, int32_t* comm)
 {
     MPI_FUNC_ARGS("S - MPI_Alltoall {} {} {} {} {} {} {}",
                   (uintptr_t)sendBuf,
