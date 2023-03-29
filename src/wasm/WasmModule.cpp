@@ -709,7 +709,7 @@ uint32_t WasmModule::growMemory(size_t nBytes)
 
     // If we can reclaim old memory, just bump the break
     if (newBrk <= oldBytes) {
-        SPDLOG_DEBUG(
+        SPDLOG_TRACE(
           "MEM - Growing memory using already provisioned {} + {} <= {}",
           oldBrk,
           nBytes,
@@ -737,7 +737,7 @@ uint32_t WasmModule::growMemory(size_t nBytes)
         throw std::runtime_error("Failed to grow memory");
     }
 
-    SPDLOG_DEBUG("Growing memory from {} to {} pages (max {})",
+    SPDLOG_TRACE("Growing memory from {} to {} pages (max {})",
                  oldPages,
                  newPages,
                  maxPages);
@@ -827,9 +827,11 @@ void WasmModule::unmapMemory(uint32_t offset, size_t nBytes)
         SPDLOG_TRACE("MEM - munmapping top of memory by {}", pageAligned);
         shrinkMemory(pageAligned);
     } else {
-        SPDLOG_WARN("MEM - unable to reclaim unmapped memory {} at {}",
-                    pageAligned,
-                    offset);
+        // TODO - this log statement should be a warning, but for some reason
+        // we are running into it a lot, so I temporarily disable it
+        SPDLOG_DEBUG("MEM - unable to reclaim unmapped memory {} at {}",
+                     pageAligned,
+                     offset);
     }
 }
 

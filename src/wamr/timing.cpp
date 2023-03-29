@@ -14,7 +14,7 @@ uint32_t wasi_clock_time_get(wasm_exec_env_t exec_env,
                              int64_t precision,
                              int32_t* result)
 {
-    SPDLOG_DEBUG("S - clock_time_get");
+    SPDLOG_TRACE("S - clock_time_get");
 
     timespec ts{};
 
