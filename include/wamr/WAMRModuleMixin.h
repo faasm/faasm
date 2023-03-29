@@ -64,7 +64,13 @@ struct WAMRModuleMixin
     uint32_t wasmModuleMalloc(size_t size, void** nativePtr)
     {
         auto moduleInstance = this->underlying().getModuleInstance();
-        return wasm_runtime_module_malloc(moduleInstance, size, nativePtr);
+        uint32_t wasmOffset =  wasm_runtime_module_malloc(moduleInstance, size, nativePtr);
+
+        if (wasmOffset == 0 || nativePtr == nullptr) {
+            throw std::runtime_error("Failed malloc-ing memory in WASM module!");
+        }
+
+        return wasmOffset;
     }
 
     // Helper function to write a string array to a buffer in the WASM linear
