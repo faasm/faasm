@@ -11,10 +11,10 @@
 using namespace faabric::scheduler;
 
 #define MPI_FUNC(str)                                                          \
-    SPDLOG_DEBUG("MPI-{} {}", executingContext.getRank(), str);
+    SPDLOG_TRACE("MPI-{} {}", executingContext.getRank(), str);
 
 #define MPI_FUNC_ARGS(formatStr, ...)                                          \
-    SPDLOG_DEBUG("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
+    SPDLOG_TRACE("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
 
 namespace wasm {
 static thread_local faabric::scheduler::MpiContext executingContext;
@@ -25,8 +25,6 @@ static faabric::scheduler::MpiWorld& getExecutingWorld()
       faabric::scheduler::getMpiWorldRegistry();
     return reg.getWorld(executingContext.getWorldId());
 }
-
-#define WASM_OFFSET_ISEND -1
 
 /**
  * Convenience wrapper around the MPI context for use in the syscalls in this
@@ -77,27 +75,30 @@ class WamrMpiContextWrapper
         MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
 
         // Allocate memory for the pointed-to faabric_request_t
+        /*
         faabric_request_t* hostRequestPtr = nullptr;
         uint32_t wasmPtr = module->wasmModuleMalloc(sizeof(faabric_request_t),
                                                     (void**)&hostRequestPtr);
-        if (wasmPtr == 0) {
-            SPDLOG_ERROR("Error allocating memory in the WASM's heap");
-            throw std::runtime_error(
-              "Error allocating memory in the WASM heap");
-        }
-        assert(hostRequestPtr != nullptr);
+        */
 
         // Assign the new offset (i.e. wasm pointer) to the MPI_Request var.
         // Note that we are assigning a WASM offset to a native pointer, hence
         // why we need to force the casting to let the compiler know we know
         // what we are doing
+        /* unaligned write is overwritting other stack variables!
         faabric::util::unalignedWrite<faabric_request_t*>(
           reinterpret_cast<faabric_request_t*>(wasmPtr),
           reinterpret_cast<uint8_t*>(requestPtr));
+        */
+        // Without an unaligned write, it also seems we are overwritting some
+        // stack variables
+        // *requestPtr = (faabric_request_t*)((int32_t)wasmPtr);
+        // Go back to the old trick of setting the value in the pointer
+        ::memcpy(requestPtr, &requestId, sizeof(int32_t));
 
         // Be careful as requestPtr is a WASM offset, not a native pointer. We
         // need a naitive pointer to de-reference it and access the id field
-        hostRequestPtr->id = requestId;
+        // hostRequestPtr->id = requestId;
     }
 
     // requestPtrPtr is of type faabric_request_t** and we need to access the
@@ -108,14 +109,16 @@ class WamrMpiContextWrapper
         // First level of indirection
         module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
 
+        return (int32_t) *requestPtrPtr;
         // Second level of indirection
+        /*
         faabric_request_t* hostRequestPtr =
           reinterpret_cast<faabric_request_t*>(
             module->wasmOffsetToNativePointer(*requestPtrPtr));
         module->validateNativePointer(hostRequestPtr,
                                       sizeof(faabric_communicator_t));
-
         return hostRequestPtr->id;
+        */
     }
 
     // In place execution of reduce-like calls is indicated by setting the send
@@ -147,14 +150,6 @@ class WamrMpiContextWrapper
     wasm::WAMRWasmModule* module;
     faabric::scheduler::MpiWorld& world;
     int rank;
-
-    // Native pointers to WAMR's heap may be invalidated after calls to
-    // memory.growth. This is dangerous when running something like MPI_Irecv
-    // where we handle faabric a pointer to a buffer that it keeps around
-    // until the actual asynchronous message is received. WASM offsets are,
-    // however, stable. We then give faabric a buffer that we control, and we
-    // keep track of what WASM offset it belongs to.
-    std::map<int, std::pair<uint32_t, std::vector<uint8_t>>> offsetToBufferMap;
 };
 
 static thread_local std::unique_ptr<WamrMpiContextWrapper> ctx = nullptr;
@@ -399,7 +394,8 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
     // Assign the new offset (i.e. wasm pointer) to the MPI_Comm value. Note
     // that we are assigning a WASM offset to a native pointer, hence why we
     // need to force the casting to let the compiler know we know what we are
-    // doing
+    // doing. Be _very_ careful with this unaligned writes, as it has happened
+    // before that they smash other values in the stack if not used properly
     faabric::util::unalignedWrite<faabric_communicator_t*>(
       reinterpret_cast<faabric_communicator_t*>(wasmPtr),
       reinterpret_cast<uint8_t*>(newCommPtr));
@@ -666,7 +662,6 @@ static int32_t MPI_Irecv_wrapper(wasm_exec_env_t execEnv,
                                  int32_t* comm,
                                  int32_t* requestPtrPtr)
 {
-    /*
     MPI_FUNC_ARGS("S - MPI_Irecv {} {} {} {} {} {} {}",
                   (uintptr_t)buffer,
                   count,
@@ -675,7 +670,6 @@ static int32_t MPI_Irecv_wrapper(wasm_exec_env_t execEnv,
                   tag,
                   (uintptr_t)comm,
                   (uintptr_t)requestPtrPtr);
-    */
 
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
@@ -683,25 +677,18 @@ static int32_t MPI_Irecv_wrapper(wasm_exec_env_t execEnv,
     // TODO: we can not keep the WASM buffer around, as it may be invalidated,
     // we can only keep the offset
     ctx->module->validateNativePointer(buffer, count * hostDtype->size);
-    /*
+    // std::vector<uint8_t> ourBuf(count * hostDtype->size);
+
     int requestId = ctx->world.irecv(
       sourceRank, ctx->rank, (uint8_t*)buffer, hostDtype, count);
-    */
-    std::vector<uint8_t> ourBuf(count * hostDtype->size);
-    std::copy_n(reinterpret_cast<uint8_t*>(buffer),
-                count * hostDtype->size,
-                ourBuf.data());
-    int requestId =
-      ctx->world.irecv(sourceRank, ctx->rank, ourBuf.data(), hostDtype, count);
     // Make sure we are not copying
-    SPDLOG_INFO("Irecv inserting key: {}", requestId);
+    /*
     ctx->offsetToBufferMap[requestId] =
       std::make_pair<uint32_t, std::vector<uint8_t>>(
         ctx->module->nativePointerToWasmOffset(buffer), std::move(ourBuf));
+    */
 
     ctx->writeFaasmRequestId(requestPtrPtr, requestId);
-
-    MPI_FUNC_ARGS("S - MPI_Irecv {}", requestId);
 
     return MPI_SUCCESS;
 }
@@ -715,7 +702,6 @@ static int32_t MPI_Isend_wrapper(wasm_exec_env_t execEnv,
                                  int32_t* comm,
                                  int32_t* requestPtrPtr)
 {
-    /*
     MPI_FUNC_ARGS("S - MPI_Isend {} {} {} {} {} {} {}",
                   (uintptr_t)buffer,
                   count,
@@ -724,27 +710,15 @@ static int32_t MPI_Isend_wrapper(wasm_exec_env_t execEnv,
                   tag,
                   (uintptr_t)comm,
                   (uintptr_t)requestPtrPtr);
-    */
 
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
 
-    // Giving the buffer to faabric here directly is allright, as data will be
-    // sent directly, and the buffer won't be re-used in a later native call.
-    // We still add the requestId to the map, not to make MPI_Wait be able
-    // to differentiate Isend from Irecv requestIds (even though it may be a
-    // good idea to do so for performance reasons).
     ctx->module->validateNativePointer(buffer, count * hostDtype->size);
     int requestId =
       ctx->world.isend(ctx->rank, destRank, (uint8_t*)buffer, hostDtype, count);
-    SPDLOG_INFO("Isend inserting key: {}", requestId);
-    ctx->offsetToBufferMap[requestId] =
-      std::make_pair<uint32_t, std::vector<uint8_t>>(WASM_OFFSET_ISEND,
-                                                     std::vector<uint8_t>());
 
     ctx->writeFaasmRequestId(requestPtrPtr, requestId);
-
-    MPI_FUNC_ARGS("S - MPI_Isend {}", requestId);
 
     return MPI_SUCCESS;
 }
@@ -786,6 +760,7 @@ static int32_t MPI_Recv_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* comm,
                                 int32_t* statusPtr)
 {
+    /*
     MPI_FUNC_ARGS("S - MPI_Recv {} {} {} {} {} {} {}",
                   (uintptr_t)buffer,
                   count,
@@ -794,6 +769,8 @@ static int32_t MPI_Recv_wrapper(wasm_exec_env_t execEnv,
                   tag,
                   (uintptr_t)comm,
                   (uintptr_t)statusPtr);
+    */
+    MPI_FUNC_ARGS("S - MPI_Recv {} <- {}", ctx->rank, sourceRank);
 
     ctx->checkMpiComm(comm);
     ctx->module->validateNativePointer(statusPtr, sizeof(MPI_Status));
@@ -964,13 +941,7 @@ static int32_t MPI_Send_wrapper(wasm_exec_env_t execEnv,
                                 int32_t tag,
                                 int32_t* comm)
 {
-    MPI_FUNC_ARGS("S - MPI_Send {} {} {} {} {} {}",
-                  (uintptr_t)buffer,
-                  count,
-                  (uintptr_t)datatype,
-                  destRank,
-                  tag,
-                  (uintptr_t)comm);
+    MPI_FUNC_ARGS("S - MPI_Send {} -> {}", ctx->rank, destRank);
 
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
@@ -1071,6 +1042,14 @@ static int32_t MPI_Type_size_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+// As part of our implementation of MPI's asynchronous messaging in faabric,
+// we keep native pointers to WASM memory. This pointers are kept between one
+// asynchronous call is made, and it is MPI_Wait-ed upon. WAMR may invalidate
+// native pointers after calls to memory.grow, thus this could eventually
+// cause failures. If this happens, building wamr with
+// `WAMR_BUILD_SHARED_MEMORY` set to `1`, should fix the issue, as then
+// addresses are not invalidated. For the time being, as this has not caused
+// any errors, we don't set it.
 static int32_t MPI_Wait_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* requestPtrPtr,
                                 int32_t status)
@@ -1088,26 +1067,6 @@ static int32_t MPI_Wait_wrapper(wasm_exec_env_t execEnv,
     // wasm_export.h#L1020 - "Note that a native address to a module instance
     // can be invalidated on a memory growth"
     ctx->world.awaitAsyncRequest(requestId);
-    // TODO: too many map accesses, re-factor using pointers
-    SPDLOG_INFO("Requesting key: {}", requestId);
-    uint32_t wasmOffset = ctx->offsetToBufferMap.at(requestId).first;
-
-    // If waiting for an Isend request, remove and return
-    if (wasmOffset == WASM_OFFSET_ISEND) {
-        ctx->offsetToBufferMap.erase(requestId);
-        return MPI_SUCCESS;
-    }
-
-    // If wainting for an Irecv request, copy the received contents into the
-    // right wasm offset we stored when the request was first received
-    uint8_t* nativePtr =
-      (uint8_t*)ctx->module->wasmOffsetToNativePointer(wasmOffset);
-    ctx->module->validateNativePointer(
-      nativePtr, ctx->offsetToBufferMap.at(requestId).second.size());
-    std::copy_n(ctx->offsetToBufferMap.at(requestId).second.data(),
-                ctx->offsetToBufferMap.at(requestId).second.size(),
-                nativePtr);
-    ctx->offsetToBufferMap.erase(requestId);
 
     return MPI_SUCCESS;
 }

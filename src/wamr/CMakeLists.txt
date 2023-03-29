@@ -22,8 +22,6 @@ set(WAMR_BUILD_LIBC_WASI 1)
 set(WAMR_BUILD_LIB_PTHREAD 0)
 
 # WAMR features
-# Do we actually need this?
-# set(WAMR_BUILD_SHARED_MEMORY 1)
 set(WAMR_BUILD_SIMD 1)
 
 set(WAMR_BUILD_MULTI_MODULE 1)
