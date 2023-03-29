@@ -15,6 +15,21 @@ from faasmcli.util.version import get_version
 from faasmcli.util.env import AVAILABLE_HOSTS_SET
 
 
+def _get_cluster_services():
+    compose_cmd = "docker compose ps --services"
+    service_list = (
+        run(compose_cmd, shell=True, cwd=PROJ_ROOT, capture_output=True)
+        .stdout.decode("utf-8")
+        .split("\n")
+    )
+    service_list = [
+        service
+        for service in service_list
+        if len(service) > 0 and service != "faasm-cli"
+    ]
+    return service_list
+
+
 @task
 def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
     """
@@ -67,7 +82,7 @@ def stop(ctx, workers=2):
     Stop the local dev cluster
     """
     run(
-        "docker compose stop nginx worker upload minio redis-state redis-queue",
+        "docker compose stop {}".format(" ".join(_get_cluster_services())),
         shell=True,
         check=True,
         cwd=PROJ_ROOT,
@@ -79,7 +94,12 @@ def restart(ctx):
     """
     Restart the whole dev cluster
     """
-    run("docker compose restart", shell=True, check=True, cwd=PROJ_ROOT)
+    run(
+        "docker compose restart {}".format(" ".join(_get_cluster_services())),
+        shell=True,
+        check=True,
+        cwd=PROJ_ROOT,
+    )
 
 
 @task
