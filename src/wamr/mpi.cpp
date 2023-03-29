@@ -109,7 +109,7 @@ class WamrMpiContextWrapper
         // First level of indirection
         module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
 
-        return (int32_t) *requestPtrPtr;
+        return (int32_t)*requestPtrPtr;
         // Second level of indirection
         /*
         faabric_request_t* hostRequestPtr =
