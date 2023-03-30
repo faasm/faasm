@@ -102,7 +102,7 @@ void WAMRWasmModule::reset(faabric::Message& msg,
     }
 
     std::string funcStr = faabric::util::funcToString(msg, true);
-    SPDLOG_INFO("WAMR resetting after {} (snap key {})", funcStr, snapshotKey);
+    SPDLOG_DEBUG("WAMR resetting after {} (snap key {})", funcStr, snapshotKey);
 
     wasm_runtime_deinstantiate(moduleInstance);
     bindInternal(msg);
@@ -165,8 +165,7 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
 
     // Set up thread stacks
-    // createThreadStacks();
-    threadStacks.push_back(-1);
+    createThreadStacks();
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)

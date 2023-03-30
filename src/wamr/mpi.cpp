@@ -62,63 +62,28 @@ class WamrMpiContextWrapper
 
     // MPI passes an MPI_Request* as part of the asynchronous API calls.
     // MPI_Request is in itself a faabric_request_t* so requestPtrPtr is a
-    // faabric_request_t**, which is a double wasm offset. WAMR converts the
-    // first offset to a native pointer. The second pointer is still a WASM
-    // offset. That being said, we need to populate the contents of the second
-    // pointer which involves:
-    // i) Giving the first pointer the value of a wasm offset
-    // ii) Accessing the memory pointed to the newly provisioned offset and
-    //     populating the contents
+    // faabric_request_t**, which is a double wasm offset. Allocating memory
+    // for the second pointer from outside WASM is tricky and error-prone,
+    // so we use overwrite the pointer value with the actual pointed-to value
+    // (the pointer just points to one int, so we can do that).
     void writeFaasmRequestId(int32_t* requestPtrPtr, int32_t requestId) const
     {
         module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
         MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
 
-        // Allocate memory for the pointed-to faabric_request_t
-        /*
-        faabric_request_t* hostRequestPtr = nullptr;
-        uint32_t wasmPtr = module->wasmModuleMalloc(sizeof(faabric_request_t),
-                                                    (void**)&hostRequestPtr);
-        */
-
-        // Assign the new offset (i.e. wasm pointer) to the MPI_Request var.
-        // Note that we are assigning a WASM offset to a native pointer, hence
-        // why we need to force the casting to let the compiler know we know
-        // what we are doing
-        /* unaligned write is overwritting other stack variables!
-        faabric::util::unalignedWrite<faabric_request_t*>(
-          reinterpret_cast<faabric_request_t*>(wasmPtr),
-          reinterpret_cast<uint8_t*>(requestPtr));
-        */
-        // Without an unaligned write, it also seems we are overwritting some
-        // stack variables
-        // *requestPtr = (faabric_request_t*)((int32_t)wasmPtr);
-        // Go back to the old trick of setting the value in the pointer
+        // Be very careful with this copy, as we may overwrite other variables
+        // in the stack
         ::memcpy(requestPtr, &requestId, sizeof(int32_t));
-
-        // Be careful as requestPtr is a WASM offset, not a native pointer. We
-        // need a naitive pointer to de-reference it and access the id field
-        // hostRequestPtr->id = requestId;
     }
 
-    // requestPtrPtr is of type faabric_request_t** and we need to access the
-    // `id` field of faabric_request_t. The first pointer is a native pointer,
-    // the second one is a WASM offset
+    // We use the same trick explained in the previous function, whereby we
+    // read the integer from a pointer (without dereferencing it)
     int32_t getFaasmRequestId(int32_t* requestPtrPtr) const
     {
         // First level of indirection
         module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
 
         return (int32_t)*requestPtrPtr;
-        // Second level of indirection
-        /*
-        faabric_request_t* hostRequestPtr =
-          reinterpret_cast<faabric_request_t*>(
-            module->wasmOffsetToNativePointer(*requestPtrPtr));
-        module->validateNativePointer(hostRequestPtr,
-                                      sizeof(faabric_communicator_t));
-        return hostRequestPtr->id;
-        */
     }
 
     // In place execution of reduce-like calls is indicated by setting the send
