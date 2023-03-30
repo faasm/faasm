@@ -1,5 +1,5 @@
 from datetime import datetime
-from os import makedirs, listdir
+from os import environ, listdir, makedirs
 from os.path import join
 from subprocess import run, PIPE
 from time import sleep
@@ -17,7 +17,8 @@ LOCALHOST_IP = "127.0.0.1"
 
 K8S_COMMON_DIR = join(PROJ_ROOT, "deploy", "k8s-common")
 K8S_SGX_DIR = join(PROJ_ROOT, "deploy", "k8s-sgx")
-K8S_DIR = join(PROJ_ROOT, "deploy", "k8s")
+K8S_WAVM_DIR = join(PROJ_ROOT, "deploy", "k8s")
+K8S_WAMR_DIR = join(PROJ_ROOT, "deploy", "k8s-wamr")
 NAMESPACE_FILE = join(K8S_COMMON_DIR, "namespace.yml")
 
 
@@ -62,15 +63,18 @@ def _get_faasm_worker_pods(label):
 
 
 @task(optional=["sgx"])
-def deploy(ctx, workers, sgx=False):
+def deploy(ctx, workers):
     """
     Deploy Faasm to a k8s cluster
     """
-    # We can disable SGX by either not setting the flag (i.e. no --sgx) or by
-    # setting the flag with value "False" (i.e. --sgx False). Supporting this
-    # makes it possible to enable SGX conditionally from Github Actions
-    sgx = sgx and sgx.lower() != "false"
-    _deploy_faasm_services(int(workers), sgx)
+
+    # Pick the right WASM VM
+    if "WASM_VM" in environ:
+        wasm_vm = environ["WASM_VM"]
+    else:
+        wasm_vm = "wavm"
+
+    _deploy_faasm_services(int(workers), wasm_vm)
 
     ini_file(ctx)
 
@@ -118,7 +122,7 @@ def wait_for_faasm_lb(service_name):
         sleep(5)
 
 
-def _deploy_faasm_services(worker_replicas, sgx=False):
+def _deploy_faasm_services(worker_replicas, wasm_vm):
     # Set up the namespace first
     run(
         "kubectl apply -f {}".format(NAMESPACE_FILE),
@@ -134,16 +138,18 @@ def _deploy_faasm_services(worker_replicas, sgx=False):
     ]
 
     # Then add the deployment specific files
-    if sgx:
-        k8s_files += [
-            join(K8S_SGX_DIR, f)
-            for f in listdir(K8S_SGX_DIR)
-            if f.endswith(".yml")
-        ]
+    if wasm_vm == "sgx":
+        k8s_dir = K8S_SGX_DIR
+    elif wasm_vm == "wamr":
+        k8s_dir = K8S_WAMR_DIR
+    elif wasm_vm == "wavm":
+        k8s_dir = K8S_WAVM_DIR
     else:
-        k8s_files += [
-            join(K8S_DIR, f) for f in listdir(K8S_DIR) if f.endswith(".yml")
-        ]
+        print("Unrecognised WASM VM: {}".format(wasm_vm))
+        raise RuntimeError("Unrecognised WASM VM")
+    k8s_files += [
+        join(k8s_dir, f) for f in listdir(k8s_dir) if f.endswith(".yml")
+    ]
 
     # Apply all the files
     print("Applying k8s files: {}".format(k8s_files))
@@ -181,7 +187,12 @@ def delete(ctx, local=False, sgx=False):
     Remove Faasm's k8s cluster
     """
     # Delete the rest
-    for dir_to_delete in [K8S_COMMON_DIR, K8S_DIR, K8S_SGX_DIR]:
+    for dir_to_delete in [
+        K8S_COMMON_DIR,
+        K8S_WAVM_DIR,
+        K8S_WAMR_DIR,
+        K8S_SGX_DIR,
+    ]:
         cmd = "kubectl delete --all -f {}".format(dir_to_delete)
         print(cmd)
         run(cmd, shell=True, check=True)

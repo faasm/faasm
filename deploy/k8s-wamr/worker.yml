@@ -1,0 +1,77 @@
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faasm-worker
+  namespace: faasm
+  labels:
+    app: faasm
+spec:
+  selector:
+    matchLabels:
+      run: faasm-worker
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: faasm-worker
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: run
+                      operator: In
+                      values:
+                      - faasm-worker
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+
+      containers:
+        - image: faasm.azurecr.io/worker-sgx:0.9.5
+          name: faasm-worker
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              sgx.intel.com/epc: "10Mi"
+            requests:
+              sgx.intel.com/epc: "10Mi"
+          volumeMounts:
+            - name: var-run-aesmd
+              mountPath: /var/run/aesmd # hardcoded in intels libarary, volume name must match that of the daemonset
+          env:
+            - name: REDIS_STATE_HOST
+              value: "redis-state"
+            - name: REDIS_QUEUE_HOST
+              value: "redis-queue"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: CAPTURE_STDOUT
+              value: "on"
+            - name: CGROUP_MODE
+              value: "off"
+            - name: NETNS_MODE
+              value: "off"
+            - name: MAX_NET_NAMESPACES
+              value: "100"
+            - name: PYTHON_PRELOAD
+              value: "off"
+            - name: PYTHON_CODEGEN
+              value: "off"
+            - name: BOUND_TIMEOUT
+              value: "600000"
+            - name: GLOBAL_MESSAGE_TIMEOUT
+              value: "700000"
+            - name: ENDPOINT_INTERFACE
+              value: "eth0"
+            - name: WASM_VM
+              value: "worker"
+
+      volumes:
+      - name: var-run-aesmd
+        hostPath:
+          path: /var/run/aesmd
