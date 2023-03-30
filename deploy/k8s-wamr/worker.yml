@@ -69,7 +69,7 @@ spec:
             - name: ENDPOINT_INTERFACE
               value: "eth0"
             - name: WASM_VM
-              value: "worker"
+              value: "wamr"
 
       volumes:
       - name: var-run-aesmd
