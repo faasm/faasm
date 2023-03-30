@@ -47,11 +47,7 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
     auto req = setUpContext("demo", "shared_file");
     SECTION("WAVM") { execFunction(req); }
 
-    SECTION("WAMR")
-    {
-        execWamrFunction(req->mutable_messages()->at(0));
-        execWamrFunction(req->mutable_messages()->at(0));
-    }
+    SECTION("WAMR") { execWamrFunction(req->mutable_messages()->at(0)); }
 
     // Check file has been synced locally
     REQUIRE(boost::filesystem::exists(fullPath));
