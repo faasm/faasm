@@ -64,7 +64,7 @@ static int32_t munmap_wrapper(wasm_exec_env_t exec_env,
                               int32_t addr,
                               int32_t length)
 {
-    SPDLOG_DEBUG("S - munmap - {} {}", addr, length);
+    SPDLOG_TRACE("S - munmap - {} {}", addr, length);
 
     WAMRWasmModule* executingModule = getExecutingWAMRModule();
     executingModule->unmapMemory(addr, length);
