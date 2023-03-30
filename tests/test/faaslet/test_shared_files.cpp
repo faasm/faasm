@@ -13,6 +13,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <wamr/WAMRWasmModule.h>
+
 namespace tests {
 
 class SharedFilesExecTestFixture
@@ -59,5 +61,54 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
     REQUIRE(s3.listKeys(conf.s3Bucket).size() == 1);
     std::string s3Actual = s3.getKeyStr(conf.s3Bucket, relativePath);
     REQUIRE(s3Actual == expected);
+}
+
+TEST_CASE_METHOD(SharedFilesExecTestFixture,
+                 "Test WASM filesystem is reset after module reset",
+                 "[faaslet]")
+{
+    std::string relativePath = "some_dir/test_file.txt";
+    std::string fullPath = loader.getSharedFileFile(relativePath);
+    boost::filesystem::remove(fullPath);
+
+    auto req = setUpContext("demo", "shared_file");
+    auto call = req->mutable_messages()->at(0);
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+
+    SECTION("WAMR")
+    {
+        conf.wasmVm = "wamr";
+
+        wasm::WAMRWasmModule module;
+        module.bindToFunction(call);
+        int returnValue = module.executeFunction(call);
+
+        REQUIRE(returnValue == 0);
+        REQUIRE(call.returnvalue() == 0);
+
+        module.reset(call, "");
+        returnValue = module.executeFunction(call);
+
+        REQUIRE(returnValue == 0);
+        REQUIRE(call.returnvalue() == 0);
+    }
+
+    SECTION("WAVM")
+    {
+        conf.wasmVm = "wavm";
+
+        wasm::WAVMWasmModule module;
+        module.bindToFunction(call);
+        int returnValue = module.executeFunction(call);
+
+        REQUIRE(returnValue == 0);
+        REQUIRE(call.returnvalue() == 0);
+
+        module.reset(call, "");
+        returnValue = module.executeFunction(call);
+
+        REQUIRE(returnValue == 0);
+        REQUIRE(call.returnvalue() == 0);
+    }
 }
 }
