@@ -100,9 +100,6 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
                  msg.function(),
                  msg.id());
 
-    // Prepare the filesystem
-    filesystem.prepareFilesystem();
-
     // Load the wasm file
     storage::FileLoader& functionLoader = storage::getFileLoader();
     wasmBytes = functionLoader.loadFunctionWamrAotFile(msg);
@@ -125,6 +122,9 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 
 void WAMRWasmModule::bindInternal(faabric::Message& msg)
 {
+    // Prepare the filesystem
+    filesystem.prepareFilesystem();
+
     // Instantiate module
     moduleInstance = wasm_runtime_instantiate(
       wasmModule, STACK_SIZE_KB, HEAP_SIZE_KB, errorBuffer, ERROR_BUFFER_SIZE);
