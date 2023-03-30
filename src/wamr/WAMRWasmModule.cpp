@@ -263,7 +263,9 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     uint32_t returnValue = argv[0];
 
     if (!success) {
-        SPDLOG_ERROR("Error executing {}: {}", funcName, wasm_runtime_get_exception(moduleInstance));
+        SPDLOG_ERROR("Error executing {}: {}",
+                     funcName,
+                     wasm_runtime_get_exception(moduleInstance));
         throw std::runtime_error("Error executing WASM function with WAMR");
     }
 
