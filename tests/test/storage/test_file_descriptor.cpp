@@ -10,22 +10,18 @@
 #include <storage/FileLoader.h>
 #include <storage/SharedFiles.h>
 
+#include <WAVM/WASI/WASIABI.h>
 #include <boost/filesystem.hpp>
 #include <string_view>
-#include <WAVM/WASI/WASIABI.h>
 
 using namespace storage;
 
 namespace tests {
 
-class FileDescriptorTestFixture
-  : public SharedFilesTestFixture
+class FileDescriptorTestFixture : public SharedFilesTestFixture
 {
   public:
-      FileDescriptorTestFixture()
-      {
-          fs.prepareFilesystem();
-      }
+    FileDescriptorTestFixture() { fs.prepareFilesystem(); }
 
   protected:
     FileSystem fs;
@@ -92,9 +88,7 @@ TEST_CASE_METHOD(FileDescriptorTestFixture,
     REQUIRE(!(bool)(linuxFlags & O_RSYNC));
 }
 
-TEST_CASE_METHOD(FileDescriptorTestFixture,
-                 "Test stat and mkdir",
-                 "[storage]")
+TEST_CASE_METHOD(FileDescriptorTestFixture, "Test stat and mkdir", "[storage]")
 {
     FileDescriptor& fd = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
