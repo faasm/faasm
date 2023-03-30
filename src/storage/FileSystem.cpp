@@ -12,6 +12,9 @@
 namespace storage {
 void FileSystem::prepareFilesystem()
 {
+    // Clear existing file descriptors if any
+    fileDescriptors.clear();
+
     // Predefined stdin, stdout and stderr
     fileDescriptors.emplace(0, storage::FileDescriptor::stdinFactory());
     fileDescriptors.emplace(1, storage::FileDescriptor::stdoutFactory());
