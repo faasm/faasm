@@ -1,27 +1,40 @@
 #include <catch2/catch.hpp>
 
+#include "faasm_fixtures.h"
 #include "utils.h"
 
-#include <WAVM/WASI/WASIABI.h>
-#include <boost/filesystem.hpp>
+#include <conf/FaasmConfig.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/files.h>
-
-#include <conf/FaasmConfig.h>
 #include <storage/FileDescriptor.h>
 #include <storage/FileLoader.h>
 #include <storage/SharedFiles.h>
 
+#include <boost/filesystem.hpp>
 #include <string_view>
+#include <WAVM/WASI/WASIABI.h>
 
 using namespace storage;
 
 namespace tests {
 
-TEST_CASE("Test fd rights propagation", "[storage]")
+class FileDescriptorTestFixture
+  : public SharedFilesTestFixture
 {
+  public:
+      FileDescriptorTestFixture()
+      {
+          fs.prepareFilesystem();
+      }
+
+  protected:
     FileSystem fs;
-    fs.prepareFilesystem();
+};
+
+TEST_CASE_METHOD(FileDescriptorTestFixture,
+                 "Test fd rights propagation",
+                 "[storage]")
+{
     FileDescriptor& rootFd = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     uint64_t base = rootFd.getActualRightsBase();
@@ -79,10 +92,10 @@ TEST_CASE("Test fd rights propagation", "[storage]")
     REQUIRE(!(bool)(linuxFlags & O_RSYNC));
 }
 
-TEST_CASE("Test stat and mkdir", "[storage]")
+TEST_CASE_METHOD(FileDescriptorTestFixture,
+                 "Test stat and mkdir",
+                 "[storage]")
 {
-    FileSystem fs;
-    fs.prepareFilesystem();
     FileDescriptor& fd = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     std::string dummyDir = "fs_test_dir";
@@ -112,10 +125,10 @@ TEST_CASE("Test stat and mkdir", "[storage]")
     REQUIRE(dirStatC.failed);
 }
 
-TEST_CASE("Test creating, renaming and deleting a file", "[storage]")
+TEST_CASE_METHOD(FileDescriptorTestFixture,
+                 "Test creating, renaming and deleting a file",
+                 "[storage]")
 {
-    FileSystem fs;
-    fs.prepareFilesystem();
     FileDescriptor& rootFileDesc = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     std::string dummyDir = "fs_test_dir";
@@ -176,15 +189,9 @@ TEST_CASE("Test creating, renaming and deleting a file", "[storage]")
     REQUIRE(fileStatF.failed);
 }
 
-TEST_CASE("Test seek", "[storage]")
+TEST_CASE_METHOD(FileDescriptorTestFixture, "Test seek", "[storage]")
 {
-    SharedFiles::clear();
-
-    FileSystem fs;
-    fs.prepareFilesystem();
-
     storage::FileLoader& loader = storage::getFileLoader();
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
     std::string dummyPath;
     std::string realPath;
     std::string contentPath;
@@ -250,12 +257,10 @@ TEST_CASE("Test seek", "[storage]")
     boost::filesystem::remove(realPath);
 }
 
-TEST_CASE("Test stat and read shared file", "[storage]")
+TEST_CASE_METHOD(FileDescriptorTestFixture,
+                 "Test stat and read shared file",
+                 "[storage]")
 {
-    SharedFiles::clear();
-
-    FileSystem fs;
-    fs.prepareFilesystem();
     FileDescriptor& rootFileDesc = fs.getFileDescriptor(DEFAULT_ROOT_FD);
 
     // Set up the shared file
@@ -309,13 +314,10 @@ void checkWasiDirentInBuffer(uint8_t* buffer, DirEnt e)
     REQUIRE(direntPath == e.path);
 }
 
-TEST_CASE("Test readdir iterator and buffer", "[storage]")
+TEST_CASE_METHOD(FileDescriptorTestFixture,
+                 "Test readdir iterator and buffer",
+                 "[storage]")
 {
-    SharedFiles::clear();
-
-    FileSystem fs;
-    fs.prepareFilesystem();
-
     // We need to list a big enough directory here to catch issues with long
     // file listings and the underlying syscalls
     std::string dirPath = "/usr/local/faasm/runtime_root/lib/python3.8";
