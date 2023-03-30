@@ -29,12 +29,9 @@ struct WAMRModuleMixin
 
     // Validate that a memory range defined by a pointer and a size is a valid
     // offset in the module's WASM linear memory.
-    // If we can not throw an exception in SGX, lets implement it in the
-    // respective headers then
     void validateNativePointer(void* nativePtr, int size)
     {
         auto moduleInstance = this->underlying().getModuleInstance();
-        // TODO: can we throw exceptions in SGX?
         bool success =
           wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size);
 

@@ -28,7 +28,7 @@ int doRunner(int argc, char* argv[])
     usleep(1000 * 500);
 
     for (const auto& m : req->messages()) {
-        faabric::Message result = sch.getFunctionResult(m.id(), 20000 * 1000);
+        faabric::Message result = sch.getFunctionResult(m.id(), 20000 * 100);
         if (result.returnvalue() != 0) {
             SPDLOG_ERROR("Message ({}) returned error code: {}",
                          m.id(),
