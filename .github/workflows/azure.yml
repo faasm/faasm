@@ -13,8 +13,6 @@ defaults:
 jobs:
   aks:
     runs-on: self-hosted
-    env:
-      CLUSTER_NAME_BASE: gha-cluster
     strategy:
       fail-fast: true
       # Running two Kubernetes clusters side-by-side from the same user in the
@@ -25,7 +23,10 @@ jobs:
       # run one after the other, so we don't implement the fix.
       max-parallel: 1
       matrix:
-        sgx: [True, False]
+        wasm_vm: [wamr, wavm, sgx]
+    env:
+      CLUSTER_NAME_BASE: gha-cluster
+      WASM_VM: ${{ matrix.wasm_vm }}
     steps:
       - name: "Check out the experiment-base code"
         uses: actions/checkout@v3
@@ -34,14 +35,14 @@ jobs:
           path: experiment-base
       - name: "Create a unique cluster name"
         run: |
-          [[ "${{ matrix.sgx }}" == "true" ]] && SUFFIX_SGX="-sgx" || SUFFIX_SGX=""
-          echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}${SUFFIX_SGX}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}" >> $GITHUB_ENV
+          echo "CLUSTER_NAME=${CLUSTER_NAME_BASE}-${{ matrix.wasm_vm }}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}" >> $GITHUB_ENV
       - name: "Install kubectl"
         run: ./bin/inv_wrapper.sh k8s.install-kubectl
         working-directory: ${{ github.workspace }}/experiment-base
       - name: "Start a managed k8s cluster on Azure's Kubernetes Service"
         run: |
-          ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx ${{ matrix.sgx }}
+          [[ "${{ matrix.wasm_vm }}" == "sgx" ]] && SUFFIX_SGX="True" || SUFFIX_SGX="False"
+          ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx ${SUFFIX_SGX}
           ./bin/inv_wrapper.sh cluster.credentials --name ${{ env.CLUSTER_NAME }}
         working-directory: ${{ github.workspace }}/experiment-base
       - name: "Check out faasm code"
@@ -50,7 +51,7 @@ jobs:
           submodules: true
           path: faasm
       - name: "Deploy Faasm on k8s cluster"
-        run: ./bin/inv_wrapper.sh k8s.deploy --workers=4 --sgx ${{ matrix.sgx }}
+        run: ./bin/inv_wrapper.sh k8s.deploy --workers=4
         working-directory: ${{ github.workspace }}/faasm
       - name: "Build, upload and run a simple CPP function"
         run: docker compose -f docker-compose-k8s.yml run -T cpp-cli ./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello
