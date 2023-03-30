@@ -60,26 +60,31 @@ bool EnclaveWasmModule::loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize)
 
 bool EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
 {
+    prepareArgcArgv(argcIn, argvIn);
+
+    WASMExecEnv* execEnv = wasm_runtime_get_exec_env_singleton(moduleInstance);
+    if (execEnv == nullptr) {
+        ocallLogError("Failed to create WAMR exec env");
+        throw std::runtime_error("Failed to create WAMR exec env");
+    }
+
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, WASM_ENTRY_FUNC, nullptr);
-
-    prepareArgcArgv(argcIn, argvIn);
+    if (func == nullptr) {
+        ocallLogError("Did not find named WASM function");
+        throw std::runtime_error("Did not find named wasm function");
+    }
 
     // Set dummy argv to capture return value
     std::vector<uint32_t> argv = { 0 };
+    bool success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
+    uint32_t returnValue = argv[0];
 
-    bool success =
-      aot_create_exec_env_and_call_function((AOTModuleInstance*)moduleInstance,
-                                            (AOTFunctionInstance*)func,
-                                            0x0,
-                                            argv.data());
 
     if (success) {
         ocallLogDebug("Success calling WASM function");
     } else {
-        std::string errorMessage(
-          ((AOTModuleInstance*)moduleInstance)->cur_exception);
-        // TODO - better logging
+        std::string errorMessage(wasm_runtime_get_exception(moduleInstance));
         std::string errorText =
           "Caught WASM runtime exception: " + errorMessage;
         ocallLogError(errorText.c_str());
