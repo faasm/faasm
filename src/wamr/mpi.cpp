@@ -639,19 +639,10 @@ static int32_t MPI_Irecv_wrapper(wasm_exec_env_t execEnv,
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
 
-    // TODO: we can not keep the WASM buffer around, as it may be invalidated,
-    // we can only keep the offset
     ctx->module->validateNativePointer(buffer, count * hostDtype->size);
-    // std::vector<uint8_t> ourBuf(count * hostDtype->size);
 
     int requestId = ctx->world.irecv(
       sourceRank, ctx->rank, (uint8_t*)buffer, hostDtype, count);
-    // Make sure we are not copying
-    /*
-    ctx->offsetToBufferMap[requestId] =
-      std::make_pair<uint32_t, std::vector<uint8_t>>(
-        ctx->module->nativePointerToWasmOffset(buffer), std::move(ourBuf));
-    */
 
     ctx->writeFaasmRequestId(requestPtrPtr, requestId);
 
@@ -725,7 +716,6 @@ static int32_t MPI_Recv_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* comm,
                                 int32_t* statusPtr)
 {
-    /*
     MPI_FUNC_ARGS("S - MPI_Recv {} {} {} {} {} {} {}",
                   (uintptr_t)buffer,
                   count,
@@ -734,8 +724,6 @@ static int32_t MPI_Recv_wrapper(wasm_exec_env_t execEnv,
                   tag,
                   (uintptr_t)comm,
                   (uintptr_t)statusPtr);
-    */
-    MPI_FUNC_ARGS("S - MPI_Recv {} <- {}", ctx->rank, sourceRank);
 
     ctx->checkMpiComm(comm);
     ctx->module->validateNativePointer(statusPtr, sizeof(MPI_Status));
@@ -1015,6 +1003,8 @@ static int32_t MPI_Type_size_wrapper(wasm_exec_env_t execEnv,
 // `WAMR_BUILD_SHARED_MEMORY` set to `1`, should fix the issue, as then
 // addresses are not invalidated. For the time being, as this has not caused
 // any errors, we don't set it.
+// wasm_export.h#L1020 - "Note that a native address to a module instance
+// can be invalidated on a memory growth"
 static int32_t MPI_Wait_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* requestPtrPtr,
                                 int32_t status)
@@ -1023,14 +1013,6 @@ static int32_t MPI_Wait_wrapper(wasm_exec_env_t execEnv,
 
     MPI_FUNC_ARGS("S - MPI_Wait {} {}", (uintptr_t)requestPtrPtr, requestId);
 
-    // WARNING: we could be running into a problem here, as I don't think it
-    // is safe to re-use native pointers to the heap in WAMR, as the memory
-    // layout may change. Thus, we may want to keep an additional map of
-    // requests id, to wasm offsets, and give faabric a pointer _we_ control.
-    // This will increase the memory usage on the host, but this is something
-    // we can leave with?
-    // wasm_export.h#L1020 - "Note that a native address to a module instance
-    // can be invalidated on a memory growth"
     ctx->world.awaitAsyncRequest(requestId);
 
     return MPI_SUCCESS;

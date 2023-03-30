@@ -19,8 +19,6 @@
 #include <wasm_exec_env.h>
 #include <wasm_export.h>
 
-#include <aot_runtime.h>
-
 namespace wasm {
 // The high level API for WAMR can be found here:
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/include/wasm_export.h

@@ -118,10 +118,12 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
         function = "echo";
     }
 
+    // Note that mpi_cart_create calls MPI_Cart_create that in turn calls
+    // wasmModuleMalloc again
     SECTION("Complex function")
     {
         user = "mpi";
-        function = "mpi_isendrecv";
+        function = "mpi_cart_create";
     }
 
     auto req = setUpContext("demo", "echo");
@@ -141,13 +143,5 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     if (wasmOffset == 0) {
         SPDLOG_ERROR("WASM module malloc failed!");
     }
-}
-
-// TODO - move to WASM chaining tests
-TEST_CASE_METHOD(FunctionExecTestFixture,
-                 "Test executing chain function with WAMR",
-                 "[wamr]")
-{
-    executeWithWamrPool("demo", "chain", 10000);
 }
 }

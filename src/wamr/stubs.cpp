@@ -1,8 +1,5 @@
 #include <faabric/util/logging.h>
-#include <wamr/WAMRWasmModule.h>
-
 #include <stdexcept>
-
 #include <wamr/native.h>
 #include <wasm_export.h>
 
@@ -50,23 +47,11 @@ static int32_t shm_open_wrapper(wasm_exec_env_t exec_env,
     throw std::runtime_error("Native shm_open not implemented");
 }
 
-static void __faasm_interrupt_wrapper(wasm_exec_env_t execEnv)
-{
-    SPDLOG_INFO("External malloc!");
-
-    wasm::WAMRWasmModule* module = getExecutingWAMRModule();
-
-    void* nativePtr;
-    size_t mallocSize = 3 * sizeof(int);
-    module->wasmModuleMalloc(mallocSize, &nativePtr);
-}
-
 static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__cxa_allocate_exception, "(i)i"),
     REG_NATIVE_FUNC(__cxa_throw, "(iii)"),
     REG_NATIVE_FUNC(shm_open, "($ii)i"),
     REG_NATIVE_FUNC(syscall, "(ii)i"),
-    REG_NATIVE_FUNC(__faasm_interrupt, "()"),
 };
 
 uint32_t getFaasmStubs(NativeSymbol** nativeSymbols)
