@@ -3,8 +3,16 @@ name: "Azure Integration Tests"
 # These tests provision resources on Faasm's Azure subscription to run
 # integration tests on a production environment. To limit the cost of running
 # them, we only trigger them on workflow dispatch. In order to run them, you
-# need to navigate to the Actions tab on GitHub, and click the run button
-on: workflow_dispatch
+# need to navigate to the Actions tab on GitHub, and click the run button.
+# Additionally, we also run them when we change the deployment files, to check
+# that we don't break anything
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "deploy/**yml"
 
 defaults:
   run:
