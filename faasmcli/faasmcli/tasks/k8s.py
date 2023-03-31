@@ -62,7 +62,7 @@ def _get_faasm_worker_pods(label):
     return names, ips
 
 
-@task(optional=["sgx"])
+@task
 def deploy(ctx, workers):
     """
     Deploy Faasm to a k8s cluster
