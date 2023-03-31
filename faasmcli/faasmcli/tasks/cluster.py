@@ -25,7 +25,7 @@ def _get_cluster_services():
     service_list = [
         service
         for service in service_list
-        if len(service) > 0 and service != "faasm-cli"
+        if len(service) > 0 and service not in ["faasm-cli", "cpp", "python"]
     ]
     return service_list
 
