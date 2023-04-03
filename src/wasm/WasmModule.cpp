@@ -829,7 +829,7 @@ void WasmModule::unmapMemory(uint32_t offset, size_t nBytes)
     } else {
         // TODO - this log statement should be a warning, but for some reason
         // we are running into it a lot, so I temporarily disable it
-        SPDLOG_DEBUG("MEM - unable to reclaim unmapped memory {} at {}",
+        SPDLOG_TRACE("MEM - unable to reclaim unmapped memory {} at {}",
                      pageAligned,
                      offset);
     }
