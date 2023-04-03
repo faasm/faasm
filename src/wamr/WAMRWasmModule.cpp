@@ -329,7 +329,7 @@ uint8_t* WAMRWasmModule::getMemoryBase()
 
 size_t WAMRWasmModule::getMaxMemoryPages()
 {
-    auto aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem = ((AOTMemoryInstance**)aotModule->memories)[0];
     return aotMem->max_page_count;
 }
