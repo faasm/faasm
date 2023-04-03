@@ -45,8 +45,6 @@
 namespace wasm {
 void initialiseWAMRNatives();
 
-uint32_t getFaasmChainingApi(NativeSymbol** nativeSymbols);
-
 uint32_t getFaasmDynlinkApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmEnvApi(NativeSymbol** nativeSymbols);
