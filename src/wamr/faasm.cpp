@@ -3,11 +3,12 @@
 #include <faabric/util/bytes.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
-#include <wamr/WAMRWasmModule.h>
+#include <wasm/chaining.h>
+#include <wasm/migration.h>
 #include <wamr/native.h>
+#include <wamr/WAMRWasmModule.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
-#include <wasm/chaining.h>
 
 #include <wasm_export.h>
 
@@ -44,6 +45,19 @@ static int32_t __faasm_await_call_wrapper(wasm_exec_env_t exec_env,
 }
 
 /**
+ * Chain a function by name
+ */
+static int32_t __faasm_chain_name_wrapper(wasm_exec_env_t execEnv,
+                                          const char* name,
+                                          const uint8_t* input,
+                                          uint32_t inputSize)
+{
+    std::vector<uint8_t> _input(input, input + inputSize);
+    SPDLOG_DEBUG("S - chain_name - {}", std::string(name));
+    return wasm::makeChainedCall(std::string(name), 0, nullptr, _input);
+}
+
+/**
  * Chain a function by function pointer
  */
 static int32_t __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
@@ -56,6 +70,15 @@ static int32_t __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
     faabric::Message& call = ExecutorContext::get()->getMsg();
     std::vector<uint8_t> inputData(BYTES(inBuff), BYTES(inBuff) + inLen);
     return makeChainedCall(call.function(), wasmFuncPtr, nullptr, inputData);
+}
+
+static void __faasm_migrate_point_wrapper(wasm_exec_env_t execEnv,
+                                             int32_t wasmFuncPtr,
+                                             std::string funcArg)
+{
+    SPDLOG_DEBUG("S - faasm_migrate_point {} {}", wasmFuncPtr, funcArg);
+
+    wasm::doMigrationPoint(wasmFuncPtr, funcArg);
 }
 
 static void __faasm_pull_state_wrapper(wasm_exec_env_t execEnv,
@@ -114,7 +137,9 @@ static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env,
 
 static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__faasm_await_call, "(i)i"),
+    REG_NATIVE_FUNC(__faasm_chain_name, "($$i)i"),
     REG_NATIVE_FUNC(__faasm_chain_ptr, "(i$i)i"),
+    REG_NATIVE_FUNC(__faasm_migrate_point, "(i$)"),
     REG_NATIVE_FUNC(__faasm_pull_state, "(*i)"),
     REG_NATIVE_FUNC(__faasm_push_state, "(*)"),
     REG_NATIVE_FUNC(__faasm_read_input, "($i)i"),

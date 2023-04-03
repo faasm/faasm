@@ -1,13 +1,6 @@
 #include "syscalls.h"
 
-#include <wasm/WasmExecutionContext.h>
-#include <wasm/chaining.h>
-#include <wavm/WAVMWasmModule.h>
-
-#include <WAVM/Platform/Diagnostics.h>
-#include <WAVM/Runtime/Intrinsics.h>
-#include <WAVM/Runtime/Runtime.h>
-
+#include <conf/FaasmConfig.h>
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotClient.h>
@@ -21,8 +14,15 @@
 #include <faabric/util/scheduling.h>
 #include <faabric/util/snapshot.h>
 #include <faabric/util/state.h>
+#include <wasm/WasmExecutionContext.h>
+#include <wasm/chaining.h>
+#include <wasm/migration.h>
+#include <wavm/WAVMWasmModule.h>
 
-#include <conf/FaasmConfig.h>
+#include <WAVM/Platform/Diagnostics.h>
+#include <WAVM/Runtime/Intrinsics.h>
+#include <WAVM/Runtime/Runtime.h>
+
 
 using namespace WAVM;
 using namespace faabric::transport;
@@ -716,6 +716,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     SPDLOG_DEBUG(
       "S - faasm_migrate_point {} {}", entrypointFuncPtr, entrypointFuncArg);
 
+    wasm::doMigrationPoint(entrypointFuncPtr, std::to_string(entrypointFuncArg));
+/*
     auto* call = &ExecutorContext::get()->getMsg();
     auto& sch = faabric::scheduler::getScheduler();
 
@@ -809,6 +811,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         // Throw an exception to be caught by the executor and terminate
         throw faabric::util::FunctionMigratedException("Migrating MPI rank");
     }
+*/
 }
 
 // ------------------------------------

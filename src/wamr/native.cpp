@@ -20,7 +20,6 @@ void doWasiSymbolRegistration(uint32_t (*f)(NativeSymbol** ns))
 void initialiseWAMRNatives()
 {
     // Register native symbols
-    doSymbolRegistration(getFaasmChainingApi);
     doSymbolRegistration(getFaasmDynlinkApi);
     doSymbolRegistration(getFaasmEnvApi);
     doSymbolRegistration(getFaasmFilesystemApi);
