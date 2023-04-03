@@ -80,7 +80,6 @@ bool EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
     bool success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
     uint32_t returnValue = argv[0];
 
-
     if (success) {
         ocallLogDebug("Success calling WASM function");
     } else {
