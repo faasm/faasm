@@ -5,7 +5,8 @@
 
 namespace wasm {
 void doMigrationPoint(int32_t entrypointFuncWasmOffset,
-                      const std::string& entrypointFuncArg) {
+                      const std::string& entrypointFuncArg)
+{
     auto* call = &faabric::scheduler::ExecutorContext::get()->getMsg();
     auto& sch = faabric::scheduler::getScheduler();
 
@@ -37,7 +38,8 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
 
     // Do actual migration
     if (funcMustMigrate) {
-        std::vector<uint8_t> inputData(entrypointFuncArg.begin(), entrypointFuncArg.end());
+        std::vector<uint8_t> inputData(entrypointFuncArg.begin(),
+                                       entrypointFuncArg.end());
 
         std::string user = call->user();
 

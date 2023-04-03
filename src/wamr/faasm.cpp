@@ -3,12 +3,12 @@
 #include <faabric/util/bytes.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
-#include <wasm/chaining.h>
-#include <wasm/migration.h>
-#include <wamr/native.h>
 #include <wamr/WAMRWasmModule.h>
+#include <wamr/native.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
+#include <wasm/chaining.h>
+#include <wasm/migration.h>
 
 #include <wasm_export.h>
 
@@ -73,8 +73,8 @@ static int32_t __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
 }
 
 static void __faasm_migrate_point_wrapper(wasm_exec_env_t execEnv,
-                                             int32_t wasmFuncPtr,
-                                             std::string funcArg)
+                                          int32_t wasmFuncPtr,
+                                          std::string funcArg)
 {
     SPDLOG_DEBUG("S - faasm_migrate_point {} {}", wasmFuncPtr, funcArg);
 
