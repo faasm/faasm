@@ -21,9 +21,9 @@ FAASM_VERSION=$(cat VERSION)
 CPP_VERSION=$(cat clients/cpp/VERSION)
 PY_VERSION=$(cat clients/python/VERSION)
 
-IMAGE_TAG=faasm/cli:${FAASM_VERSION}
-CPP_IMAGE_TAG=faasm/cpp-sysroot:${CPP_VERSION}
-PY_IMAGE_TAG=faasm/cpython:${PY_VERSION}
+IMAGE_TAG=faasm.azurecr.io/cli:${FAASM_VERSION}
+CPP_IMAGE_TAG=faasm.azurecr.io/cpp-sysroot:${CPP_VERSION}
+PY_IMAGE_TAG=faasm.azurecr.io/cpython:${PY_VERSION}
 
 # This path needs to be absolute with no ..s
 TARGET_DIR=$(pwd)/dev/faasm-local
