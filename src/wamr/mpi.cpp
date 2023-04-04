@@ -61,29 +61,29 @@ class WamrMpiContextWrapper
     }
 
     // MPI passes an MPI_Request* as part of the asynchronous API calls.
-    // MPI_Request is in itself a faabric_request_t* so, to write a value to
-    // it, we'd have to allocate memory for the faabric_reques_t. To aovid
-    // doing that, we write the actual request id to a faabric_reques_t*.
-    void writeFaasmRequestId(int32_t* requestPtrPtr, int32_t requestId)
+    // MPI_Request is in itself a faabric_request_t* so requestPtrPtr is a
+    // faabric_request_t**, which is a double wasm offset. Allocating memory
+    // for the second pointer from outside WASM is tricky and error-prone,
+    // so we use overwrite the pointer value with the actual pointed-to value
+    // (the pointer just points to one int, so we can do that).
+    void writeFaasmRequestId(int32_t* requestPtrPtr, int32_t requestId) const
     {
         module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
         MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
-        faabric::util::unalignedWrite<faabric_request_t*>(
-          reinterpret_cast<faabric_request_t*>(requestId),
-          reinterpret_cast<uint8_t*>(requestPtr));
+
+        // Be very careful with this copy, as we may overwrite other variables
+        // in the stack
+        ::memcpy(requestPtr, &requestId, sizeof(int32_t));
     }
 
-    // We use the same trick described before here. We take the value of
-    // MPI_Request (which is a faabric_request_t*) and interpret it as an int,
-    // the request id
-    int32_t getFaasmRequestId(int32_t* requestPtrPtr)
+    // We use the same trick explained in the previous function, whereby we
+    // read the integer from a pointer (without dereferencing it)
+    int32_t getFaasmRequestId(int32_t* requestPtrPtr) const
     {
+        // First level of indirection
         module->validateNativePointer(requestPtrPtr, sizeof(MPI_Request));
-        MPI_Request* requestPtr = reinterpret_cast<MPI_Request*>(requestPtrPtr);
-        int32_t requestId = faabric::util::unalignedRead<int32_t>(
-          reinterpret_cast<uint8_t*>(requestPtr));
 
-        return requestId;
+        return (int32_t)*requestPtrPtr;
     }
 
     // In place execution of reduce-like calls is indicated by setting the send
@@ -91,7 +91,7 @@ class WamrMpiContextWrapper
     // WAMR automatially converts the wasm offset to a native pointer as part
     // of the native symbol call, so we convert it back to a wasm offset and
     // check its value
-    bool isInPlace(int32_t* wasmPtr)
+    bool isInPlace(int32_t* wasmPtr) const
     {
         int wasmOffset = module->nativePointerToWasmOffset(wasmPtr);
         return wasmOffset == FAABRIC_IN_PLACE;
@@ -347,14 +347,20 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
     MPI_Comm* newCommPtr = reinterpret_cast<MPI_Comm*>(newCommPtrPtr);
 
     // Allocate memory for the pointed-to faabric_communicator_t
-    size_t pageAlignedMemSize =
-      roundUpToWasmPageAligned(sizeof(faabric_communicator_t));
-    uint32_t wasmPtr = ctx->module->growMemory(pageAlignedMemSize);
+    faabric_communicator_t* hostNewCommPtr = nullptr;
+    uint32_t wasmPtr = ctx->module->wasmModuleMalloc(
+      sizeof(faabric_communicator_t), (void**)&hostNewCommPtr);
+    if (wasmPtr == 0) {
+        SPDLOG_ERROR("Error allocating memory in the WASM's heap");
+        throw std::runtime_error("Error allocating memory in the WASM heap");
+    }
+    assert(hostNewCommPtr != nullptr);
 
     // Assign the new offset (i.e. wasm pointer) to the MPI_Comm value. Note
     // that we are assigning a WASM offset to a native pointer, hence why we
     // need to force the casting to let the compiler know we know what we are
-    // doing
+    // doing. Be _very_ careful with this unaligned writes, as it has happened
+    // before that they smash other values in the stack if not used properly
     faabric::util::unalignedWrite<faabric_communicator_t*>(
       reinterpret_cast<faabric_communicator_t*>(wasmPtr),
       reinterpret_cast<uint8_t*>(newCommPtr));
@@ -365,9 +371,6 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
 
     // Be careful, as *newCommPtr is a WASM offset, not a native pointer. We
     // need the native pointer to copy the values from the old communicator
-    faabric_communicator_t* hostNewCommPtr =
-      reinterpret_cast<faabric_communicator_t*>(
-        ctx->module->wasmOffsetToNativePointer(wasmPtr));
     faabric_communicator_t* hostOldCommPtr =
       reinterpret_cast<faabric_communicator_t*>(
         ctx->module->wasmOffsetToNativePointer((uintptr_t)*oldCommPtr));
@@ -637,6 +640,7 @@ static int32_t MPI_Irecv_wrapper(wasm_exec_env_t execEnv,
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
 
     ctx->module->validateNativePointer(buffer, count * hostDtype->size);
+
     int requestId = ctx->world.irecv(
       sourceRank, ctx->rank, (uint8_t*)buffer, hostDtype, count);
 
@@ -890,13 +894,7 @@ static int32_t MPI_Send_wrapper(wasm_exec_env_t execEnv,
                                 int32_t tag,
                                 int32_t* comm)
 {
-    MPI_FUNC_ARGS("S - MPI_Send {} {} {} {} {} {}",
-                  (uintptr_t)buffer,
-                  count,
-                  (uintptr_t)datatype,
-                  destRank,
-                  tag,
-                  (uintptr_t)comm);
+    MPI_FUNC_ARGS("S - MPI_Send {} -> {}", ctx->rank, destRank);
 
     ctx->checkMpiComm(comm);
     faabric_datatype_t* hostDtype = ctx->getFaasmDataType(datatype);
@@ -997,6 +995,16 @@ static int32_t MPI_Type_size_wrapper(wasm_exec_env_t execEnv,
     return MPI_SUCCESS;
 }
 
+// As part of our implementation of MPI's asynchronous messaging in faabric,
+// we keep native pointers to WASM memory. This pointers are kept between one
+// asynchronous call is made, and it is MPI_Wait-ed upon. WAMR may invalidate
+// native pointers after calls to memory.grow, thus this could eventually
+// cause failures. If this happens, building wamr with
+// `WAMR_BUILD_SHARED_MEMORY` set to `1`, should fix the issue, as then
+// addresses are not invalidated. For the time being, as this has not caused
+// any errors, we don't set it.
+// wasm_export.h#L1020 - "Note that a native address to a module instance
+// can be invalidated on a memory growth"
 static int32_t MPI_Wait_wrapper(wasm_exec_env_t execEnv,
                                 int32_t* requestPtrPtr,
                                 int32_t status)

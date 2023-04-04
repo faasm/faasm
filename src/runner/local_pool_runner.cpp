@@ -17,13 +17,9 @@ int doRunner(int argc, char* argv[])
 
     if (vm.count("input-data")) {
         msg.set_inputdata(vm["input-data"].as<std::string>());
-        SPDLOG_INFO("Adding input data: {}",
-                    vm["input-data"].as<std::string>());
     }
     if (vm.count("cmdline")) {
         msg.set_cmdline(vm["cmdline"].as<std::string>());
-        SPDLOG_INFO("Adding command line arguments: {}",
-                    vm["cmdline"].as<std::string>());
     }
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
@@ -32,7 +28,7 @@ int doRunner(int argc, char* argv[])
     usleep(1000 * 500);
 
     for (const auto& m : req->messages()) {
-        faabric::Message result = sch.getFunctionResult(m.id(), 20000);
+        faabric::Message result = sch.getFunctionResult(m.id(), 20000 * 100);
         if (result.returnvalue() != 0) {
             SPDLOG_ERROR("Message ({}) returned error code: {}",
                          m.id(),
@@ -52,6 +48,13 @@ int main(int argc, char* argv[])
     auto& sch = faabric::scheduler::getScheduler();
     sch.shutdown();
     sch.addHostToGlobalSet();
+
+    // Set timeout to ensure longer functions can finish
+    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+    conf.boundTimeout = 120000 * 100;
+    conf.globalMessageTimeout = 120000 * 100;
+    faasmConf.chainedCallTimeout = 120000 * 100;
 
     // WARNING: All 0MQ-related operations must take place in a self-contined
     // scope to ensure all sockets are destructed before closing the context.

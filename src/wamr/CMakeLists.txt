@@ -11,6 +11,7 @@ set(WAMR_BUILD_SPEC_TEST 0)
 add_definitions(-DWAMR_FAASM=1)
 
 # Set AOT mode and JIT for code generation
+set(WAMR_BUILD_INTERPRETER 1)
 set(WAMR_BUILD_AOT 1)
 set(WAMR_BUILD_JIT 1)
 set(WAMR_BUILD_LAZY_JIT 0)
@@ -74,12 +75,11 @@ llvm_map_components_to_libnames(
 # Link everything together
 faasm_private_lib(wamrmodule
     WAMRWasmModule.cpp
-    chaining.cpp
     codegen.cpp
     dynlink.cpp
     env.cpp
+    faasm.cpp
     filesystem.cpp
-    funcs.cpp
     memory.cpp
     mpi.cpp
     native.cpp

@@ -61,6 +61,8 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
     option.opt_level = 3;
     option.size_level = 3;
     option.output_format = AOT_FORMAT_FILE;
+    // Switching this flag between 0 and 1 can make some WAMR generated code
+    // seg-fault unexpectedly, so modify with care
     option.bounds_checks = 0;
     option.enable_bulk_memory = false;
     option.enable_ref_types = true;

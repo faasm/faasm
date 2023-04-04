@@ -2,6 +2,7 @@
 
 #include <wasm_export.h>
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -28,12 +29,15 @@ struct WAMRModuleMixin
 
     // Validate that a memory range defined by a pointer and a size is a valid
     // offset in the module's WASM linear memory.
-    // bool validateNativePointer(void* nativePtr, size_t size);
-    bool validateNativePointer(void* nativePtr, int size)
+    void validateNativePointer(void* nativePtr, int size)
     {
         auto moduleInstance = this->underlying().getModuleInstance();
-        return wasm_runtime_validate_native_addr(
-          moduleInstance, nativePtr, size);
+        bool success =
+          wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size);
+
+        if (!success) {
+            throw std::runtime_error("Failed validating native pointer!");
+        }
     }
 
     void* wasmOffsetToNativePointer(uint32_t wasmOffset)
@@ -48,6 +52,24 @@ struct WAMRModuleMixin
     {
         auto moduleInstance = this->underlying().getModuleInstance();
         return wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
+    }
+
+    // Allocate memory in the WASM's module heap (inside the linear memory).
+    // Returns the WASM offset of the newly allocated memory if succesful, 0
+    // otherwise. If succesful, populate the nativePtr variable with the
+    // native pointer to access the returned offset
+    uint32_t wasmModuleMalloc(size_t size, void** nativePtr)
+    {
+        auto moduleInstance = this->underlying().getModuleInstance();
+        uint32_t wasmOffset =
+          wasm_runtime_module_malloc(moduleInstance, size, nativePtr);
+
+        if (wasmOffset == 0 || nativePtr == nullptr) {
+            throw std::runtime_error(
+              "Failed malloc-ing memory in WASM module!");
+        }
+
+        return wasmOffset;
     }
 
     // Helper function to write a string array to a buffer in the WASM linear

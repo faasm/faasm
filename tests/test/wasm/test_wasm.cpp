@@ -152,14 +152,16 @@ TEST_CASE_METHOD(SimpleWasmTestFixture, "Test disassemble module", "[wasm]")
     // Check a few known definitions
     REQUIRE(disasMap["functionDef0"] == "__wasm_call_ctors");
     REQUIRE(disasMap["functionDef1"] == "_start");
-    REQUIRE(disasMap["functionDef2"] == "main");
-    REQUIRE(disasMap["functionDef3"] == "faasmGetInputSize");
-    REQUIRE(disasMap["functionDef4"] == "faasmGetInput");
+    REQUIRE(disasMap["functionDef2"] == "__faasm_memory_layout_protection()");
+    REQUIRE(disasMap["functionDef3"] == "main");
+    REQUIRE(disasMap["functionDef4"] == "faasmGetInputSize");
 
     // Check a couple of imports
     REQUIRE(disasMap["functionImport0"] == "__faasm_read_input");
     REQUIRE(disasMap["functionImport1"] == "__faasm_write_output");
-    REQUIRE(disasMap["functionImport2"] == "mmap");
-    REQUIRE(disasMap["functionImport3"] == "munmap");
+    REQUIRE(disasMap["functionImport2"] ==
+            "__imported_wasi_snapshot_preview1_args_get");
+    REQUIRE(disasMap["functionImport3"] ==
+            "__imported_wasi_snapshot_preview1_args_sizes_get");
 }
 }

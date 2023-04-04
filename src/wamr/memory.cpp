@@ -17,12 +17,14 @@ static int32_t __sbrk_wrapper(wasm_exec_env_t exec_env, int32_t increment)
 
     if (increment == 0) {
         return oldBrk;
-    } else if (increment < 0) {
+    }
+
+    if (increment < 0) {
         module->shrinkMemory(-1 * increment);
         return oldBrk;
-    } else {
-        return module->growMemory(increment);
     }
+
+    return module->growMemory(increment);
 }
 
 static int32_t mmap_wrapper(wasm_exec_env_t exec_env,
@@ -62,7 +64,7 @@ static int32_t munmap_wrapper(wasm_exec_env_t exec_env,
                               int32_t addr,
                               int32_t length)
 {
-    SPDLOG_DEBUG("S - munmap - {} {}", addr, length);
+    SPDLOG_TRACE("S - munmap - {} {}", addr, length);
 
     WAMRWasmModule* executingModule = getExecutingWAMRModule();
     executingModule->unmapMemory(addr, length);
