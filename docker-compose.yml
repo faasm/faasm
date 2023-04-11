@@ -7,6 +7,16 @@ services:
   redis-queue:
     image: faasm.azurecr.io/redis:${FAASM_VERSION}
 
+  planner:
+    image: ${FAABRIC_PLANNER_IMAGE}
+    # Pass the build dir as argument to the entrypoint, so that the binaries
+    # are correctly mounted
+    command: ${FAASM_BUILD_MOUNT}/bin
+    volumes:
+      - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
+    environment:
+      - LOG_LEVEL=info
+
   minio:
     image: faasm.azurecr.io/minio:${FAASM_VERSION}
     ports:
@@ -29,6 +39,7 @@ services:
     expose:
       - "5000"
     depends_on:
+      - planner
       - redis-queue
       - redis-state
       - minio
@@ -40,6 +51,8 @@ services:
       - ./dev/faasm-local/object/:/usr/local/faasm/object
     environment:
       - LOG_LEVEL=info
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8080
       - PYTHON_CODEGEN=${PYTHON_CODEGEN:-off}
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
@@ -73,6 +86,8 @@ services:
       - LOG_LEVEL=info
       - NETNS_MODE=off
       - MAX_NET_NAMESPACES=100
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8080
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4
@@ -119,13 +134,16 @@ services:
     tty: true
     privileged: true
     depends_on:
-      - redis-state
+      - planner
       - redis-queue
+      - redis-state
       - minio
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
       - LOG_LEVEL=debug
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8080
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
@@ -165,6 +183,7 @@ services:
     image: ${FAASM_CLI_IMAGE}
     working_dir: /build/faasm
     depends_on:
+      - planner
       - redis-queue
       - redis-state
       - minio
@@ -172,6 +191,8 @@ services:
     environment:
       - LD_LIBRARY_PATH=/usr/local/lib
       - LOG_LEVEL=debug
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8080
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4
