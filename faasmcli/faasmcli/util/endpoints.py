@@ -31,3 +31,10 @@ def get_invoke_host_port():
     port = _get_config_value("INVOKE_PORT", "invoke_port", 8080)
 
     return host, port
+
+
+def get_planner_host_port():
+    host = _get_config_value("PLANNER_HOST", "planner_host", "127.0.0.1")
+    port = _get_config_value("PLANNER_PORT", "planner_port", 8081)
+
+    return host, port

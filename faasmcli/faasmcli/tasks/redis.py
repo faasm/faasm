@@ -2,7 +2,7 @@ from subprocess import call
 
 from invoke import task
 from os import environ
-from faasmcli.util.env import PROJ_ROOT, AVAILABLE_HOSTS_SET
+from faasmcli.util.env import PROJ_ROOT
 
 
 def _do_redis_command(sub_cmd, local, docker, k8s):
@@ -38,16 +38,6 @@ def clear_queue(ctx, local=False, docker=False, k8s=True):
     Clear the message queue in Redis
     """
     _do_redis_command("flushall", local, docker, k8s)
-
-
-@task
-def all_workers(ctx, local=False, docker=False, k8s=True):
-    """
-    List all available Faasm instances
-    """
-    _do_redis_command(
-        "smembers {}".format(AVAILABLE_HOSTS_SET), local, docker, k8s
-    )
 
 
 @task
