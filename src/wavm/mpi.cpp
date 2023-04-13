@@ -8,8 +8,8 @@
 #include <WAVM/Runtime/Runtime.h>
 
 #include <faabric/mpi/mpi.h>
+#include <faabric/mpi/MpiContext.h>
 #include <faabric/scheduler/ExecutorContext.h>
-#include <faabric/scheduler/MpiContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/logging.h>
