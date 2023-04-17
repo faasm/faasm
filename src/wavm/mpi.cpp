@@ -7,13 +7,14 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 
-#include <faabric/mpi/mpi.h>
 #include <faabric/mpi/MpiContext.h>
+#include <faabric/mpi/mpi.h>
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/logging.h>
 
+using namespace faabric::mpi;
 using namespace faabric::scheduler;
 using namespace WAVM;
 
@@ -24,17 +25,16 @@ using namespace WAVM;
     SPDLOG_TRACE("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
 
 namespace wasm {
-static thread_local faabric::scheduler::MpiContext executingContext;
+static thread_local faabric::mpi::MpiContext executingContext;
 
 bool isInPlace(U8 wasmPtr)
 {
     return wasmPtr == FAABRIC_IN_PLACE;
 }
 
-faabric::scheduler::MpiWorld& getExecutingWorld()
+MpiWorld& getExecutingWorld()
 {
-    faabric::scheduler::MpiWorldRegistry& reg =
-      faabric::scheduler::getMpiWorldRegistry();
+    MpiWorldRegistry& reg = getMpiWorldRegistry();
     return reg.getWorld(executingContext.getWorldId());
 }
 
@@ -114,7 +114,7 @@ class ContextWrapper
 
     WAVMWasmModule* module;
     Runtime::Memory* memory;
-    faabric::scheduler::MpiWorld& world;
+    MpiWorld& world;
     int rank;
 };
 
@@ -677,7 +677,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                          inputs,
                          hostDtype,
                          count,
-                         faabric::MPIMessage::BROADCAST);
+                         faabric::mpi::MPIMessage::BROADCAST);
 
     return MPI_SUCCESS;
 }
