@@ -28,6 +28,7 @@ target_link_libraries(attestation
     cpprestsdk::cpprestsdk
     jwt-cpp::jwt-cpp
     picojson::picojson
+    RapidJSON::RapidJSON
 )
 
 # Quote generation is only supported in hardware mode. Therefore, we only link

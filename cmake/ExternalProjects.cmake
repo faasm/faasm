@@ -34,6 +34,10 @@ conan_cmake_configure(
         # of SGX enclaves using Microsoft Azure's Attestation Service
         "jwt-cpp/0.6.0@#cd6b5c1318b29f4becaf807b23f7bb44"
         "picojson/cci.20210117@#2af3ad146959275c97a6957b87b9073f"
+        # 26/04/2023 - Temporarily add RapidJSON as a CMake dependency, as
+        # it was removed from faabric. Eventually consolidate to just using one
+        # JSON (de-)serialising library
+        "rapidjson/cci.20211112@#65b4e5feb6f1edfc8cbac0f669acaf17"
     GENERATORS
         cmake_find_package
         cmake_paths
@@ -55,6 +59,7 @@ include(${CMAKE_CURRENT_BINARY_DIR}/conan_paths.cmake)
 find_package(Catch2 REQUIRED)
 find_package(jwt-cpp REQUIRED)
 find_package(picojson REQUIRED)
+find_package(RapidJSON REQUIRED)
 
 # 22/12/2021 - WARNING: we don't install AWS through Conan as the recipe proved
 # very unstable and failed frequently.
