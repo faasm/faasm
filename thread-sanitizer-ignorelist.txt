@@ -17,4 +17,4 @@ race:moodycamel::BlockingReaderWriterCircularBuffer*
 race:wasm::startReduceCritical
 
 # TODO: Remove: There's something weird going on with MPI code I don't understand
-race:faabric::scheduler::MpiWorld::*
+race:faabric::mpi::MpiWorld::*
