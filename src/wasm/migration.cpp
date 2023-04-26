@@ -1,5 +1,5 @@
+#include <faabric/mpi/MpiWorldRegistry.h>
 #include <faabric/scheduler/ExecutorContext.h>
-#include <faabric/scheduler/MpiWorldRegistry.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <wasm/migration.h>
 
@@ -31,8 +31,8 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
     // Regardless if we have to individually migrate or not, we need to prepare
     // for the app migration
     if (appMustMigrate && call->ismpi()) {
-        auto& mpiWorld = faabric::scheduler::getMpiWorldRegistry().getWorld(
-          call->mpiworldid());
+        auto& mpiWorld =
+          faabric::mpi::getMpiWorldRegistry().getWorld(call->mpiworldid());
         mpiWorld.prepareMigration(call->mpirank(), pendingMigrations);
     }
 
