@@ -20,8 +20,6 @@ int awaitChainedCall(unsigned int messageId)
         const faabric::Message result =
           sch.getFunctionResult(messageId, callTimeoutMs);
         returnCode = result.returnvalue();
-    } catch (faabric::redis::RedisNoResponseException& ex) {
-        SPDLOG_ERROR("Timed out waiting for chained call: {}", messageId);
     } catch (std::exception& ex) {
         SPDLOG_ERROR("Non-timeout exception waiting for chained call: {}",
                      ex.what());

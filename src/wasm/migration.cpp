@@ -7,11 +7,11 @@ namespace wasm {
 void doMigrationPoint(int32_t entrypointFuncWasmOffset,
                       const std::string& entrypointFuncArg)
 {
-    auto* call = &faabric::scheduler::ExecutorContext::get()->getMsg();
     auto& sch = faabric::scheduler::getScheduler();
+    faabric::Message* call = &faabric::scheduler::ExecutorContext::get()->getMsg();
 
     // Detect if there is a pending migration for the current app
-    auto pendingMigrations = sch.getPendingAppMigrations(call->appid());
+    auto pendingMigrations = sch.checkForMigrationOpportunities(*call);
     bool appMustMigrate = pendingMigrations != nullptr;
 
     // Detect if this particular function needs to be migrated or not
