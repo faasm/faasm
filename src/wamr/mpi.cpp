@@ -601,11 +601,18 @@ static int32_t MPI_Init_wrapper(wasm_exec_env_t execEnv, int32_t a, int32_t b)
     // Note - only want to initialise the world on rank zero (or when rank isn't
     // set yet)
     if (call->mpirank() <= 0) {
-        SPDLOG_DEBUG("MPI_Init (create)");
+        // If we are rank 0 and the world already exists, it means we are being
+        // migrated
+        if (getMpiWorldRegistry().worldExists(call->mpiworldid())) {
+            SPDLOG_DEBUG("MPI - MPI_Init (join)");
+            executingContext.joinWorld(*call);
+        } else {
+            SPDLOG_DEBUG("MPI_Init (create)");
 
-        // Initialise the world
-        int worldId = executingContext.createWorld(*call);
-        call->set_mpiworldid(worldId);
+            // Initialise the world
+            int worldId = executingContext.createWorld(*call);
+            call->set_mpiworldid(worldId);
+        }
     } else {
         SPDLOG_DEBUG("MPI_Init (join)");
 

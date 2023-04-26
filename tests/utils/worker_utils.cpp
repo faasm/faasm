@@ -87,12 +87,18 @@ std::string execFunctionWithStringResult(faabric::Message& call)
     faabric::runner::FaabricMain m(fac);
     m.startRunner();
 
+    // Convert message to request
+    // TODO: do less hacky
+    auto req = faabric::util::batchExecFactory(call.user(), call.function(), 1);
+    req->set_appid(call.appid());
+    *req->mutable_messages(0) = call;
+
     // Call the function
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.callFunction(call);
+    sch.callFunctions(req);
 
     // This timeout needs to be long enough for slow functions to execute
-    const faabric::Message result = sch.getFunctionResult(call.id(), 20000);
+    const faabric::Message result = sch.getFunctionResult(call, 20000);
     if (result.returnvalue() != 0) {
         SPDLOG_ERROR("Function failed: {}", result.outputdata());
         FAIL();
@@ -142,12 +148,12 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     usleep(1000 * 500);
 
     // Wait for all functions to complete
-    for (auto& m : req->messages()) {
+    for (const auto& m : req->messages()) {
         if (req->type() == faabric::BatchExecuteRequest::THREADS) {
             int returnValue = sch.awaitThreadResult(m.id());
             REQUIRE(returnValue == 0);
         } else {
-            faabric::Message result = sch.getFunctionResult(m.id(), 20000);
+            faabric::Message result = sch.getFunctionResult(m, 20000);
             REQUIRE(result.returnvalue() == 0);
         }
     }
@@ -175,13 +181,19 @@ faabric::Message execFuncWithPool(faabric::Message& call,
     faabric::runner::FaabricMain m(fac);
     m.startRunner();
 
+    // Convert message to request
+    // TODO: do less hacky
+    auto req = faabric::util::batchExecFactory(call.user(), call.function(), 1);
+    req->set_appid(call.appid());
+    *req->mutable_messages(0) = call;
+
     // Make the call
-    sch.callFunction(call);
+    sch.callFunctions(req);
 
     // Await the result of the main function
     // NOTE - this timeout will only get hit when things have failed.
     // It also needs to be long enough to let longer tests complete
-    faabric::Message result = sch.getFunctionResult(call.id(), timeout);
+    faabric::Message result = sch.getFunctionResult(call, timeout);
     REQUIRE(result.returnvalue() == 0);
 
     faasmConf.netNsMode = originalNsMode;
@@ -209,10 +221,16 @@ faabric::Message execErrorFunction(faabric::Message& call)
     faabric::runner::FaabricMain m(fac);
     m.startRunner();
 
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.callFunction(call);
+    // Convert message to request
+    // TODO: do less hacky
+    auto req = faabric::util::batchExecFactory(call.user(), call.function(), 1);
+    req->set_appid(call.appid());
+    *req->mutable_messages(0) = call;
 
-    faabric::Message result = sch.getFunctionResult(call.id(), 1);
+    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+    sch.callFunctions(req);
+
+    faabric::Message result = sch.getFunctionResult(call, 1);
 
     m.shutdown();
 
@@ -272,17 +290,18 @@ void checkCallingFunctionGivesBoolOutput(const std::string& user,
                                          const std::string& funcName,
                                          bool expected)
 {
-    faabric::Message call = faabric::util::messageFactory("demo", funcName);
+    auto req = faabric::util::batchExecFactory(user, funcName, 1);
+    auto& call = *req->mutable_messages(0);
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.callFunction(call);
+    sch.callFunctions(req);
 
     auto fac = std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);
     m.startRunner();
 
     // Check output is true
-    faabric::Message result = sch.getFunctionResult(call.id(), 1);
+    faabric::Message result = sch.getFunctionResult(call, 1);
     REQUIRE(result.returnvalue() == 0);
     std::vector<uint8_t> outputBytes =
       faabric::util::stringToBytes(result.outputdata());

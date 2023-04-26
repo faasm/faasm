@@ -15,6 +15,7 @@ int awaitChainedCall(unsigned int messageId)
     int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;
 
     int returnCode = 1;
+    /* TODO: fix chained calls
     try {
         faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
         const faabric::Message result =
@@ -24,6 +25,7 @@ int awaitChainedCall(unsigned int messageId)
         SPDLOG_ERROR("Non-timeout exception waiting for chained call: {}",
                      ex.what());
     }
+    */
 
     return returnCode;
 }
@@ -91,11 +93,15 @@ int makeChainedCall(const std::string& functionName,
     return msg.id();
 }
 
+// TODO: is this used anywhere?
 int spawnChainedThread(const std::string& snapshotKey,
                        size_t snapshotSize,
                        int funcPtr,
                        int argsPtr)
 {
+    SPDLOG_ERROR("Hypothesis: spawnChainedThread is NEVER used");
+    throw std::runtime_error("Is this method even used?");
+    /*
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
 
     faabric::Message& originalMsg =
@@ -124,12 +130,14 @@ int spawnChainedThread(const std::string& snapshotKey,
     sch.callFunction(call);
 
     return call.id();
+    */
 }
 
 int awaitChainedCallOutput(unsigned int messageId,
                            uint8_t* buffer,
                            int bufferLen)
 {
+    /* TODO: fix chained stuff please
     int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
@@ -151,5 +159,8 @@ int awaitChainedCallOutput(unsigned int messageId,
     }
 
     return result.returnvalue();
+    */
+    SPDLOG_ERROR("Chained stuff not working with the planner just yet");
+    return 0;
 }
 }

@@ -131,11 +131,18 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b)
     // Note - only want to initialise the world on rank zero (or when rank isn't
     // set yet)
     if (call->mpirank() <= 0) {
-        SPDLOG_DEBUG("S - MPI_Init (create) {} {}", a, b);
+        // If we are rank 0 and the world already exists, it means we are being
+        // migrated
+        if (getMpiWorldRegistry().worldExists(call->mpiworldid())) {
+            SPDLOG_DEBUG("MPI - MPI_Init (join) {} {}", a, b);
+            executingContext.joinWorld(*call);
+        } else {
+            SPDLOG_DEBUG("MPI_Init (create) {} {}", a, b);
 
-        // Initialise the world
-        int worldId = executingContext.createWorld(*call);
-        call->set_mpiworldid(worldId);
+            // Initialise the world
+            int worldId = executingContext.createWorld(*call);
+            call->set_mpiworldid(worldId);
+        }
     } else {
         SPDLOG_DEBUG("S - MPI_Init (join) {} {}", a, b);
 

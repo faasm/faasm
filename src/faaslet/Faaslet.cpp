@@ -42,15 +42,15 @@ void preloadPythonRuntime()
 
     SPDLOG_INFO("Preparing python runtime");
 
-    faabric::Message msg =
-      faabric::util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+    auto req = faabric::util::batchExecFactory(PYTHON_USER, PYTHON_FUNC, 1);
+    auto& msg = *req->mutable_messages(0);
     msg.set_ispython(true);
     msg.set_pythonuser("python");
     msg.set_pythonfunction("noop");
     faabric::util::setMessageId(msg);
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.callFunction(msg, true);
+    sch.callFunctions(req);
 }
 
 Faaslet::Faaslet(faabric::Message& msg)
