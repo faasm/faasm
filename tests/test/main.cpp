@@ -24,7 +24,8 @@ int main(int argc, char* argv[])
     storage::initFaasmS3();
 
     // Faabric stuff
-    tests::cleanFaabric();
+    // TODO: this should happen in test fixtures
+    // tests::cleanFaabric();
 
     // Clear local cache of shared files
     storage::SharedFiles::clear();

@@ -108,6 +108,7 @@ class FunctionExecTestFixture
 {
   public:
     FunctionExecTestFixture() {}
+
     ~FunctionExecTestFixture() {}
 };
 
