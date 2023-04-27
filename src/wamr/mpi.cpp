@@ -1,6 +1,6 @@
+#include <faabric/mpi/MpiContext.h>
 #include <faabric/mpi/mpi.h>
 #include <faabric/scheduler/ExecutorContext.h>
-#include <faabric/scheduler/MpiContext.h>
 #include <faabric/util/bytes.h>
 #include <wamr/WAMRModuleMixin.h>
 #include <wamr/WAMRWasmModule.h>
@@ -8,7 +8,7 @@
 
 #include <wasm_export.h>
 
-using namespace faabric::scheduler;
+using namespace faabric::mpi;
 
 #define MPI_FUNC(str)                                                          \
     SPDLOG_TRACE("MPI-{} {}", executingContext.getRank(), str);
@@ -17,12 +17,11 @@ using namespace faabric::scheduler;
     SPDLOG_TRACE("MPI-{} " formatStr, executingContext.getRank(), __VA_ARGS__);
 
 namespace wasm {
-static thread_local faabric::scheduler::MpiContext executingContext;
+static thread_local MpiContext executingContext;
 
-static faabric::scheduler::MpiWorld& getExecutingWorld()
+static MpiWorld& getExecutingWorld()
 {
-    faabric::scheduler::MpiWorldRegistry& reg =
-      faabric::scheduler::getMpiWorldRegistry();
+    MpiWorldRegistry& reg = getMpiWorldRegistry();
     return reg.getWorld(executingContext.getWorldId());
 }
 
@@ -113,7 +112,7 @@ class WamrMpiContextWrapper
     }
 
     wasm::WAMRWasmModule* module;
-    faabric::scheduler::MpiWorld& world;
+    MpiWorld& world;
     int rank;
 };
 
@@ -317,7 +316,7 @@ static int32_t MPI_Bcast_wrapper(wasm_exec_env_t execEnv,
                          reinterpret_cast<uint8_t*>(buffer),
                          hostDtype,
                          count,
-                         faabric::MPIMessage::BROADCAST);
+                         MPIMessage::BROADCAST);
 
     return MPI_SUCCESS;
 }
@@ -596,7 +595,8 @@ static int32_t MPI_Get_version_wrapper(wasm_exec_env_t execEnv,
 
 static int32_t MPI_Init_wrapper(wasm_exec_env_t execEnv, int32_t a, int32_t b)
 {
-    faabric::Message* call = &ExecutorContext::get()->getMsg();
+    faabric::Message* call =
+      &faabric::scheduler::ExecutorContext::get()->getMsg();
 
     // Note - only want to initialise the world on rank zero (or when rank isn't
     // set yet)
