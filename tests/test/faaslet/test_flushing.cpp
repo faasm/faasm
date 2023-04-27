@@ -171,13 +171,14 @@ TEST_CASE_METHOD(FlushingTestFixture,
     faabric::runner::FaabricMain m(fac);
     m.startRunner();
 
-    // Call the function
-    faabric::Message invokeMsgA = faabric::util::messageFactory("demo", "foo");
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.callFunction(invokeMsgA);
+
+    // Call the function
+    auto invokeReqA = faabric::util::batchExecFactory("demo", "foo", 1);
+    sch.callFunctions(invokeReqA);
 
     // Check the result
-    faabric::Message resultA = sch.getFunctionResult(invokeMsgA.id(), 1000);
+    faabric::Message resultA = sch.getFunctionResult(invokeReqA->messages(0), 1000);
     REQUIRE(resultA.returnvalue() == 0);
     REQUIRE(resultA.outputdata() == expectedOutputA);
 
@@ -188,7 +189,9 @@ TEST_CASE_METHOD(FlushingTestFixture,
     sch.flushLocally();
 
     // Upload the second version and check wasm is as expected
-    faabric::Message invokeMsgB = faabric::util::messageFactory("demo", "foo");
+    // faabric::Message invokeMsgB = faabric::util::messageFactory("demo", "foo");
+    auto invokeReqB = faabric::util::batchExecFactory("demo", "foo", 1);
+    auto& invokeMsgB = *invokeReqB->mutable_messages(0);
     loader.uploadFunction(uploadMsgB);
     gen.codegenForFunction(uploadMsgB);
 
@@ -197,10 +200,10 @@ TEST_CASE_METHOD(FlushingTestFixture,
 
     // Invoke for the second time
     invokeMsgB.set_inputdata(inputB);
-    sch.callFunction(invokeMsgB);
+    sch.callFunctions(invokeReqB);
 
     // Check the output has changed to the second function
-    faabric::Message resultB = sch.getFunctionResult(invokeMsgB.id(), 1);
+    faabric::Message resultB = sch.getFunctionResult(invokeMsgB, 1);
     REQUIRE(resultB.returnvalue() == 0);
     REQUIRE(resultB.outputdata() == inputB);
 

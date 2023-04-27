@@ -25,10 +25,10 @@ int doRunner(int argc, char* argv[])
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunctions(req);
 
-    usleep(1000 * 500);
+    // usleep(1000 * 500);
 
     for (const auto& m : req->messages()) {
-        faabric::Message result = sch.getFunctionResult(m, 20000 * 100);
+        faabric::Message result = sch.getFunctionResult(m, 20000);
         if (result.returnvalue() != 0) {
             SPDLOG_ERROR("Message ({}) returned error code: {}",
                          m.id(),
@@ -56,18 +56,16 @@ int main(int argc, char* argv[])
     conf.globalMessageTimeout = 120000 * 100;
     faasmConf.chainedCallTimeout = 120000 * 100;
 
-    // WARNING: All 0MQ-related operations must take place in a self-contined
-    // scope to ensure all sockets are destructed before closing the context.
-    {
-        auto fac = std::make_shared<faaslet::FaasletFactory>();
-        faabric::runner::FaabricMain m(fac);
-        m.startRunner();
+    // Start the main faabric runner
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::runner::FaabricMain m(fac);
+    m.startBackground();
 
-        doRunner(argc, argv);
+    doRunner(argc, argv);
 
-        m.shutdown();
-    }
-
+    // Shutdown
+    m.shutdown();
     storage::shutdownFaasmS3();
+
     return 0;
 }

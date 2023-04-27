@@ -22,17 +22,17 @@ class StateFuncTestFixture : public FunctionExecTestFixture
                            const std::vector<uint8_t>& expectedState)
     {
         // Set up the function call
-        faabric::Message call = faabric::util::messageFactory("demo", funcName);
+        auto req = faabric::util::batchExecFactory("demo", funcName, 1);
 
         auto fac = std::make_shared<faaslet::FaasletFactory>();
         faabric::runner::FaabricMain m(fac);
         m.startRunner();
 
         faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-        sch.callFunction(call);
+        sch.callFunctions(req);
 
         // Check result
-        faabric::Message result = sch.getFunctionResult(call.id(), 1);
+        faabric::Message result = sch.getFunctionResult(req->messages(0), 1);
         REQUIRE(result.returnvalue() == 0);
         std::vector<uint8_t> outputBytes =
           faabric::util::stringToBytes(result.outputdata());

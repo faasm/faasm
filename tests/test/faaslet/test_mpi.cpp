@@ -25,30 +25,21 @@ class MPIFuncTestFixture
 
     ~MPIFuncTestFixture() { faasmConf.wasmVm = oldWasmVm; }
 
-    faabric::Message checkMpiFunc(const char* funcName)
+    void checkMpiFunc(const char* funcName, std::string* captureOut = nullptr)
     {
         // Note: we don't `set_mpiworldsize` here, so all tests run with the
         // default MPI world size (5). Some tests will fail if we change this.
-        faabric::Message msg = faabric::util::messageFactory("mpi", funcName);
-        faabric::Message result = execFuncWithPool(msg, true, 10000);
+        auto req = faabric::util::batchExecFactory("mpi", funcName, 1);
+        SPDLOG_WARN("hello 1");
+        auto reqResp = execFuncWithPool(req, true, 10000);
 
-        // Check all other functions were successful
-        auto& sch = faabric::scheduler::getScheduler();
-        for (auto m : sch.getRecordedMessagesAll()) {
-            uint32_t messageId = msg.id();
-            if (messageId == msg.id()) {
-                // Already checked the main message ID
-                continue;
-            }
-
-            faabric::Message result = sch.getFunctionResult(messageId, 1);
-
-            if (result.returnvalue() != 0) {
-                FAIL(fmt::format("Message ID {} failed", messageId));
-            }
+        for (const auto& msg : reqResp->messages()) {
+            REQUIRE(msg.returnvalue() == 0);
         }
 
-        return result;
+        if (captureOut) {
+            *captureOut = reqResp->messages(0).outputdata();
+        }
     }
 
     conf::FaasmConfig& faasmConf;
@@ -224,8 +215,8 @@ TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI Pi", "[mpi]")
 
     SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
-    faabric::Message result = checkMpiFunc("mpi_pi");
-    std::string output = result.outputdata();
+    std::string output;
+    checkMpiFunc("mpi_pi", &output);
     REQUIRE(faabric::util::startsWith(output, "Pi estimate: 3.1"));
 }
 }

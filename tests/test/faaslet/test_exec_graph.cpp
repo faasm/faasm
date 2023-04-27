@@ -11,8 +11,8 @@ TEST_CASE_METHOD(
   "Test function chaining can be recorded in the execution graph",
   "[exec-graph][chaining]")
 {
-    faabric::Message call =
-      faabric::util::messageFactory("demo", "chain_named_a");
+    auto req = faabric::util::batchExecFactory("demo", "chain_named_a", 1);
+    auto& call = *req->mutable_messages(0);
     int expectedNumNodes;
 
     SECTION("Turn recording on")
@@ -23,8 +23,8 @@ TEST_CASE_METHOD(
 
     SECTION("Recording off (default)") { expectedNumNodes = 1; }
 
-    sch.callFunction(call);
-    faabric::Message result = sch.getFunctionResult(call.id(), 5000);
+    sch.callFunctions(req);
+    faabric::Message result = sch.getFunctionResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
     auto execGraph = sch.getFunctionExecGraph(call.id());
@@ -37,7 +37,8 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
                  "Test MPI executions can be recorded in the execution graph",
                  "[exec-graph][mpi]")
 {
-    faabric::Message call = faabric::util::messageFactory("mpi", "mpi_bcast");
+    auto req = faabric::util::batchExecFactory("mpi", "mpi_bcast", 1);
+    auto& call = *req->mutable_messages(0);
     call.set_mpiworldsize(5);
     int expectedNumNodes;
 
@@ -49,8 +50,8 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
 
     SECTION("Recording off (default)") { expectedNumNodes = 1; }
 
-    sch.callFunction(call);
-    faabric::Message result = sch.getFunctionResult(call.id(), 5000);
+    sch.callFunctions(req);
+    faabric::Message result = sch.getFunctionResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
     auto execGraph = sch.getFunctionExecGraph(call.id());

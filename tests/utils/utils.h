@@ -5,6 +5,7 @@
 #include <faaslet/Faaslet.h>
 
 namespace tests {
+// TODO: remove duplication, and use only BatchExecRequest's around
 void execFunction(std::shared_ptr<faabric::BatchExecuteRequest> req,
                   const std::string& expectedOutput = "");
 
@@ -18,6 +19,11 @@ std::string execFunctionWithStringResult(faabric::Message& msg);
 
 void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
                        int nThreads);
+
+std::shared_ptr<faabric::BatchExecuteRequest>
+execFuncWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
+                 bool clean = true,
+                 int timeout = 1000);
 
 faabric::Message execFuncWithPool(faabric::Message& call,
                                   bool clean = true,

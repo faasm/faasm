@@ -161,9 +161,10 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     m.shutdown();
 }
 
-faabric::Message execFuncWithPool(faabric::Message& call,
-                                  bool clean,
-                                  int timeout)
+std::shared_ptr<faabric::BatchExecuteRequest>
+execFuncWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
+                 bool clean,
+                 int timeout)
 {
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.shutdown();
@@ -176,16 +177,14 @@ faabric::Message execFuncWithPool(faabric::Message& call,
     conf.boundTimeout = timeout;
     faasmConf.netNsMode = "off";
 
+    SPDLOG_WARN("hello 2");
+
     // Set up the system
     auto fac = std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);
     m.startRunner();
 
-    // Convert message to request
-    // TODO: do less hacky
-    auto req = faabric::util::batchExecFactory(call.user(), call.function(), 1);
-    req->set_appid(call.appid());
-    *req->mutable_messages(0) = call;
+    SPDLOG_WARN("This is our group id: req-{} msg-{}", req->groupid(), req->messages(0).groupid());
 
     // Make the call
     sch.callFunctions(req);
@@ -193,14 +192,29 @@ faabric::Message execFuncWithPool(faabric::Message& call,
     // Await the result of the main function
     // NOTE - this timeout will only get hit when things have failed.
     // It also needs to be long enough to let longer tests complete
-    faabric::Message result = sch.getFunctionResult(call, timeout);
-    REQUIRE(result.returnvalue() == 0);
+    for (const auto& msg : req->messages()) {
+        auto result = sch.getFunctionResult(msg, timeout);
+        REQUIRE(result.returnvalue() == 0);
+    }
 
-    faasmConf.netNsMode = originalNsMode;
+    // TODO: when this is blocking, we can get rid of the previous checks
+    auto reqResp = sch.getPlannerClient()->getBatchResult(req);
 
-    m.shutdown();
+    return reqResp;
+}
 
-    return result;
+faabric::Message execFuncWithPool(faabric::Message& call,
+                                  bool clean,
+                                  int timeout)
+{
+    // Convert message to request
+    // TODO: do less hacky
+    auto req = faabric::util::batchExecFactory(call.user(), call.function(), 1);
+    req->set_appid(call.appid());
+    *req->mutable_messages(0) = call;
+
+    auto reqResponse = execFuncWithPool(req);
+    return req->messages(0);
 }
 
 void doWamrPoolExecution(faabric::Message& msg, int timeout = 1000)
