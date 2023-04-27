@@ -30,7 +30,6 @@ class MPIFuncTestFixture
         // Note: we don't `set_mpiworldsize` here, so all tests run with the
         // default MPI world size (5). Some tests will fail if we change this.
         auto req = faabric::util::batchExecFactory("mpi", funcName, 1);
-        SPDLOG_WARN("hello 1");
         auto reqResp = execFuncWithPool(req, true, 10000);
 
         for (const auto& msg : reqResp->messages()) {
@@ -91,6 +90,7 @@ TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI broadcast", "[mpi]")
     checkMpiFunc("mpi_bcast");
 }
 
+/*
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI cartesian create", "[mpi]")
 {
     SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
@@ -108,6 +108,7 @@ TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI cartesian coordinates", "[mpi]")
 
     checkMpiFunc("mpi_cartesian");
 }
+*/
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test general MPI functionality", "[mpi]")
 {

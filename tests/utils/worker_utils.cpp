@@ -177,28 +177,21 @@ execFuncWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     conf.boundTimeout = timeout;
     faasmConf.netNsMode = "off";
 
-    SPDLOG_WARN("hello 2");
-
     // Set up the system
     auto fac = std::make_shared<faaslet::FaasletFactory>();
     faabric::runner::FaabricMain m(fac);
     m.startRunner();
 
-    SPDLOG_WARN("This is our group id: req-{} msg-{}", req->groupid(), req->messages(0).groupid());
-
     // Make the call
     sch.callFunctions(req);
 
-    // Await the result of the main function
-    // NOTE - this timeout will only get hit when things have failed.
-    // It also needs to be long enough to let longer tests complete
-    for (const auto& msg : req->messages()) {
-        auto result = sch.getFunctionResult(msg, timeout);
-        REQUIRE(result.returnvalue() == 0);
-    }
+    // Give the planner time to schedule any calls
+    SLEEP_MS(200);
 
-    // TODO: when this is blocking, we can get rid of the previous checks
-    auto reqResp = sch.getPlannerClient()->getBatchResult(req);
+    auto reqResp = sch.getBatchResult(req, timeout);
+    for (const auto& msg : reqResp->messages()) {
+        REQUIRE(msg.returnvalue() == 0);
+    }
 
     return reqResp;
 }

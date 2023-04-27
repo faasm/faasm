@@ -25,14 +25,14 @@ int doRunner(int argc, char* argv[])
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunctions(req);
 
-    // usleep(1000 * 500);
+    SLEEP_MS(500);
 
-    for (const auto& m : req->messages()) {
-        faabric::Message result = sch.getFunctionResult(m, 20000);
-        if (result.returnvalue() != 0) {
+    auto reqResponse = sch.getBatchResult(req, 20000);
+    for (const auto& m : reqResponse->messages()) {
+        if (m.returnvalue() != 0) {
             SPDLOG_ERROR("Message ({}) returned error code: {}",
                          m.id(),
-                         result.returnvalue());
+                         m.returnvalue());
             throw std::runtime_error("Message execution failed");
         }
     }
