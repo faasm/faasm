@@ -12,7 +12,6 @@ from faasmcli.util.env import (
     PROJ_ROOT,
 )
 from faasmcli.util.version import get_version
-from faasmcli.util.env import AVAILABLE_HOSTS_SET
 
 
 def _get_cluster_services():
@@ -130,18 +129,3 @@ def flush_redis(ctx):
             check=True,
             cwd=PROJ_ROOT,
         )
-
-
-@task
-def available_workers(ctx):
-    """
-    Return the list of available workers in Redis
-    """
-    run(
-        "docker compose exec redis-queue redis-cli smembers {}".format(
-            AVAILABLE_HOSTS_SET
-        ),
-        shell=True,
-        check=True,
-        cwd=PROJ_ROOT,
-    )

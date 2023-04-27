@@ -15,6 +15,7 @@ from . import format_code
 from . import git
 from . import k8s
 from . import network
+from . import planner
 from . import python
 from . import redis
 from . import run
@@ -38,6 +39,7 @@ ns = Collection(
     git,
     k8s,
     network,
+    planner,
     python,
     redis,
     run,
