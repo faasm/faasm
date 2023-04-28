@@ -103,6 +103,7 @@ services:
       - AZ_ATTESTATION_PROVIDER_URL=https://faasmattprov.eus2.attest.azure.net
 
   # Load balancer for local cluster
+  # TODO: with the planner we don't need nginx anymore
   nginx:
     image: nginx:latest
     volumes:

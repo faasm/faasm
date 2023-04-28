@@ -1,9 +1,11 @@
-from time import sleep
 import pprint
 
 from faasmcli.util.env import PYTHON_USER, PYTHON_FUNC
 from faasmcli.util.http import do_post
-from faasmcli.util.endpoints import get_invoke_host_port
+from faasmcli.util.endpoints import get_planner_host_port
+from faasmcli.util.planner import prepare_planner_msg
+from json import loads as json_loads
+from time import sleep
 
 STATUS_SUCCESS = "SUCCESS"
 STATUS_FAILED = "FAILED"
@@ -18,22 +20,21 @@ def _do_invoke(user, func, host, port, func_type, input=None):
     do_post(url, input, json=True)
 
 
-def _async_invoke(url, msg, headers=None, poll=False, host=None, port=None):
-    # Submit initial async call
+def _async_invoke(url, msg, headers=None, poll=True, host=None, port=None):
+    # Submit initial async call. This will return a fully-fledged message
     async_result = do_post(url, msg, headers=headers, quiet=True, json=True)
+    # TODO: put in try-catch
+    async_result_msg = json_loads(async_result)
 
-    try:
-        call_id = int(async_result)
-    except ValueError:
-        raise RuntimeError(
-            "Could not parse async response to int: {}".format(async_result)
-        )
+    call_id = async_result_msg["id"]
+    app_id = async_result_msg["appId"]
 
     # Return the call ID if we're not polling
+    # TODO: always poll with planner
     if not poll:
         return call_id
 
-    print("\n---- Polling {} ----".format(call_id))
+    print("\n---- Polling {} (app: {}) ----".format(call_id, app_id))
 
     # Poll status until we get success/ failure
     result = None
@@ -46,7 +47,10 @@ def _async_invoke(url, msg, headers=None, poll=False, host=None, port=None):
         sleep(interval)
 
         result, output = status_call_impl(
-            msg["user"], msg["function"], call_id, host, port, quiet=True
+            async_result_msg,
+            host,
+            port,
+            quiet=True
         )
         print("\nPOLL {} - {}".format(count, result))
 
@@ -76,11 +80,7 @@ def invoke_impl(
     sgx=False,
     graph=False,
 ):
-    host, port = get_invoke_host_port()
-
-    # Polling always requires asynch
-    if poll:
-        asynch = True
+    host, port = get_planner_host_port()
 
     # Create URL and message
     url = "http://{}".format(host)
@@ -91,7 +91,6 @@ def invoke_impl(
         msg = {
             "user": PYTHON_USER,
             "function": PYTHON_FUNC,
-            "async": asynch,
             "py_user": user,
             "py_func": func,
             "python": True,
@@ -100,7 +99,6 @@ def invoke_impl(
         msg = {
             "user": user,
             "function": func,
-            "async": asynch,
         }
 
     if sgx:
@@ -123,20 +121,22 @@ def invoke_impl(
     print("Payload:")
     pprint.pprint(msg)
 
-    if asynch:
-        return _async_invoke(url, msg, poll=poll, host=host, port=port)
-    else:
-        return do_post(url, msg, json=True, debug=debug)
+    planner_msg = prepare_planner_msg("EXECUTE", msg)
+
+    print("Actual message:")
+    pprint.pprint(planner_msg)
+
+    return _async_invoke(url, planner_msg, host=host, port=port)
 
 
-def status_call_impl(user, func, call_id, host, port, quiet=False):
-    msg = {
-        "user": user,
-        "function": func,
-        "status": True,
-        "id": int(call_id),
-    }
-    call_result = _do_single_call(host, port, msg, quiet)
+def status_call_impl(msg, host, port, quiet=False):
+    """
+    Implements a planner HTTP request to get the state of a running function.
+    The most important parameters to identify a message result are the app id
+    and the message id, both should be bundled in the msg parameter
+    """
+    planner_msg = prepare_planner_msg("EXECUTE_STATUS", msg)
+    call_result = _do_single_call(host, port, planner_msg, quiet)
 
     if call_result.startswith("SUCCESS"):
         return STATUS_SUCCESS, call_result
