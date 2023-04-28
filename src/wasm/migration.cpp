@@ -2,6 +2,7 @@
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <wasm/migration.h>
+#include <wasm/WasmExecutionContext.h>
 
 namespace wasm {
 void doMigrationPoint(int32_t entrypointFuncWasmOffset,
@@ -99,9 +100,8 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
         */
 
         // Throw an exception to be caught by the executor and terminate
-        // TODO: exception throwing/catching does not work with WAMR as the
-        // C code can not catch it...
-        throw faabric::util::FunctionMigratedException("Migrating MPI rank");
+        auto ex = faabric::util::FunctionMigratedException("Migrating MPI rank");
+        getExecutingModule()->doThrowException(ex);
     }
 
     // Hit the post-migration hook if not migrated (but some message in our

@@ -76,6 +76,13 @@ class WasmModule
     // ----- Filesystem -----
     storage::FileSystem& getFileSystem();
 
+    // ----- Exception handling -----
+    // Faasm supports three different WASM runtimes, WAVM, WAMR, and WAMR
+    // inside SGX. Unfortunately, only WAVM is written in C++ and correctly
+    // propagates exceptions thrown by Faasm's C++ handlers. For WAMR-based
+    // code we work around the lack of exceptions with setjmp/longjmp
+    virtual void doThrowException(std::exception& e);
+
     // ----- Stdout capture -----
     ssize_t captureStdout(const struct ::iovec* iovecs, int iovecCount);
 

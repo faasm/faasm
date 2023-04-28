@@ -17,6 +17,13 @@ namespace wasm {
 
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx);
 
+enum WAMRExceptionTypes
+{
+    NoException = 0,
+    DefaultException = 1,
+    FunctionMigratedException = 2,
+};
+
 class WAMRWasmModule final
   : public WasmModule
   , public WAMRModuleMixin<WAMRWasmModule>
@@ -36,6 +43,9 @@ class WAMRWasmModule final
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
     int32_t executeFunction(faabric::Message& msg) override;
+
+    // ----- Exception handling -----
+    void doThrowException(std::exception& e) override;
 
     // ----- Helper functions -----
     void writeStringToWasmMemory(const std::string& strHost, char* strWasm);
@@ -64,6 +74,7 @@ class WAMRWasmModule final
     std::vector<std::string> getArgv();
 
     jmp_buf wamrExceptionJmpBuf;
+
   private:
     char errorBuffer[ERROR_BUFFER_SIZE];
 

@@ -168,6 +168,10 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     createThreadStacks();
 }
 
+// -----
+// Function Execution
+// -----
+
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 {
     SPDLOG_DEBUG("WAMR executing message {}", msg.id());
@@ -281,21 +285,32 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     // pass it, therefore we should provide a single integer argv even though
     // it's not actually used
     std::vector<uint32_t> argv = { 0 };
-    // bool success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
-    // ----- BEGIN HORRIBLE HACK
     bool success;
     {
-        // TODO: move to switch case
-        if (!setjmp(wamrExceptionJmpBuf)) {
-            SPDLOG_INFO("Before longjmp");
-            success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
-        } else {
-            SPDLOG_INFO("Caught exception");
-            throw faabric::util::FunctionMigratedException("Migrating MPI rank");
+        // This switch statement is used to catch exceptions thrown by native
+        // functions (written in C++) called from WASM code executed in WAMR.
+        // Given that WAMR is written in C, exceptions are not propagated, and
+        // thus we implement our custom handler
+        switch (setjmp(wamrExceptionJmpBuf)) {
+            case 0: {
+                success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
+                break;
+            }
+            // Make sure that we throw an exception if setjmp is called from
+            // a longjmp (and returns a value different than 0) as local
+            // variables in the stack could be corrupted
+            case WAMRExceptionTypes::FunctionMigratedException: {
+                throw faabric::util::FunctionMigratedException("Migrating MPI rank");
+            }
+            case WAMRExceptionTypes::DefaultException: {
+                throw std::runtime_error("Default WAMR exception");
+            }
+            default: {
+                SPDLOG_ERROR("WAMR exception handler reached unreachable case");
+                throw std::runtime_error("Unreachable WAMR exception handler");
+            }
         }
-        SPDLOG_INFO("Out of loop");
     }
-    // ----- END HORRIBLE HACK
     uint32_t returnValue = argv[0];
 
     if (!success) {
@@ -308,6 +323,29 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     SPDLOG_DEBUG("WAMR finished executing {}", funcName);
     return returnValue;
 }
+
+// -----
+// Exception handling
+// -----
+
+void WAMRWasmModule::doThrowException(std::exception& e)
+{
+    // Switch over the different exception types we support. Unfortunately,
+    // the setjmp/longjmp mechanism to catch C++ exceptions only lets us
+    // change the return value of setjmp, but we can't propagate the string
+    // associated to the exception
+    if (dynamic_cast<faabric::util::FunctionMigratedException*>(&e) != nullptr) {
+        SPDLOG_DEBUG("WAMR caught a FunctionMigratedException");
+        longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::FunctionMigratedException);
+    } else {
+        SPDLOG_DEBUG("WAMR caught a default (catch-all) exception");
+        longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::DefaultException);
+    }
+}
+
+// -----
+// Helper functions
+// -----
 
 void WAMRWasmModule::writeStringToWasmMemory(const std::string& strHost,
                                              char* strWasm)
