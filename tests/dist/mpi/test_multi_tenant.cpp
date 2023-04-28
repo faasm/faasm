@@ -11,11 +11,8 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
                  "[mpi]")
 {
     // Set up this host's resources
-    int nLocalSlots = 5;
     int worldSize = 4;
-    faabric::HostResources res;
-    res.set_slots(nLocalSlots);
-    sch.setThisHostResources(res);
+    setLocalRemoteSlots(2, 2);
 
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -23,10 +20,15 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     faabric::Message& msg = req->mutable_messages()->at(0);
     msg.set_ismpi(true);
     msg.set_mpiworldsize(worldSize);
-    msg.set_recordexecgraph(true);
 
     // Call the functions
     sch.callFunctions(req);
+
+    // Wait until the planner has had time to dispatch all the calls
+    waitForMpiMessagesInFlight(req);
+
+    // Update the slots for the same scheduling decision
+    setLocalRemoteSlots(2, 2);
 
     // Set up the second message
     std::shared_ptr<faabric::BatchExecuteRequest> reqCopy =
@@ -34,32 +36,18 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     faabric::Message& msgCopy = reqCopy->mutable_messages()->at(0);
     msgCopy.set_ismpi(true);
     msgCopy.set_mpiworldsize(worldSize);
-    msgCopy.set_recordexecgraph(true);
 
     // Call the functions for a second time
     sch.callFunctions(reqCopy);
 
-    // Check both results are successful
-    faabric::Message result =
-      sch.getFunctionResult(msg.id(), functionCallTimeout);
-    REQUIRE(result.returnvalue() == 0);
-    faabric::Message resultCopy =
-      sch.getFunctionResult(msgCopy.id(), functionCallTimeout);
-    REQUIRE(result.returnvalue() == 0);
+    std::vector<std::string> expectedHosts = { getDistTestMasterIp(),
+                                               getDistTestMasterIp(),
+                                               getDistTestWorkerIp(),
+                                               getDistTestWorkerIp() };
+    // Check allocation and results for the first request
+    checkMpiAllocationAndResult(req, expectedHosts);
 
-    // Get the execution graph for both requests
-    auto execGraph = sch.getFunctionExecGraph(result.id());
-    auto execGraphCopy = sch.getFunctionExecGraph(resultCopy.id());
-
-    // Builld the expectation for both requests
-    std::vector<std::string> expectedHosts(worldSize, getDistTestMasterIp());
-    std::vector<std::string> expectedHostsCopy = { getDistTestMasterIp(),
-                                                   getDistTestWorkerIp(),
-                                                   getDistTestWorkerIp(),
-                                                   getDistTestWorkerIp() };
-
-    // Check the expecation against the actual execution graphs
-    checkSchedulingFromExecGraph(execGraph, expectedHosts);
-    checkSchedulingFromExecGraph(execGraphCopy, expectedHostsCopy);
+    // Check allocation and result for the second request
+    checkMpiAllocationAndResult(reqCopy, expectedHosts);
 }
 }

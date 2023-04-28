@@ -13,12 +13,8 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
                  "[mpi]")
 {
     // Under-allocate resources
-    int nLocalSlots = 2;
     int mpiWorldSize = 4;
-    int migrationCheckPeriod = 1;
-    faabric::HostResources res;
-    res.set_slots(nLocalSlots);
-    sch.setThisHostResources(res);
+    setLocalRemoteSlots(2, 2);
 
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -26,37 +22,54 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     faabric::Message& msg = req->mutable_messages()->at(0);
     msg.set_ismpi(true);
     msg.set_mpiworldsize(mpiWorldSize);
-    msg.set_recordexecgraph(true);
-    // Set a low migration check period to detect the mgiration right away
-    msg.set_migrationcheckperiod(migrationCheckPeriod);
-    int numLoops = 10000;
+
     // Try to migrate at 50% of execution
     int checkAt = 5;
+    int numLoops = 10000;
     msg.set_cmdline(fmt::format("{} {}", checkAt, numLoops));
 
     // Call the functions
     sch.callFunctions(req);
 
-    // Sleep for a while to let the scheduler schedule the MPI calls, and then
-    // update the local slots so that a migration opportunity appears
-    SLEEP_MS(500);
-    res.set_slots(mpiWorldSize);
-    sch.setThisHostResources(res);
+    // Wait until the planner has had time to dispatch all the calls
+    waitForMpiMessagesInFlight(req);
 
-    // Check it's successful
-    faabric::Message result =
-      sch.getFunctionResult(msg.id(), functionCallTimeout);
-    REQUIRE(result.returnvalue() == 0);
+    // Get the scheduling decision now
+    auto decision = sch.getPlannerClient()->getSchedulingDecision(req);
 
-    // Check that we have indeed migrated
-    auto execGraph = sch.getFunctionExecGraph(msg.id());
+    // Update the slots so that a migration opportunity appears
+    bool migrateMainRank;
+    SECTION("Don't migrate main rank")
+    {
+        migrateMainRank = false;
+        setLocalRemoteSlots(4, 2);
+    }
+
+    SECTION("Migrate main rank")
+    {
+        migrateMainRank = true;
+        setLocalRemoteSlots(2, 4);
+    }
+
+    // Check the expected hosts before against the scheduling decision
     std::vector<std::string> expectedHostsBefore = { getDistTestMasterIp(),
                                                      getDistTestMasterIp(),
                                                      getDistTestWorkerIp(),
                                                      getDistTestWorkerIp() };
-    std::vector<std::string> expectedHostsAfter(4, getDistTestMasterIp());
-    checkSchedulingFromExecGraph(
-      execGraph, expectedHostsBefore, expectedHostsAfter);
+    REQUIRE(decision.hosts == expectedHostsBefore);
+
+    std::vector<std::string> expectedHostsAfter;
+
+    if (migrateMainRank) {
+        // Check the expected hosts and message results at the end
+        expectedHostsAfter = { getDistTestWorkerIp(), getDistTestWorkerIp(),
+                              getDistTestWorkerIp(), getDistTestWorkerIp() };
+    } else {
+        // Check the expected hosts and message results at the end
+        expectedHostsAfter = { getDistTestMasterIp(), getDistTestMasterIp(),
+                          getDistTestMasterIp(), getDistTestMasterIp() };
+    }
+    checkMpiAllocationAndResult(req, expectedHostsAfter);
 }
 
 TEST_CASE_METHOD(MpiDistTestsFixture,
@@ -93,7 +106,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
 
     // Check it's successful
     faabric::Message result =
-      sch.getFunctionResult(msg.id(), functionCallTimeout);
+      sch.getFunctionResult(msg, functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Get the execution graph

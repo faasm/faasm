@@ -26,13 +26,13 @@ TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
     faabric::Message& msg = req->mutable_messages()->at(0);
 
     // Check other host is not registered initially
-    REQUIRE(sch.getFunctionRegisteredHosts(user, function).empty());
+    REQUIRE(sch.getFunctionRegisteredHosts(msg).empty());
 
     // Invoke the function
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result = sch.getFunctionResult(msg.id(), 10000);
+    faabric::Message result = sch.getFunctionResult(msg, 10000);
     REQUIRE(result.returnvalue() == 0);
 
     // Check one executor used on this host (always the case for threads)
@@ -40,7 +40,6 @@ TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
 
     // Check other host is registered
     std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
-    REQUIRE(sch.getFunctionRegisteredHosts(user, function) ==
-            expectedRegisteredHosts);
+    REQUIRE(sch.getFunctionRegisteredHosts(msg) == expectedRegisteredHosts);
 }
 }

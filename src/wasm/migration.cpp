@@ -99,6 +99,8 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
         */
 
         // Throw an exception to be caught by the executor and terminate
+        // TODO: exception throwing/catching does not work with WAMR as the
+        // C code can not catch it...
         throw faabric::util::FunctionMigratedException("Migrating MPI rank");
     }
 

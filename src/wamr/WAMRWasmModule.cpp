@@ -19,6 +19,8 @@
 #include <wasm_exec_env.h>
 #include <wasm_export.h>
 
+#include <setjmp.h>
+
 namespace wasm {
 // The high level API for WAMR can be found here:
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/include/wasm_export.h
@@ -179,7 +181,7 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 
     if (msg.funcptr() > 0) {
         // Run the function from the pointer
-        returnValue = executeWasmFunctionFromPointer(msg.funcptr());
+        returnValue = executeWasmFunctionFromPointer(msg);
     } else {
         prepareArgcArgv(msg);
 
@@ -193,8 +195,16 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     return returnValue;
 }
 
-int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
+int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
 {
+    // WASM function pointers are indices into the module's function table
+    int wasmFuncPtr = msg.funcptr();
+    std::string inputData = msg.inputdata();
+
+    SPDLOG_DEBUG("WAMR executing function from pointer {} (args: {})",
+                 wasmFuncPtr,
+                 inputData);
+
     // NOTE: WAMR doesn't provide a nice interface for calling functions using
     // function pointers, so we have to call a few more low-level functions to
     // get it to work.
@@ -213,11 +223,25 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
     // Call the function pointer
     // NOTE: for some reason WAMR uses the argv array to pass the function
     // return value, so we have to provide something big enough
-    std::vector<uint32_t> argv = { 0 };
+    // TODO: pass arguments if set in input data!!
+    // TODO: check the number of parameters better (i.e. NOT HARDCODE)
+    // std::vector<uint32_t> argv = { 0 };
+    uint32_t originalArgv = (uint32_t) std::stoi(inputData);
+    std::vector<uint32_t> argv = { (uint32_t) std::stoi(inputData) };
+    // WARN: argc and argv are currently HARDCODED for migration
     bool success =
-      wasm_runtime_call_indirect(execEnv.get(), wasmFuncPtr, 0, argv.data());
+      wasm_runtime_call_indirect(execEnv.get(), wasmFuncPtr, 1, argv.data());
 
     uint32_t returnValue = argv[0];
+
+    // WAMR uses the argv vector (argv[0]) to set the return value of the
+    // function. This means that if we are calling a void function by pointer
+    // with some arguments, the return value will be, precisely, the input
+    // arguments (and not 0)
+    // TODO: check if the function is void
+    if (returnValue == originalArgv) {
+        returnValue = 0;
+    }
 
     // Handle errors
     if (!success || returnValue != 0) {
@@ -257,7 +281,21 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     // pass it, therefore we should provide a single integer argv even though
     // it's not actually used
     std::vector<uint32_t> argv = { 0 };
-    bool success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
+    // bool success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
+    // ----- BEGIN HORRIBLE HACK
+    bool success;
+    {
+        // TODO: move to switch case
+        if (!setjmp(wamrExceptionJmpBuf)) {
+            SPDLOG_INFO("Before longjmp");
+            success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
+        } else {
+            SPDLOG_INFO("Caught exception");
+            throw faabric::util::FunctionMigratedException("Migrating MPI rank");
+        }
+        SPDLOG_INFO("Out of loop");
+    }
+    // ----- END HORRIBLE HACK
     uint32_t returnValue = argv[0];
 
     if (!success) {

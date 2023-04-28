@@ -11,6 +11,8 @@
 #define WAMR_INTERNAL_EXCEPTION_PREFIX "Exception: "
 #define WAMR_EXIT_PREFIX "wamr_exit_code_"
 
+#include <setjmp.h>
+
 namespace wasm {
 
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx);
@@ -61,6 +63,7 @@ class WAMRWasmModule final
 
     std::vector<std::string> getArgv();
 
+    jmp_buf wamrExceptionJmpBuf;
   private:
     char errorBuffer[ERROR_BUFFER_SIZE];
 
@@ -70,7 +73,7 @@ class WAMRWasmModule final
 
     int executeWasmFunction(const std::string& funcName);
 
-    int executeWasmFunctionFromPointer(int wasmFuncPtr);
+    int executeWasmFunctionFromPointer(faabric::Message& msg);
 
     void bindInternal(faabric::Message& msg);
 
