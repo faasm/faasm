@@ -209,6 +209,28 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
                  wasmFuncPtr,
                  inputData);
 
+    // Work out the function signature from the function pointer
+    // TODO: maybe move to a different function
+    AOTModuleInstance* aotModuleInstance =
+      reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTTableInstance* tableInstance = aotModuleInstance->tables[0];
+    if (tableInstance == nullptr || wasmFuncPtr >= tableInstance->cur_size) {
+        SPDLOG_ERROR("Error getting WAMR function signature from ptr: {}",
+                     wasmFuncPtr);
+        throw std::runtime_error("Error getting WAMR function signature");
+    }
+    uint32_t funcIdx = tableInstance->elems[wasmFuncPtr];
+    uint32_t funcTypeIdx = aotModuleInstance->func_type_indexes[funcIdx];
+
+    AOTModule* aotModule = reinterpret_cast<AOTModule*>(wasmModule);
+    AOTFuncType* funcType = aotModule->func_types[funcTypeIdx];
+    int argCount = funcType->param_count;
+    int resultCount = funcType->result_count;
+    SPDLOG_DEBUG("WAMR Function pointer has {} arguments and returns {} value",
+                 argCount,
+                 resultCount);
+    bool returnsVoid = resultCount == 0;
+
     // NOTE: WAMR doesn't provide a nice interface for calling functions using
     // function pointers, so we have to call a few more low-level functions to
     // get it to work.
@@ -224,39 +246,48 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
     // Set thread handle and stack boundary (required by WAMR)
     wasm_exec_env_set_thread_info(execEnv.get());
 
-    // Call the function pointer
-    // NOTE: for some reason WAMR uses the argv array to pass the function
-    // return value, so we have to provide something big enough
-    // TODO: pass arguments if set in input data!!
-    // TODO: check the number of parameters better (i.e. NOT HARDCODE)
-    // std::vector<uint32_t> argv = { 0 };
-    uint32_t originalArgv = (uint32_t) std::stoi(inputData);
-    std::vector<uint32_t> argv = { (uint32_t) std::stoi(inputData) };
+    std::vector<uint32_t> argv;
+    switch (argCount) {
+        // Even if the function takes no arguments, we need to pass an argv
+        // with at least one element, as WAMR will set the return value in
+        // argv[0]
+        case 0:
+            argv = { 0 };
+            break;
+        // If we are calling with just one argument, we assume its an integer
+        // value. We could switch on the data type of the AOTType*, but we
+        // don't do it just yet
+        case 1:
+            argv = { (uint32_t)std::stoi(inputData) };
+            break;
+        default: {
+            SPDLOG_ERROR("Unrecognised WAMR function pointer signature (args: "
+                         "{}, return: {})",
+                         argCount,
+                         resultCount);
+            throw std::runtime_error(
+              "Unrecognised WAMR function pointer signature");
+        }
+    }
+    std::vector<uint32_t> originalArgv = argv;
     // WARN: argc and argv are currently HARDCODED for migration
-    bool success =
-      wasm_runtime_call_indirect(execEnv.get(), wasmFuncPtr, 1, argv.data());
+    bool success = wasm_runtime_call_indirect(
+      execEnv.get(), wasmFuncPtr, argCount, argv.data());
 
-    uint32_t returnValue = argv[0];
-
-    // WAMR uses the argv vector (argv[0]) to set the return value of the
-    // function. This means that if we are calling a void function by pointer
-    // with some arguments, the return value will be, precisely, the input
-    // arguments (and not 0)
-    // TODO: check if the function is void
-    if (returnValue == originalArgv) {
-        returnValue = 0;
+    if (!success) {
+        SPDLOG_ERROR("Error executing {}: {}",
+                     wasmFuncPtr,
+                     wasm_runtime_get_exception(moduleInstance));
+        throw std::runtime_error("Error executing WASM func ptr with WAMR");
     }
 
-    // Handle errors
-    if (!success || returnValue != 0) {
-        std::string errorMessage(
-          ((AOTModuleInstance*)moduleInstance)->cur_exception);
-
-        SPDLOG_ERROR("Failed to execute from function pointer {}: {}",
-                     wasmFuncPtr,
-                     returnValue);
-
-        return returnValue;
+    // If we are calling a void function by pointer with some arguments, the
+    // return value will be, precisely, the input arguments (and not 0)
+    uint32_t returnValue;
+    if (returnsVoid) {
+        returnValue = !(argv[0] == originalArgv[0]);
+    } else {
+        returnValue = 0;
     }
 
     return returnValue;
@@ -300,7 +331,8 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
             // a longjmp (and returns a value different than 0) as local
             // variables in the stack could be corrupted
             case WAMRExceptionTypes::FunctionMigratedException: {
-                throw faabric::util::FunctionMigratedException("Migrating MPI rank");
+                throw faabric::util::FunctionMigratedException(
+                  "Migrating MPI rank");
             }
             case WAMRExceptionTypes::DefaultException: {
                 throw std::runtime_error("Default WAMR exception");
@@ -334,9 +366,11 @@ void WAMRWasmModule::doThrowException(std::exception& e)
     // the setjmp/longjmp mechanism to catch C++ exceptions only lets us
     // change the return value of setjmp, but we can't propagate the string
     // associated to the exception
-    if (dynamic_cast<faabric::util::FunctionMigratedException*>(&e) != nullptr) {
+    if (dynamic_cast<faabric::util::FunctionMigratedException*>(&e) !=
+        nullptr) {
         SPDLOG_DEBUG("WAMR caught a FunctionMigratedException");
-        longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::FunctionMigratedException);
+        longjmp(wamrExceptionJmpBuf,
+                WAMRExceptionTypes::FunctionMigratedException);
     } else {
         SPDLOG_DEBUG("WAMR caught a default (catch-all) exception");
         longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::DefaultException);

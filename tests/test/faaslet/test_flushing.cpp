@@ -178,7 +178,8 @@ TEST_CASE_METHOD(FlushingTestFixture,
     sch.callFunctions(invokeReqA);
 
     // Check the result
-    faabric::Message resultA = sch.getFunctionResult(invokeReqA->messages(0), 1000);
+    faabric::Message resultA =
+      sch.getFunctionResult(invokeReqA->messages(0), 1000);
     REQUIRE(resultA.returnvalue() == 0);
     REQUIRE(resultA.outputdata() == expectedOutputA);
 
@@ -189,7 +190,8 @@ TEST_CASE_METHOD(FlushingTestFixture,
     sch.flushLocally();
 
     // Upload the second version and check wasm is as expected
-    // faabric::Message invokeMsgB = faabric::util::messageFactory("demo", "foo");
+    // faabric::Message invokeMsgB = faabric::util::messageFactory("demo",
+    // "foo");
     auto invokeReqB = faabric::util::batchExecFactory("demo", "foo", 1);
     auto& invokeMsgB = *invokeReqB->mutable_messages(0);
     loader.uploadFunction(uploadMsgB);

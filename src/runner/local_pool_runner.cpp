@@ -30,9 +30,8 @@ int doRunner(int argc, char* argv[])
     auto reqResponse = sch.getBatchResult(req, 20000);
     for (const auto& m : reqResponse->messages()) {
         if (m.returnvalue() != 0) {
-            SPDLOG_ERROR("Message ({}) returned error code: {}",
-                         m.id(),
-                         m.returnvalue());
+            SPDLOG_ERROR(
+              "Message ({}) returned error code: {}", m.id(), m.returnvalue());
             throw std::runtime_error("Message execution failed");
         }
     }

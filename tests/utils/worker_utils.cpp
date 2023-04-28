@@ -161,10 +161,10 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
     m.shutdown();
 }
 
-std::shared_ptr<faabric::BatchExecuteRequest>
-execFuncWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
-                 bool clean,
-                 int timeout)
+std::shared_ptr<faabric::BatchExecuteRequest> execFuncWithPool(
+  std::shared_ptr<faabric::BatchExecuteRequest> req,
+  bool clean,
+  int timeout)
 {
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.shutdown();

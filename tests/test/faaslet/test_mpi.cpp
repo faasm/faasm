@@ -14,7 +14,7 @@
 namespace tests {
 
 class MPIFuncTestFixture : public MultiRuntimeFunctionExecTestFixture
-  // , public MpiBaseTestFixture
+// , public MpiBaseTestFixture
 {
   public:
     MPIFuncTestFixture()

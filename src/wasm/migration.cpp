@@ -1,15 +1,16 @@
 #include <faabric/mpi/MpiWorldRegistry.h>
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
-#include <wasm/migration.h>
 #include <wasm/WasmExecutionContext.h>
+#include <wasm/migration.h>
 
 namespace wasm {
 void doMigrationPoint(int32_t entrypointFuncWasmOffset,
                       const std::string& entrypointFuncArg)
 {
     auto& sch = faabric::scheduler::getScheduler();
-    faabric::Message* call = &faabric::scheduler::ExecutorContext::get()->getMsg();
+    faabric::Message* call =
+      &faabric::scheduler::ExecutorContext::get()->getMsg();
 
     // Detect if there is a pending migration for the current app
     auto migration = sch.checkForMigrationOpportunities(*call);
@@ -100,7 +101,8 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
         */
 
         // Throw an exception to be caught by the executor and terminate
-        auto ex = faabric::util::FunctionMigratedException("Migrating MPI rank");
+        auto ex =
+          faabric::util::FunctionMigratedException("Migrating MPI rank");
         getExecutingModule()->doThrowException(ex);
     }
 
