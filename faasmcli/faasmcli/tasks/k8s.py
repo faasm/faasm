@@ -1,17 +1,20 @@
 from datetime import datetime
-from os import environ, listdir, makedirs
-from os.path import join
-from subprocess import run, PIPE
-from time import sleep
-
-from invoke import task
-
+from faasmcli.util.compose import (
+    get_container_ips_from_compose,
+    get_container_names_from_compose,
+)
 from faasmcli.util.env import (
     PROJ_ROOT,
     FAASM_CONFIG_FILE,
     GLOBAL_FAASM_CONFIG_FILE,
     GLOBAL_FAASM_CONFIG_DIR,
 )
+from invoke import task
+from os import environ, listdir, makedirs
+from os.path import join
+from subprocess import run, PIPE
+from time import sleep
+
 
 LOCALHOST_IP = "127.0.0.1"
 
@@ -177,7 +180,7 @@ def _deploy_faasm_services(worker_replicas, wasm_vm):
     wait_for_faasm_pods("run=faasm-worker")
 
     # Lastly, wait for the load balancers to be assigned ingress IPs
-    wait_for_faasm_lb("worker-lb")
+    wait_for_faasm_lb("planner-lb")
     wait_for_faasm_lb("upload-lb")
 
 
@@ -214,8 +217,8 @@ def ini_file(ctx, local=False, publicip=None):
         planner_ip = LOCALHOST_IP
         planner_port = "8081"
 
-        worker_names = list()
-        worker_ips = list()
+        worker_names = get_container_names_from_compose()
+        worker_ips = get_container_ips_from_compose()
     else:
         # If we're running on bare metal or VMs, we need to use the IP of the
         # host provided for both invocations and upload, but instead of using a
@@ -260,27 +263,9 @@ def ini_file(ctx, local=False, publicip=None):
             )
         else:
             print("\n----- Extracting info from k8s -----\n")
-            invoke_ip = _capture_cmd_output(
-                [
-                    "kubectl",
-                    "-n faasm",
-                    "get",
-                    "service",
-                    "worker-lb",
-                    "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
-                ]
-            )
+            invoke_ip = "REMOVE ME"
 
-            invoke_port = _capture_cmd_output(
-                [
-                    "kubectl",
-                    "-n faasm",
-                    "get",
-                    "service",
-                    "worker-lb",
-                    "-o 'jsonpath={.spec.ports[0].port}'",
-                ]
-            )
+            invoke_port = "REMOVE ME"
 
             upload_ip = _capture_cmd_output(
                 [

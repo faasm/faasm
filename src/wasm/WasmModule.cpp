@@ -215,7 +215,7 @@ ssize_t WasmModule::captureStdout(const struct ::iovec* iovecs, int iovecCount)
                                  strerror(errno));
     }
 
-    SPDLOG_DEBUG("Captured {} bytes of formatted stdout", writtenSize);
+    SPDLOG_TRACE("Captured {} bytes of formatted stdout", writtenSize);
     stdoutSize += writtenSize;
     return writtenSize;
 }
@@ -250,7 +250,7 @@ std::string WasmModule::getCapturedStdout()
     // Read in and return
     std::string stdoutString(stdoutSize, '\0');
     read(memFd, stdoutString.data(), stdoutSize);
-    SPDLOG_DEBUG("Read stdout length {}:\n{}", stdoutSize, stdoutString);
+    SPDLOG_TRACE("Read stdout length {}:\n{}", stdoutSize, stdoutString);
 
     return stdoutString;
 }
