@@ -20,6 +20,17 @@ def prepare_planner_msg(msg_type, msg_body=None):
     }
 
     if msg_body:
+        # FIXME: currently we use protobuf for JSON (de)-serialisation in
+        # faabric. In addition, we nest a JSON as a string in another JSON,
+        # which means that boolean values (in JSON) are serialised in the
+        # nested string as True, False. Unfortunately, protobuf only identifies
+        # as booleans the string literals `true` and `false` (with lower-case).
+        # So we need to be careful here
+        boolean_flags_in_nested_msg = ["mpi", "sgx"]
+        for key in boolean_flags_in_nested_msg:
+            if key in msg_body:
+                msg_body[key] = str(msg_body[key]).lower()
+
         planner_msg["payload"] = str(msg_body)
 
     return planner_msg

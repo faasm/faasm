@@ -437,11 +437,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     return _readInputImpl(bufferPtr, bufferLen);
 }
 
+// TODO: we don't need outputLen here
 void _writeOutputImpl(I32 outputPtr, I32 outputLen)
 {
-    std::vector<uint8_t> outputData = getBytesFromWasm(outputPtr, outputLen);
+    std::string outputData = getStringFromWasm(outputPtr);
     faabric::Message* call = &ExecutorContext::get()->getMsg();
-    call->set_outputdata(outputData.data(), outputData.size());
+    call->set_outputdata(outputData);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,

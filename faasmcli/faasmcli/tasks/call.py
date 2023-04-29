@@ -18,8 +18,6 @@ def invoke(
     func,
     input=None,
     py=False,
-    asynch=False,
-    poll=False,
     cmdline=None,
     mpi_world_size=None,
     debug=False,
@@ -29,24 +27,17 @@ def invoke(
     """
     Invoke a function
     """
-    res = invoke_impl(
+    invoke_impl(
         user,
         func,
         input=input,
         py=py,
-        asynch=asynch,
-        poll=poll,
         cmdline=cmdline,
         mpi_world_size=mpi_world_size,
         debug=debug,
         sgx=sgx,
         graph=graph,
     )
-
-    if asynch:
-        print("Call ID: " + str(res))
-        with open(LAST_CALL_ID_FILE, "w") as fh:
-            fh.write(str(res))
 
 
 def get_call_id(call_id):

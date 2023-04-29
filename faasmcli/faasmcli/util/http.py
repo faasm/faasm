@@ -16,11 +16,11 @@ def do_post(url, input, headers=None, quiet=False, json=False, debug=False):
     else:
         response = requests.post(url, data=input, headers=headers)
 
-    if response.status_code >= 400:
+    if response.status_code >= 400 and not quiet:
         print("Request failed: status = {}".format(response.status_code))
     elif response.text and not quiet:
         print(response.text)
     elif not quiet:
         print("Empty response")
 
-    return response.text
+    return response.status_code, response.text
