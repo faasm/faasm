@@ -21,7 +21,9 @@ def _do_invoke(user, func, host, port, func_type, input=None):
 
 def _async_invoke(url, msg, headers=None, host=None, port=None, debug=False):
     # Submit initial async call. This will return a fully-fledged message
-    status_code, response = do_post(url, msg, headers=headers, quiet=True, json=True)
+    status_code, response = do_post(
+        url, msg, headers=headers, quiet=True, json=True
+    )
     if status_code >= 400:
         print("Request failed: status = {}".format(status_code))
         print("Request body: {}".format(response))
@@ -50,10 +52,7 @@ def _async_invoke(url, msg, headers=None, host=None, port=None, debug=False):
         sleep(interval)
 
         result, output = status_call_impl(
-            async_result_msg,
-            host,
-            port,
-            quiet=True
+            async_result_msg, host, port, quiet=True
         )
         if debug:
             print("\nPOLL {} - {}".format(count, result))

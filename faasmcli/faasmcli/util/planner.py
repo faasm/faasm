@@ -12,7 +12,9 @@ PLANNER_HTTP_MESSAGE_TYPE = {
 
 def prepare_planner_msg(msg_type, msg_body=None):
     if msg_type not in PLANNER_HTTP_MESSAGE_TYPE:
-        print("Unrecognised HTTP message type for planner: {}".format(msg_type))
+        print(
+            "Unrecognised HTTP message type for planner: {}".format(msg_type)
+        )
         raise RuntimeError("Unrecognised planner HTTP message type")
 
     planner_msg = {
