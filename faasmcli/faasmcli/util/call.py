@@ -19,6 +19,18 @@ def _do_invoke(user, func, host, port, func_type, input=None):
     do_post(url, input, json=True)
 
 
+def get_exec_time_from_json(result_json):
+    """
+    Return the execution time (included in Faasm's response JSON) in seconds
+    """
+    actual_time = (
+        float(int(result_json["finish_ts"]) - int(result_json["start_ts"]))
+        / 1000
+    )
+
+    return actual_time
+
+
 def _async_invoke(url, msg, headers=None, host=None, port=None, debug=False):
     # Submit initial async call. This will return a fully-fledged message
     status_code, response = do_post(
@@ -68,6 +80,7 @@ def _async_invoke(url, msg, headers=None, host=None, port=None, debug=False):
 
     if "output_data" in json_output:
         print(json_output["output_data"])
+        print("Execution time: {} seconds".format(get_exec_time_from_json(json_output)))
     else:
         print(json_output)
 

@@ -2,11 +2,12 @@
 # the planner protobuf file
 PLANNER_HTTP_MESSAGE_TYPE = {
     "RESET": 1,
-    "GET_CONFIG": 2,
-    "FLUSH_AVAILABLE_HOSTS": 3,
-    "FLUSH_EXECUTORS": 4,
-    "EXECUTE": 5,
-    "EXECUTE_STATUS": 6,
+    "GET_AVAILABLE_HOSTS": 2,
+    "GET_CONFIG": 3,
+    "FLUSH_AVAILABLE_HOSTS": 4,
+    "FLUSH_EXECUTORS": 5,
+    "EXECUTE": 6,
+    "EXECUTE_STATUS": 7,
 }
 
 
