@@ -11,6 +11,7 @@ REPO_NAME = "faasm/faasm"
 
 VERSIONED_FILES = {
     "faasm": [".env", "VERSION"],
+    "faabric": [".env", ".github/workflows/tests.yml", "deploy/k8s-common/planner.yml"],
     "cpp": [".env", ".github/workflows/tests.yml"],
     "python": [".env", ".github/workflows/tests.yml"],
 }
@@ -88,11 +89,11 @@ def _create_tag(tag_name, force=False):
 
 
 @task
-def bump(ctx, ver=None, python=False, cpp=False):
+def bump(ctx, ver=None, python=False, cpp=False, faabric=False):
     """
     Increase the version (defaults to bumping a single minor version)
     """
-    bump_faasm_ver = (not python) and (not cpp)
+    bump_faasm_ver = (not python) and (not cpp) and (not faabric)
     if bump_faasm_ver:
         old_ver = get_version()
         if ver:
@@ -143,6 +144,19 @@ def bump(ctx, ver=None, python=False, cpp=False):
             strings_to_check = [
                 r"{}\/cpp-sysroot:".format(ACR_NAME),
                 "CPP_VERSION=",
+            ]
+            for f in VERSIONED_FILES["python"]:
+                for string in strings_to_check:
+                    sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
+                        string, old_ver, string, new_ver, f
+                    )
+                    print(sed_cmd)
+                    run(sed_cmd, shell=True, check=True)
+        if faabric:
+            old_ver, new_ver = get_version("faabric")
+            strings_to_check = [
+                r"{}\/planner:".format(ACR_NAME),
+                "FAABRIC_VERSION=",
             ]
             for f in VERSIONED_FILES["python"]:
                 for string in strings_to_check:

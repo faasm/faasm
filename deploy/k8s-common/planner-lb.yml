@@ -1,5 +1,6 @@
 ---
 
+# We need a load balancer to hit the planner's external HTTP endpoint
 apiVersion: v1
 kind: Service
 metadata:

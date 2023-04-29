@@ -11,9 +11,49 @@ metadata:
 spec:
   containers:
     - name: planner
-      image: faasm.azurecr.io/planner:0.4.3
+      image: faasm.azurecr.io/planner:0.4.4
       ports:
         - containerPort: 8081
       env:
         - name: LOG_LEVEL
           value: "info"
+        - name: PLANNER_PORT
+          value: "8081"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: planner
+  namespace: faasm
+spec:
+  ports:
+    # HTTP endpoint ports
+    - name: http-endpoint
+      port: 8081
+      targetPort: 8081
+    # Given that the planner and the worker are in different pods, we need to
+    # list all the ports we use for RPCs. These are the function call port,
+    # the PTP port, and the planner port (all in their sync and async versions).
+    # See faabric/include/faabric/transport/common.h for the full list
+    - name: function-call-sync
+      port: 8005
+      targetPort: 8005
+    - name: function-call-async
+      port: 8006
+      targetPort: 8006
+    - name: ptp-async
+      port: 8009
+      targetPort: 8009
+    - name: ptp-sync
+      port: 8010
+      targetPort: 8010
+    - name: planner-sync
+      port: 8011
+      targetPort: 8011
+    - name: planner-async
+      port: 8012
+      targetPort: 8012
+  selector:
+    role: planner
