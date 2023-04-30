@@ -620,6 +620,13 @@ static int32_t MPI_Init_wrapper(wasm_exec_env_t execEnv, int32_t a, int32_t b)
         executingContext.joinWorld(*call);
     }
 
+    SPDLOG_INFO("{}:{}:{} MPI Rank {} init-ing world (id: {})",
+                call->appid(),
+                call->groupid(),
+                call->groupidx(),
+                call->mpirank(),
+                call->mpiworldid());
+
     ctx = std::make_unique<WamrMpiContextWrapper>();
 
     return 0;
