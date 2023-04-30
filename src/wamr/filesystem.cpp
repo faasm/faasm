@@ -201,7 +201,7 @@ static int32_t wasi_fd_prestat_dir_name(wasm_exec_env_t exec_env,
                                         char* path,
                                         int32_t* pathLen)
 {
-    SPDLOG_DEBUG("S - fd_prestat_dir_name {}", fd);
+    SPDLOG_TRACE("S - fd_prestat_dir_name {}", fd);
 
     WAMRWasmModule* module = getExecutingWAMRModule();
     if (!module->getFileSystem().fileDescriptorExists(fd)) {
@@ -219,7 +219,7 @@ static int32_t wasi_fd_prestat_get(wasm_exec_env_t exec_env,
                                    int32_t fd,
                                    wasi_prestat_app_t* prestatWasm)
 {
-    SPDLOG_DEBUG("S - fd_prestat_get {}", fd);
+    SPDLOG_TRACE("S - fd_prestat_get {}", fd);
 
     WAMRWasmModule* module = getExecutingWAMRModule();
     if (!module->getFileSystem().fileDescriptorExists(fd)) {
@@ -449,7 +449,7 @@ static int32_t wasi_path_open(wasm_exec_env_t exec_env,
     module->validateNativePointer(path, pathLen);
     const std::string pathStr(path, pathLen);
 
-    SPDLOG_DEBUG("S - path_open {} {} {}", fdNative, pathStr, pathLen);
+    SPDLOG_TRACE("S - path_open {} {} {}", fdNative, pathStr, pathLen);
 
     module->validateNativePointer(fdWasm, sizeof(int32_t));
     *fdWasm = module->getFileSystem().openFileDescriptor(fdNative,

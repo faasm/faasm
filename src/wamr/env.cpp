@@ -32,7 +32,7 @@ uint32_t wasi_args_get(wasm_exec_env_t exec_env,
                        uint32_t* argvOffsetsWasm,
                        char* argvBuffWasm)
 {
-    SPDLOG_DEBUG("S - args_get");
+    SPDLOG_TRACE("S - args_get");
 
     WAMRWasmModule* module = getExecutingWAMRModule();
     module->writeArgvToWamrMemory(argvOffsetsWasm, argvBuffWasm);
@@ -44,7 +44,7 @@ uint32_t wasi_args_sizes_get(wasm_exec_env_t exec_env,
                              uint32_t* argcWasm,
                              uint32_t* argvBuffSizeWasm)
 {
-    SPDLOG_DEBUG("S - args_sizes_get");
+    SPDLOG_TRACE("S - args_sizes_get");
 
     WAMRWasmModule* module = getExecutingWAMRModule();
 

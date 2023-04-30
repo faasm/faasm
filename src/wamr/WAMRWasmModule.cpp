@@ -104,8 +104,19 @@ void WAMRWasmModule::reset(faabric::Message& msg,
     std::string funcStr = faabric::util::funcToString(msg, true);
     SPDLOG_DEBUG("WAMR resetting after {} (snap key {})", funcStr, snapshotKey);
 
-    wasm_runtime_deinstantiate(moduleInstance);
-    bindInternal(msg);
+    // Original reset
+    // wasm_runtime_deinstantiate(moduleInstance);
+    // bindInternal(msg);
+    //
+    // Alternative _very_ cautious WAMR reset
+    {
+        faabric::util::UniqueLock lock(wamrGlobalsMutex);
+
+        wasm_runtime_deinstantiate(moduleInstance);
+        wasm_runtime_unload(wasmModule);
+    }
+
+    doBindToFunction(msg, false);
 }
 
 void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
