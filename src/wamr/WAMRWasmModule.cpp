@@ -60,7 +60,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
     initialiseWAMRNatives();
 
     // Set log level: BH_LOG_LEVEL_{FATAL,ERROR,WARNING,DEBUG,VERBOSE}
-    bh_log_set_verbose_level(BH_LOG_LEVEL_WARNING);
+    bh_log_set_verbose_level(BH_LOG_LEVEL_DEBUG);
 
     wamrInitialised = true;
 }
