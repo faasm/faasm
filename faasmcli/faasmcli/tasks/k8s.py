@@ -313,7 +313,7 @@ def ini_file(ctx, local=False, publicip=None, file_path=None):
 
     # Work out where to write the INI file
     if file_path:
-        config_file_path = file_path
+        config_file_path = join(file_path, "faasm.ini")
         global_symlink = False
     else:
         config_file_path = FAASM_CONFIG_FILE
