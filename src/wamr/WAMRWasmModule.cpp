@@ -105,18 +105,24 @@ void WAMRWasmModule::reset(faabric::Message& msg,
     SPDLOG_DEBUG("WAMR resetting after {} (snap key {})", funcStr, snapshotKey);
 
     // Original reset
-    // wasm_runtime_deinstantiate(moduleInstance);
-    // bindInternal(msg);
-    //
+    wasm_runtime_deinstantiate(moduleInstance);
+    bindInternal(msg);
+
     // Alternative _very_ cautious WAMR reset
+    /* This is giving AOT module load failed: mmap memory failed
     {
         faabric::util::UniqueLock lock(wamrGlobalsMutex);
 
         wasm_runtime_deinstantiate(moduleInstance);
         wasm_runtime_unload(wasmModule);
+
+        // WARNING: According to wasm_export.h, "in general, it isn't safe to
+        // create multiple modules from a single buffer"
+        wasmBytes.clear();
     }
 
     doBindToFunction(msg, false);
+    */
 }
 
 void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
