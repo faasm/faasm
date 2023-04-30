@@ -202,7 +202,7 @@ def delete(ctx, local=False, sgx=False):
 
 
 @task
-def ini_file(ctx, local=False, publicip=None):
+def ini_file(ctx, local=False, publicip=None, file_path=None):
     """
     Set up the faasm config file for interacting with k8s
     """
@@ -311,10 +311,18 @@ def ini_file(ctx, local=False, publicip=None):
         # Get worker pods with the right label
         worker_names, worker_ips = _get_faasm_worker_pods("run=faasm-worker")
 
-    print("\n----- INI file -----\n")
-    print("Overwriting config file at {}\n".format(FAASM_CONFIG_FILE))
+    # Work out where to write the INI file
+    if file_path:
+        config_file_path = file_path
+        global_symlink = False
+    else:
+        config_file_path = FAASM_CONFIG_FILE
+        global_symlink = True
 
-    with open(FAASM_CONFIG_FILE, "w") as fh:
+    print("\n----- INI file -----\n")
+    print("Overwriting config file at {}\n".format(config_file_path))
+
+    with open(config_file_path, "w") as fh:
         fh.write("[Faasm]\n")
 
         # This comment line can't be outside of the Faasm section
@@ -329,18 +337,19 @@ def ini_file(ctx, local=False, publicip=None):
         fh.write("worker_names = {}\n".format(",".join(worker_names)))
         fh.write("worker_ips = {}\n".format(",".join(worker_ips)))
 
-    with open(FAASM_CONFIG_FILE, "r") as fh:
+    with open(config_file_path, "r") as fh:
         print(fh.read())
 
-    print(
-        "Symlinking {} to {}".format(
-            FAASM_CONFIG_FILE, GLOBAL_FAASM_CONFIG_FILE
+    if global_symlink:
+        print(
+            "Symlinking {} to {}".format(
+                config_file_path, GLOBAL_FAASM_CONFIG_FILE
+            )
         )
-    )
 
-    run("rm -f {}".format(GLOBAL_FAASM_CONFIG_FILE), shell=True, check=True)
-    run(
-        "ln -s {} {}".format(FAASM_CONFIG_FILE, GLOBAL_FAASM_CONFIG_FILE),
-        shell=True,
-        check=True,
-    )
+        run("rm -f {}".format(GLOBAL_FAASM_CONFIG_FILE), shell=True, check=True)
+        run(
+            "ln -s {} {}".format(config_file_path, GLOBAL_FAASM_CONFIG_FILE),
+            shell=True,
+            check=True,
+        )
