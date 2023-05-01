@@ -5,9 +5,13 @@ FROM faasm.azurecr.io/base${FAASM_SGX_PARENT_SUFFIX}:${FAASM_VERSION}
 # Build the worker binary
 ARG FAASM_SGX_MODE
 RUN cd /usr/local/code/faasm \
+    # FIXME: remove thiss
+    && git fetch origin && git checkout planner && git pull origin planner && git submodule update \
     && ./bin/create_venv.sh \
     && source venv/bin/activate \
-    && inv -r faasmcli/faasmcli dev.cmake --build Release --sgx ${FAASM_SGX_MODE} \
+    # FIXME FIXME: change the build type back to Release, only doing this now
+    # to debug the k8s deployment
+    && inv -r faasmcli/faasmcli dev.cmake --build Debug --sgx ${FAASM_SGX_MODE} \
     && inv -r faasmcli/faasmcli dev.cc codegen_shared_obj \
     && inv -r faasmcli/faasmcli dev.cc codegen_func \
     && inv -r faasmcli/faasmcli dev.cc pool_runner

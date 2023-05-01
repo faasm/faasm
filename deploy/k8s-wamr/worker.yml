@@ -35,6 +35,8 @@ spec:
       containers:
         - image: faasm.azurecr.io/worker:0.9.8
           name: faasm-worker
+          # TODO: remove this after the image has stabilised
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
@@ -46,8 +48,9 @@ spec:
               value: "planner"
             - name: PLANNER_PORT
               value: "8081"
+              # TODO: change this to info after debugging has finished
             - name: LOG_LEVEL
-              value: "info"
+              value: "debug"
             - name: CAPTURE_STDOUT
               value: "on"
             - name: CGROUP_MODE

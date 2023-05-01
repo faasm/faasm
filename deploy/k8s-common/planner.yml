@@ -12,6 +12,8 @@ spec:
   containers:
     - name: planner
       image: faasm.azurecr.io/planner:0.4.4
+      # TODO: remove this after the image has stabilised
+      imagePullPolicy: Always
       ports:
         - containerPort: 8081
       env:
