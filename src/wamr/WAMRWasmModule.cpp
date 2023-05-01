@@ -389,8 +389,13 @@ void WAMRWasmModule::doThrowException(std::exception& e)
         SPDLOG_DEBUG("WAMR caught a FunctionMigratedException");
         longjmp(wamrExceptionJmpBuf,
                 WAMRExceptionTypes::FunctionMigratedException);
+    } else if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) !=
+        nullptr) {
+        SPDLOG_DEBUG("WAMR caught a QueueTimeoutException");
+        longjmp(wamrExceptionJmpBuf,
+                WAMRExceptionTypes::QueueTimeoutException);
     } else {
-        SPDLOG_DEBUG("WAMR caught a default (catch-all) exception");
+        SPDLOG_DEBUG("WAMR caught a default (catch-all) exception: {}", e.what());
         longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::DefaultException);
     }
 }

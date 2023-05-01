@@ -22,6 +22,7 @@ enum WAMRExceptionTypes
     NoException = 0,
     DefaultException = 1,
     FunctionMigratedException = 2,
+    QueueTimeoutException = 3,
 };
 
 class WAMRWasmModule final
