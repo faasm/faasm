@@ -651,6 +651,25 @@ static int32_t MPI_Init_wrapper(wasm_exec_env_t execEnv, int32_t a, int32_t b)
 
     ctx = std::make_unique<WamrMpiContextWrapper>();
 
+    // TODO: debug barrier to make sure everybody is on board
+    try {
+        ctx->world.barrier(ctx->rank);
+    } catch (std::exception& e) {
+        SPDLOG_ERROR("{}:{}:{} Error in MPI_Init barrier! (rank: {}): {}",
+                     call->appid(),
+                     call->groupid(),
+                     call->groupidx(),
+                     ctx->rank,
+                     e.what());
+        throw e;
+    }
+    SPDLOG_ERROR("{}:{}:{} Success in MPI_Init barrier! (rank: {})",
+                 call->appid(),
+                 call->groupid(),
+                 call->groupidx(),
+                 ctx->rank);
+    // TODO: end of bit to remove
+
     return 0;
 }
 
