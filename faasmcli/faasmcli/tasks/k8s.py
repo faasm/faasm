@@ -347,7 +347,9 @@ def ini_file(ctx, local=False, publicip=None, file_path=None):
             )
         )
 
-        run("rm -f {}".format(GLOBAL_FAASM_CONFIG_FILE), shell=True, check=True)
+        run(
+            "rm -f {}".format(GLOBAL_FAASM_CONFIG_FILE), shell=True, check=True
+        )
         run(
             "ln -s {} {}".format(config_file_path, GLOBAL_FAASM_CONFIG_FILE),
             shell=True,

@@ -11,7 +11,11 @@ REPO_NAME = "faasm/faasm"
 
 VERSIONED_FILES = {
     "faasm": [".env", "VERSION"],
-    "faabric": [".env", ".github/workflows/tests.yml", "deploy/k8s-common/planner.yml"],
+    "faabric": [
+        ".env",
+        ".github/workflows/tests.yml",
+        "deploy/k8s-common/planner.yml",
+    ],
     "cpp": [".env", ".github/workflows/tests.yml"],
     "python": [".env", ".github/workflows/tests.yml"],
 }

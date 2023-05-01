@@ -80,7 +80,11 @@ def _async_invoke(url, msg, headers=None, host=None, port=None, debug=False):
 
     if "output_data" in json_output:
         print(json_output["output_data"])
-        print("Execution time: {} seconds".format(get_exec_time_from_json(json_output)))
+        print(
+            "Execution time: {} seconds".format(
+                get_exec_time_from_json(json_output)
+            )
+        )
     else:
         print(json_output)
 
