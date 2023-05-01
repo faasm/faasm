@@ -27,7 +27,9 @@ using namespace faabric::mpi;
     try {                                                                      \
         call;                                                         \
     } catch (std::exception & e) {                                             \
-        ctx->module->doThrowException(e);                                      \
+        ctx = nullptr; \
+        auto __module = wasm::getExecutingWAMRModule(); \
+        __module->doThrowException(e); \
     }
 
 namespace wasm {
