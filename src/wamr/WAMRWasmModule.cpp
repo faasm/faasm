@@ -352,6 +352,9 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
                 throw faabric::util::FunctionMigratedException(
                   "Migrating MPI rank");
             }
+            case WAMRExceptionTypes::QueueTimeoutException: {
+                throw std::runtime_error("Timed-out dequeueing!");
+            }
             case WAMRExceptionTypes::DefaultException: {
                 throw std::runtime_error("Default WAMR exception");
             }
