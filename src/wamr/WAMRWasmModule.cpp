@@ -35,6 +35,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
 {
     faabric::util::UniqueLock lock(wamrGlobalsMutex);
 
+    // TODO: consider making this an atomic flag to avoid acquiring a mutex
     if (wamrInitialised) {
         return;
     }

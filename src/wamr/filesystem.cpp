@@ -99,7 +99,7 @@ static int32_t wasi_fd_fdstat_get(wasm_exec_env_t exec_env,
     WAMRWasmModule* module = getExecutingWAMRModule();
     storage::FileSystem& fs = module->getFileSystem();
     std::string path = fs.getPathForFd(fd);
-    SPDLOG_DEBUG("S - fd_fdstat_get {} ({})", fd, path);
+    SPDLOG_TRACE("S - fd_fdstat_get {} ({})", fd, path);
 
     if (!fs.fileDescriptorExists(fd)) {
         return __WASI_EBADF;
