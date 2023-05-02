@@ -88,7 +88,7 @@ int MicrobenchRunner::doRun(std::ofstream& outFs,
     if (PREFLIGHT_CALLS) {
         auto preflightReq = createBatchRequest(user, function, inputData);
         sch.callFunctions(preflightReq);
-        sch.getFunctionResult(preflightReq->messages().at(0).id(), 10000);
+        sch.getFunctionResult(preflightReq->messages().at(0), 10000);
     }
 
     // Main loop
@@ -96,7 +96,7 @@ int MicrobenchRunner::doRun(std::ofstream& outFs,
         // Execute
         TimePoint execStart = startTimer();
         sch.callFunctions(req);
-        faabric::Message res = sch.getFunctionResult(msg.id(), 10000);
+        faabric::Message res = sch.getFunctionResult(msg, 10000);
         long execNanos = getTimeDiffNanos(execStart);
         float execMicros = float(execNanos) / 1000;
 

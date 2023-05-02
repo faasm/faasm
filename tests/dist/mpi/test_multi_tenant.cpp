@@ -40,11 +40,10 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     sch.callFunctions(reqCopy);
 
     // Check both results are successful
-    faabric::Message result =
-      sch.getFunctionResult(msg.id(), functionCallTimeout);
+    faabric::Message result = sch.getFunctionResult(msg, functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
     faabric::Message resultCopy =
-      sch.getFunctionResult(msgCopy.id(), functionCallTimeout);
+      sch.getFunctionResult(msgCopy, functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Get the execution graph for both requests

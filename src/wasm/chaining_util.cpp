@@ -13,13 +13,18 @@ namespace wasm {
 int awaitChainedCall(unsigned int messageId)
 {
     int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;
+    auto* exec = faabric::scheduler::ExecutorContext::get()->getExecutor();
 
     int returnCode = 1;
     try {
+        auto msg = exec->getChainedMessage(messageId);
         faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
         const faabric::Message result =
-          sch.getFunctionResult(messageId, callTimeoutMs);
+          sch.getFunctionResult(msg, callTimeoutMs);
         returnCode = result.returnvalue();
+    } catch (faabric::scheduler::ChainedCallException& ex) {
+        SPDLOG_ERROR(
+          "Error getting chained call message: {}: {}", messageId, ex.what());
     } catch (faabric::redis::RedisNoResponseException& ex) {
         SPDLOG_ERROR("Timed out waiting for chained call: {}", messageId);
     } catch (std::exception& ex) {
@@ -87,12 +92,18 @@ int makeChainedCall(const std::string& functionName,
 
     sch.callFunctions(req);
     if (originalCall->recordexecgraph()) {
-        sch.logChainedFunction(originalCall->id(), msg.id());
+        sch.logChainedFunction(*originalCall, msg);
     }
+
+    // Add the chained call to this executor's chained calls
+    faabric::scheduler::ExecutorContext::get()
+      ->getExecutor()
+      ->addChainedMessage(msg);
 
     return msg.id();
 }
 
+// TODO: is this used?
 int spawnChainedThread(const std::string& snapshotKey,
                        size_t snapshotSize,
                        int funcPtr,
@@ -133,10 +144,18 @@ int awaitChainedCallOutput(unsigned int messageId,
                            int bufferLen)
 {
     int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;
-
+    auto* exec = faabric::scheduler::ExecutorContext::get()->getExecutor();
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    const faabric::Message result =
-      sch.getFunctionResult(messageId, callTimeoutMs);
+
+    faabric::Message result;
+    try {
+        auto msg = exec->getChainedMessage(messageId);
+        result = sch.getFunctionResult(msg, callTimeoutMs);
+    } catch (faabric::scheduler::ChainedCallException& e) {
+        SPDLOG_ERROR(
+          "Error awaiting for chained call {}: {}", messageId, e.what());
+        return 1;
+    }
 
     if (result.type() == faabric::Message_MessageType_EMPTY) {
         SPDLOG_ERROR("Cannot find output for {}", messageId);

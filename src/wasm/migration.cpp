@@ -94,7 +94,7 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
         sch.callFunctions(req, decision);
 
         if (call->recordexecgraph()) {
-            sch.logChainedFunction(call->id(), msg.id());
+            sch.logChainedFunction(*call, msg);
         }
 
         // Throw an exception to be caught by the executor and terminate

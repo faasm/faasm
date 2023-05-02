@@ -32,7 +32,7 @@ class StateFuncTestFixture : public FunctionExecTestFixture
         sch.callFunction(call);
 
         // Check result
-        faabric::Message result = sch.getFunctionResult(call.id(), 1);
+        faabric::Message result = sch.getFunctionResult(call, 1);
         REQUIRE(result.returnvalue() == 0);
         std::vector<uint8_t> outputBytes =
           faabric::util::stringToBytes(result.outputdata());
