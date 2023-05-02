@@ -90,16 +90,16 @@ int makeChainedCall(const std::string& functionName,
                     msg.id());
     }
 
+    // Record the chained call in the executor before invoking the new
+    // functions to avoid data races
+    faabric::scheduler::ExecutorContext::get()
+      ->getExecutor()
+      ->addChainedMessage(req->messages(0));
+
     sch.callFunctions(req);
     if (originalCall->recordexecgraph()) {
         sch.logChainedFunction(*originalCall, msg);
     }
-
-    // Add the chained call to this executor's chained calls. We pass a const
-    // reference to avoid data races
-    faabric::scheduler::ExecutorContext::get()
-      ->getExecutor()
-      ->addChainedMessage(req->messages(0));
 
     return msg.id();
 }
