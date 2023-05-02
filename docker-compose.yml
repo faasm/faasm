@@ -109,6 +109,7 @@ services:
     volumes:
       - ./deploy/conf/nginx-local.conf:/etc/nginx/nginx.conf:ro
     depends_on:
+      - planner
       - worker
     ports:
       - "8080:8080"
