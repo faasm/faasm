@@ -7,6 +7,22 @@ services:
   redis-queue:
     image: faasm.azurecr.io/redis:${FAASM_VERSION}
 
+  planner:
+    image: ${FAABRIC_PLANNER_IMAGE}
+    # Pass the build dir as argument to the entrypoint, so that the binaries
+    # are correctly mounted
+    command: ${FAASM_BUILD_MOUNT}/bin
+    # Temporarily, use port 8081 for planner as 8080 is taken up by the worker.
+    # Eventually the planner will be the only entrypoint to invoke functions,
+    # so we will be able to take port 8080 again
+    ports:
+      - "8081:8081"
+    volumes:
+      - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
+    environment:
+      - LOG_LEVEL=info
+      - PLANNER_PORT=8081
+
   minio:
     image: faasm.azurecr.io/minio:${FAASM_VERSION}
     ports:
@@ -172,6 +188,8 @@ services:
     environment:
       - LD_LIBRARY_PATH=/usr/local/lib
       - LOG_LEVEL=debug
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8081
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4
