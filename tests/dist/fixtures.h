@@ -41,11 +41,12 @@ class DistTestsFixture
         faabric::scheduler::Scheduler::getPlannerClient()->ping();
         resetPlanner();
 
-
-        // Clean up the scheduler and make sure this host is available
+        // Clean up the scheduler
         sch.shutdown();
-        sch.addHostToGlobalSet();
-        sch.addHostToGlobalSet(getDistTestWorkerIp());
+
+        // Set slots
+        setLocalRemoteSlots(faabric::util::getUsableCores(),
+                            faabric::util::getUsableCores());
 
         // Set up executor
         std::shared_ptr<faaslet::FaasletFactory> fac =
@@ -69,6 +70,22 @@ class DistTestsFixture
         conf.reset();
         faasmConf.reset();
         resetPlanner();
+    }
+
+    void setLocalRemoteSlots(int nLocalSlots,
+                             int nRemoteSlots,
+                             int nLocalUsedSlots = 0,
+                             int nRemoteUsedSlots = 0)
+    {
+        auto localResources = std::make_shared<faabric::HostResources>();
+        localResources->set_slots(nLocalSlots);
+        localResources->set_usedslots(nLocalUsedSlots);
+        sch.addHostToGlobalSet(getDistTestMasterIp(), localResources);
+
+        auto remoteResources = std::make_shared<faabric::HostResources>();
+        remoteResources->set_slots(nRemoteSlots);
+        remoteResources->set_usedslots(nRemoteUsedSlots);
+        sch.addHostToGlobalSet(getDistTestWorkerIp(), remoteResources);
     }
 };
 

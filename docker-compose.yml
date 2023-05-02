@@ -149,6 +149,8 @@ services:
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8081
       - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
