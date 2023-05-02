@@ -95,10 +95,11 @@ int makeChainedCall(const std::string& functionName,
         sch.logChainedFunction(*originalCall, msg);
     }
 
-    // Add the chained call to this executor's chained calls
+    // Add the chained call to this executor's chained calls. We pass a const
+    // reference to avoid data races
     faabric::scheduler::ExecutorContext::get()
       ->getExecutor()
-      ->addChainedMessage(msg);
+      ->addChainedMessage(req->messages(0));
 
     return msg.id();
 }
