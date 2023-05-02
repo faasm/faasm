@@ -47,6 +47,7 @@ services:
     depends_on:
       - redis-queue
       - redis-state
+      - planner
       - minio
     restart: on-failure
     volumes:
@@ -71,6 +72,7 @@ services:
   worker:
     image: ${FAASM_WORKER_IMAGE}
     depends_on:
+      - planner
       - upload
     expose:
       - "8080"
@@ -137,6 +139,7 @@ services:
     depends_on:
       - redis-state
       - redis-queue
+      - planner
       - minio
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
@@ -183,6 +186,7 @@ services:
     depends_on:
       - redis-queue
       - redis-state
+      - planner
       - minio
       - upload
     environment:
