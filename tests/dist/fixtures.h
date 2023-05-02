@@ -2,6 +2,8 @@
 
 #include <catch2/catch.hpp>
 
+#include "faabric_utils.h"
+
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
 #include <faaslet/Faaslet.h>
@@ -35,6 +37,11 @@ class DistTestsFixture
     {
         redis.flushAll();
 
+        // Planner reset
+        faabric::scheduler::Scheduler::getPlannerClient()->ping();
+        resetPlanner();
+
+
         // Clean up the scheduler and make sure this host is available
         sch.shutdown();
         sch.addHostToGlobalSet();
@@ -61,6 +68,7 @@ class DistTestsFixture
         sch.broadcastFlush();
         conf.reset();
         faasmConf.reset();
+        resetPlanner();
     }
 };
 

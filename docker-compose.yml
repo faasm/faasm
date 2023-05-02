@@ -57,6 +57,8 @@ services:
       - ./dev/faasm-local/object/:/usr/local/faasm/object
     environment:
       - LOG_LEVEL=info
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8081
       - PYTHON_CODEGEN=${PYTHON_CODEGEN:-off}
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
@@ -91,6 +93,8 @@ services:
       - LOG_LEVEL=info
       - NETNS_MODE=off
       - MAX_NET_NAMESPACES=100
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8081
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4
