@@ -413,7 +413,7 @@ jobs:
       # version (without venv)
       - name: "Wait for CLI to be ready"
         run: |
-          [[ "${{ matrix.detached }}" == "false" ]] && ./bin/wait_for_venv.sh
+          [[ "${{ matrix.detached }}" == "false" ]] && ./bin/wait_for_venv.sh || exit 0
         env:
           FAASM_DOCKER: "on"
       - name: "Re-build targets if necessary"
