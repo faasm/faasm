@@ -410,6 +410,8 @@ jobs:
           PLANNER_BUILD_MOUNT: /build/faabric/static
       - name: "Wait for CLI to be ready"
         run: ./bin/wait_for_venv.sh
+        env:
+          FAASM_DOCKER: "on"
       - name: "Re-build targets if necessary"
         run: docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release
       - name: "Re-start the services to pick up new binaries (if necessary)"
