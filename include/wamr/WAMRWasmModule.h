@@ -4,6 +4,8 @@
 #include <wasm/WasmModule.h>
 #include <wasm_runtime_common.h>
 
+#include <setjmp.h>
+
 #define ERROR_BUFFER_SIZE 256
 #define STACK_SIZE_KB 8192
 #define HEAP_SIZE_KB 8192
@@ -12,6 +14,14 @@
 #define WAMR_EXIT_PREFIX "wamr_exit_code_"
 
 namespace wasm {
+
+enum WAMRExceptionTypes
+{
+    NoException = 0,
+    DefaultException = 1,
+    FunctionMigratedException = 2,
+    QueueTimeoutException = 3,
+};
 
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx);
 
@@ -34,6 +44,9 @@ class WAMRWasmModule final
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
     int32_t executeFunction(faabric::Message& msg) override;
+
+    // ----- Exception handling -----
+    void doThrowException(std::exception& e) override;
 
     // ----- Helper functions -----
     void writeStringToWasmMemory(const std::string& strHost, char* strWasm);
@@ -68,9 +81,11 @@ class WAMRWasmModule final
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
 
+    jmp_buf wamrExceptionJmpBuf;
+
     int executeWasmFunction(const std::string& funcName);
 
-    int executeWasmFunctionFromPointer(int wasmFuncPtr);
+    int executeWasmFunctionFromPointer(faabric::Message& msg);
 
     void bindInternal(faabric::Message& msg);
 

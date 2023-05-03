@@ -92,6 +92,11 @@ void WAVMWasmModule::reset(faabric::Message& msg,
     clone(cachedModule, snapshotKey);
 }
 
+void WAVMWasmModule::doThrowException(std::exception& e)
+{
+    throw e;
+}
+
 Runtime::Instance* WAVMWasmModule::getEnvModule()
 {
     instantiateBaseModules();
