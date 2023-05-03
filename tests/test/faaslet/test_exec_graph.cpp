@@ -24,7 +24,7 @@ TEST_CASE_METHOD(
     SECTION("Recording off (default)") { expectedNumNodes = 1; }
 
     sch.callFunction(call);
-    faabric::Message result = sch.getFunctionResult(call.id(), 5000);
+    faabric::Message result = sch.getFunctionResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
     auto execGraph = sch.getFunctionExecGraph(call.id());
@@ -50,7 +50,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     SECTION("Recording off (default)") { expectedNumNodes = 1; }
 
     sch.callFunction(call);
-    faabric::Message result = sch.getFunctionResult(call.id(), 5000);
+    faabric::Message result = sch.getFunctionResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
     auto execGraph = sch.getFunctionExecGraph(call.id());

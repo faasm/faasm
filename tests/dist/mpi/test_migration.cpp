@@ -44,8 +44,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     sch.setThisHostResources(res);
 
     // Check it's successful
-    faabric::Message result =
-      sch.getFunctionResult(msg.id(), functionCallTimeout);
+    faabric::Message result = sch.getFunctionResult(msg, functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Check that we have indeed migrated
@@ -92,8 +91,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result =
-      sch.getFunctionResult(msg.id(), functionCallTimeout);
+    faabric::Message result = sch.getFunctionResult(msg, functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Get the execution graph

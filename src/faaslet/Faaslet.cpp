@@ -119,6 +119,7 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
 
 void Faaslet::reset(faabric::Message& msg)
 {
+    faabric::scheduler::Executor::reset(msg);
     module->reset(msg, localResetSnapshotKey);
 }
 

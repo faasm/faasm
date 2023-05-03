@@ -31,8 +31,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result =
-      sch.getFunctionResult(msg.id(), functionCallTimeout);
+    faabric::Message result = sch.getFunctionResult(msg, functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Check exec graph

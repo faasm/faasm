@@ -32,7 +32,7 @@ TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result = sch.getFunctionResult(msg.id(), 10000);
+    faabric::Message result = sch.getFunctionResult(msg, 10000);
     REQUIRE(result.returnvalue() == 0);
 
     // Check one executor used on this host (always the case for threads)
