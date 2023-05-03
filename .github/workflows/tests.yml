@@ -370,6 +370,10 @@ jobs:
   quick-start:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        detached: [true, false]
     defaults:
       run:
         working-directory: ${{ github.workspace }}
@@ -395,9 +399,13 @@ jobs:
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       # Setup
       - name: "Start docker compose"
-        run: docker compose up -d --scale worker=2 nginx
+        run: |
+          [[ "${{ matrix.detached }}" == "false" ]] && export FAASM_BUILD_MOUNT=/build/faasm FAASM_LOCAL_MOUNT=/usr/local/faasm
+          docker compose up -d --scale worker=2 nginx
         env:
           PLANNER_BUILD_MOUNT: /build/faabric/static
+      - name: "Re-build targets if necessary"
+        run: docker compose run -T faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release
       # This can fail when the container isn't ready, so we want to retry
       - name: "Wait for upload server to be available"
         run: |
