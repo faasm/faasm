@@ -56,8 +56,8 @@ services:
     volumes:
       - ./:${FAASM_CODE_MOUNT}
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
-      - ./dev/faasm-local/wasm/:/usr/local/faasm/wasm
-      - ./dev/faasm-local/object/:/usr/local/faasm/object
+      - ./dev/faasm-local/wasm/:${FAASM_LOCAL_MOUNT}/wasm
+      - ./dev/faasm-local/object/:${FAASM_LOCAL_MOUNT}/object
     environment:
       - LOG_LEVEL=info
       - PLANNER_HOST=planner
