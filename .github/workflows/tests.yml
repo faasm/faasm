@@ -408,6 +408,8 @@ jobs:
           docker compose up -d --scale worker=2 nginx faasm-cli
         env:
           PLANNER_BUILD_MOUNT: /build/faabric/static
+      - name: "Wait for CLI to be ready"
+        run: ./bin/wait_for_venv.sh
       - name: "Re-build targets if necessary"
         run: docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release
       - name: "Re-start the services to pick up new binaries (if necessary)"
