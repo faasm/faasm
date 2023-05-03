@@ -89,11 +89,7 @@ docker compose \
     -d \
     ${CLI_CONTAINER}
 
-until test -f ${VENV_ROOT}/faasm_venv.BUILT
-do
-   echo "Waiting for python virtual environment to be ready..."
-   sleep 3
-done
+FAASM_DOCKER="on" ./bin/wait_for_venv.sh
 
 # Attach to the CLI container
 docker compose \
