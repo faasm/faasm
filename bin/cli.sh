@@ -77,6 +77,8 @@ INNER_SHELL=${SHELL:-"/bin/bash"}
 # This is how we ensure the development mode is on, mounting our local
 # directories into the containers to override what's already there
 export FAASM_BUILD_MOUNT=/build/faasm
+export FAASM_CODE_MOUNT=/usr/local/code/faasm
+export FAASM_CONAN_MOUNT=/root/.conan
 export FAASM_LOCAL_MOUNT=/usr/local/faasm
 
 # Make sure the CLI is running already in the background (avoids creating a new
