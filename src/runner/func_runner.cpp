@@ -84,7 +84,7 @@ int doRunner(int argc, char* argv[])
 
     // Await the result
     const faabric::Message& result =
-      sch.getFunctionResult(msg.id(), conf.globalMessageTimeout);
+      sch.getFunctionResult(msg, conf.globalMessageTimeout);
     if (result.returnvalue() != 0) {
         SPDLOG_ERROR("Execution failed: {}", result.outputdata());
         throw std::runtime_error("Executing function failed");

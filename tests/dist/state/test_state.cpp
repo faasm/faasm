@@ -30,8 +30,7 @@ TEST_CASE_METHOD(DistTestsFixture,
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result =
-      sch.getFunctionResult(msg.id(), functionCallTimeout);
+    faabric::Message result = sch.getFunctionResult(msg, functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Get the estimate (check one dp)

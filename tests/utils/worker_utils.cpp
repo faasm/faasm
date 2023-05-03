@@ -92,7 +92,7 @@ std::string execFunctionWithStringResult(faabric::Message& call)
     sch.callFunction(call);
 
     // This timeout needs to be long enough for slow functions to execute
-    const faabric::Message result = sch.getFunctionResult(call.id(), 20000);
+    const faabric::Message result = sch.getFunctionResult(call, 20000);
     if (result.returnvalue() != 0) {
         SPDLOG_ERROR("Function failed: {}", result.outputdata());
         FAIL();
@@ -147,7 +147,7 @@ void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
             int returnValue = sch.awaitThreadResult(m.id());
             REQUIRE(returnValue == 0);
         } else {
-            faabric::Message result = sch.getFunctionResult(m.id(), 20000);
+            faabric::Message result = sch.getFunctionResult(m, 20000);
             REQUIRE(result.returnvalue() == 0);
         }
     }
@@ -181,7 +181,7 @@ faabric::Message execFuncWithPool(faabric::Message& call,
     // Await the result of the main function
     // NOTE - this timeout will only get hit when things have failed.
     // It also needs to be long enough to let longer tests complete
-    faabric::Message result = sch.getFunctionResult(call.id(), timeout);
+    faabric::Message result = sch.getFunctionResult(call, timeout);
     REQUIRE(result.returnvalue() == 0);
 
     faasmConf.netNsMode = originalNsMode;
@@ -212,7 +212,7 @@ faabric::Message execErrorFunction(faabric::Message& call)
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     sch.callFunction(call);
 
-    faabric::Message result = sch.getFunctionResult(call.id(), 1);
+    faabric::Message result = sch.getFunctionResult(call, 1);
 
     m.shutdown();
 
@@ -282,7 +282,7 @@ void checkCallingFunctionGivesBoolOutput(const std::string& user,
     m.startRunner();
 
     // Check output is true
-    faabric::Message result = sch.getFunctionResult(call.id(), 1);
+    faabric::Message result = sch.getFunctionResult(call, 1);
     REQUIRE(result.returnvalue() == 0);
     std::vector<uint8_t> outputBytes =
       faabric::util::stringToBytes(result.outputdata());
