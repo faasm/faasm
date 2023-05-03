@@ -400,12 +400,18 @@ jobs:
       # Setup
       - name: "Start docker compose"
         run: |
-          [[ "${{ matrix.detached }}" == "false" ]] && export FAASM_BUILD_MOUNT=/build/faasm FAASM_LOCAL_MOUNT=/usr/local/faasm
+          [[ "${{ matrix.detached }}" == "false" ]] && export \
+            FAASM_BUILD_MOUNT=/build/faasm \
+            FAASM_CODE_MOUNT=/usr/local/code/faasm
+            FAASM_CONAN_MOUNT=/root/.conan
+            FAASM_LOCAL_MOUNT=/usr/local/faasm
           docker compose up -d --scale worker=2 nginx
         env:
           PLANNER_BUILD_MOUNT: /build/faabric/static
       - name: "Re-build targets if necessary"
         run: docker compose run -T faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release
+      - name: "Re-start the services to pick up new binaries (if necessary)"
+        run: docker compose restart upload worker
       # This can fail when the container isn't ready, so we want to retry
       - name: "Wait for upload server to be available"
         run: |
