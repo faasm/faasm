@@ -412,7 +412,8 @@ jobs:
       # as then the container's `venv` will be overwritten by the host's code
       # version (without venv)
       - name: "Wait for CLI to be ready"
-        run: [[ "${{ matrix.detached }}" == "false" ]] && ./bin/wait_for_venv.sh
+        run: |
+          [[ "${{ matrix.detached }}" == "false" ]] && ./bin/wait_for_venv.sh
         env:
           FAASM_DOCKER: "on"
       - name: "Re-build targets if necessary"
