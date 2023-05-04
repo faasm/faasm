@@ -380,10 +380,10 @@ jobs:
     env:
       PYTHON_CODEGEN: "on"
     steps:
-      - name: "Check out code"
-        uses: actions/checkout@v3
+      - name: "Checkout code and set conan cache"
+        uses: faasm/conan-cache-action@v1
         with:
-          submodules: true
+          build-type: release
       - name: "Fetch python's CPP submodulle"
         run: git submodule update --init -f third-party/cpp
         working-directory: ${{ github.workspace }}/clients/python
