@@ -447,11 +447,17 @@ jobs:
       - name: "Build echo function and upload in place of hello function"
         run: ./deploy/local/replace_hello_with_echo.sh
       - name: "Invoke cpp function"
-        run: docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_2.log
+        run: |
+          set -o pipefail
+          docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_2.log
       - name: "Check both outputs are different"
         run: (cmp output_1.log output_2.log && exit 1 || exit 0)
       # Print logs and finish
+<<<<<<< HEAD
       - name: "Inconditional docker compose cleanup"
+=======
+      - name: "Unconditional docker compose cleanup"
+>>>>>>> c7ced4e2 (gha: more quick-start fixes)
         run: |
           docker compose logs
           docker compose down
