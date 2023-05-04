@@ -23,12 +23,6 @@ int main(int argc, char* argv[])
     faabric::util::initLogging();
     storage::initFaasmS3();
 
-    // Faabric stuff
-    tests::cleanFaabric();
-
-    // Clear local cache of shared files
-    storage::SharedFiles::clear();
-
     // Set Faaslets as the executors
     std::shared_ptr<faabric::scheduler::ExecutorFactory> fac =
       std::make_shared<faaslet::FaasletFactory>();
