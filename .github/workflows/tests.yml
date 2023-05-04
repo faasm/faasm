@@ -398,6 +398,9 @@ jobs:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       # Setup
+      - name: "Populate the runtime sysroot if non-dettached"
+        run: |
+          [[ "${{ matrix.detached }}" == "false" ]] && ./bin/refresh_local.sh || exit 0
       - name: "Start docker compose"
         run: |
           [[ "${{ matrix.detached }}" == "false" ]] && export \
