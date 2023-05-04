@@ -359,6 +359,9 @@ jobs:
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       - name: "Build tests"
         run: ./deploy/dist-test/build.sh
+      - name: "Get the planner logs"
+        run: |
+          docker compose logs planner
       - name: "Build and upload functions for tests"
         run: ./deploy/dist-test/upload.sh
       - name: "Run tests"
