@@ -16,6 +16,7 @@ DEV_TARGETS = [
     "func_runner",
     "func_sym",
     "local_pool_runner",
+    "planner_server",
     "pool_runner",
     "upload",
     "tests",

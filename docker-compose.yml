@@ -7,6 +7,25 @@ services:
   redis-queue:
     image: faasm.azurecr.io/redis:${FAASM_VERSION}
 
+  planner:
+    image: ${FAABRIC_PLANNER_IMAGE}
+    # Pass the build dir as argument to the entrypoint, so that the binaries
+    # are correctly mounted. In general we prefer to use the binaries built
+    # by faasm (in FAASM_BUILD_MOUNT) but occasionally, e.g. when deploying
+    # a dettached cluster, we need to use the binaries within the docker image.
+    # So we allow overwritting the binary path
+    command: ${PLANNER_BUILD_MOUNT:-${FAASM_BUILD_MOUNT}}/bin
+    # Temporarily, use port 8081 for planner as 8080 is taken up by the worker.
+    # Eventually the planner will be the only entrypoint to invoke functions,
+    # so we will be able to take port 8080 again
+    ports:
+      - "8081:8081"
+    volumes:
+      - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
+    environment:
+      - LOG_LEVEL=info
+      - PLANNER_PORT=8081
+
   minio:
     image: faasm.azurecr.io/minio:${FAASM_VERSION}
     ports:
@@ -31,6 +50,7 @@ services:
     depends_on:
       - redis-queue
       - redis-state
+      - planner
       - minio
     restart: on-failure
     volumes:
@@ -40,6 +60,8 @@ services:
       - ./dev/faasm-local/object/:/usr/local/faasm/object
     environment:
       - LOG_LEVEL=info
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8081
       - PYTHON_CODEGEN=${PYTHON_CODEGEN:-off}
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
@@ -55,6 +77,7 @@ services:
   worker:
     image: ${FAASM_WORKER_IMAGE}
     depends_on:
+      - planner
       - upload
     expose:
       - "8080"
@@ -73,6 +96,8 @@ services:
       - LOG_LEVEL=info
       - NETNS_MODE=off
       - MAX_NET_NAMESPACES=100
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8081
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4
@@ -87,6 +112,7 @@ services:
     volumes:
       - ./deploy/conf/nginx-local.conf:/etc/nginx/nginx.conf:ro
     depends_on:
+      - planner
       - worker
     ports:
       - "8080:8080"
@@ -121,10 +147,13 @@ services:
     depends_on:
       - redis-state
       - redis-queue
+      - planner
       - minio
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
       - INVOKE_HOST=${INVOKE_HOST:-nginx}
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8081
       - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
@@ -167,11 +196,14 @@ services:
     depends_on:
       - redis-queue
       - redis-state
+      - planner
       - minio
       - upload
     environment:
       - LD_LIBRARY_PATH=/usr/local/lib
       - LOG_LEVEL=debug
+      - PLANNER_HOST=planner
+      - PLANNER_PORT=8081
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4

@@ -23,7 +23,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.9.6
+      image: faasm.azurecr.io/cli:0.9.7
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -52,7 +52,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.9.6
+      image: faasm.azurecr.io/cli:0.9.7
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -131,7 +131,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.9.6
+      image: faasm.azurecr.io/cli:0.9.7
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -161,6 +161,8 @@ jobs:
       HOST_TYPE: ci
       LOG_LEVEL: info
       NETNS_MODE: off
+      PLANNER_HOST: planner
+      PLANNER_PORT: 8080
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
       ASAN_OPTIONS: "halt_on_error=1:quarantine_size_mb=16"
@@ -168,24 +170,26 @@ jobs:
       TSAN_OPTIONS: "history_size=0 halt_on_error=1 suppressions=./thread-sanitizer-ignorelist.txt flush_memory_ms=5000"
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=./ub-sanitizer-ignorelist.txt"
     container:
-      image: faasm.azurecr.io/cli:0.9.6
+      image: faasm.azurecr.io/cli:0.9.7
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.9.6
+        image: faasm.azurecr.io/redis:0.9.7
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.9.6
+        image: faasm.azurecr.io/minio:0.9.7
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
+      planner:
+        image: faasm.azurecr.io/planner:0.4.3
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
@@ -254,27 +258,31 @@ jobs:
       HOST_TYPE: ci
       LOG_LEVEL: info
       NETNS_MODE: off
+      PLANNER_HOST: planner
+      PLANNER_PORT: 8080
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm.azurecr.io/cli-sgx-sim:0.9.6
+      image: faasm.azurecr.io/cli-sgx-sim:0.9.7
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.9.6
+        image: faasm.azurecr.io/redis:0.9.7
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.9.6
+        image: faasm.azurecr.io/minio:0.9.7
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
+      planner:
+        image: faasm.azurecr.io/planner:0.4.3
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
@@ -351,6 +359,9 @@ jobs:
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       - name: "Build tests"
         run: ./deploy/dist-test/build.sh
+      - name: "Get the planner logs"
+        run: |
+          docker compose logs planner
       - name: "Build and upload functions for tests"
         run: ./deploy/dist-test/upload.sh
       - name: "Run tests"
@@ -385,6 +396,8 @@ jobs:
       # Setup
       - name: "Start docker compose"
         run: docker compose up -d --scale worker=2 nginx
+        env:
+          PLANNER_BUILD_MOUNT: /build/faabric/static
       # This can fail when the container isn't ready, so we want to retry
       - name: "Wait for upload server to be available"
         run: |
@@ -399,7 +412,11 @@ jobs:
         run: docker compose run -T python ./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello
       # Function invocation
       - name: "Invoke cpp function"
-        run: docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
+        run: |
+          # Make sure we error out if the docker compose command fails. By
+          # default, errors are silenced by the pipe
+          set -o pipefail
+          docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
       - name: "Invoke python hello function"
         run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
       # Re-invocation of same function with different code after flush
@@ -412,7 +429,8 @@ jobs:
       - name: "Check both outputs are different"
         run: (cmp output_1.log output_2.log && exit 1 || exit 0)
       # Print logs and finish
-      - name: "docker compose logs"
-        run: docker compose logs
-      - name: "Stop docker compose"
-        run: docker compose down
+      - name: "Inconditional docker compose cleanup"
+        run: |
+          docker compose logs
+          docker compose down
+        if: always()

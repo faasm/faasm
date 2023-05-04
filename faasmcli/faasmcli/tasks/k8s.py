@@ -211,6 +211,8 @@ def ini_file(ctx, local=False, publicip=None):
         invoke_ip = LOCALHOST_IP
         upload_ip = LOCALHOST_IP
         upload_port = "8002"
+        planner_ip = LOCALHOST_IP
+        planner_port = "8081"
 
         worker_names = list()
         worker_ips = list()
@@ -242,6 +244,17 @@ def ini_file(ctx, local=False, publicip=None):
                     "get",
                     "service",
                     "upload-lb",
+                    "-o 'jsonpath={.spec.ports[0].nodePort}'",
+                ]
+            )
+
+            planner_port = _capture_cmd_output(
+                [
+                    "kubectl",
+                    "-n faasm",
+                    "get",
+                    "service",
+                    "planner-lb",
                     "-o 'jsonpath={.spec.ports[0].nodePort}'",
                 ]
             )
@@ -290,6 +303,26 @@ def ini_file(ctx, local=False, publicip=None):
                 ]
             )
 
+            planner_ip = _capture_cmd_output(
+                [
+                    "kubectl",
+                    "-n faasm",
+                    "get",
+                    "service",
+                    "planner-lb",
+                    "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
+                ]
+            )
+            planner_port = _capture_cmd_output(
+                [
+                    "kubectl",
+                    "-n faasm",
+                    "get",
+                    "service",
+                    "planner-lb",
+                    "-o 'jsonpath={.spec.ports[0].port}'",
+                ]
+            )
         # Get worker pods with the right label
         worker_names, worker_ips = _get_faasm_worker_pods("run=faasm-worker")
 
@@ -306,6 +339,8 @@ def ini_file(ctx, local=False, publicip=None):
         fh.write("invoke_port = {}\n".format(invoke_port))
         fh.write("upload_host = {}\n".format(upload_ip))
         fh.write("upload_port = {}\n".format(upload_port))
+        fh.write("planner_host = {}\n".format(planner_ip))
+        fh.write("planner_port = {}\n".format(planner_port))
         fh.write("worker_names = {}\n".format(",".join(worker_names)))
         fh.write("worker_ips = {}\n".format(",".join(worker_ips)))
 

@@ -15,6 +15,7 @@ inv -r faasmcli/faasmcli dev.cc codegen_func
 inv -r faasmcli/faasmcli dev.cc codegen_shared_obj
 inv -r faasmcli/faasmcli dev.cc dist_tests
 inv -r faasmcli/faasmcli dev.cc dist_test_server
+inv -r faasmcli/faasmcli dev.cc planner_server
 inv -r faasmcli/faasmcli dev.cc upload
 
 popd >> /dev/null
