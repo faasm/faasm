@@ -396,6 +396,8 @@ jobs:
       # Setup
       - name: "Start docker compose"
         run: docker compose up -d --scale worker=2 nginx
+        env:
+          PLANNER_BUILD_MOUNT: /build/faabric/static
       # This can fail when the container isn't ready, so we want to retry
       - name: "Wait for upload server to be available"
         run: |
@@ -410,7 +412,11 @@ jobs:
         run: docker compose run -T python ./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello
       # Function invocation
       - name: "Invoke cpp function"
-        run: docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
+        run: |
+          # Make sure we error out if the docker compose command fails. By
+          # default, errors are silenced by the pipe
+          set -o pipefail
+          docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
       - name: "Invoke python hello function"
         run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
       # Re-invocation of same function with different code after flush
