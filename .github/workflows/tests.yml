@@ -423,7 +423,8 @@ jobs:
       - name: "Check both outputs are different"
         run: (cmp output_1.log output_2.log && exit 1 || exit 0)
       # Print logs and finish
-      - name: "docker compose logs"
-        run: docker compose logs
-      - name: "Stop docker compose"
-        run: docker compose down
+      - name: "Inconditional docker compose cleanup"
+        run: |
+          docker compose logs
+          docker compose down
+        if: always()
