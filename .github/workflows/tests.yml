@@ -371,7 +371,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         detached: [true, false]
     defaults:
