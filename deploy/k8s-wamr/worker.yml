@@ -41,6 +41,10 @@ spec:
               value: "redis-state"
             - name: REDIS_QUEUE_HOST
               value: "redis-queue"
+            - name: PLANNER_HOST
+              value: "planner"
+            - name: PLANNER_PORT
+              value: "8081"
             - name: LOG_LEVEL
               value: "info"
             - name: CAPTURE_STDOUT

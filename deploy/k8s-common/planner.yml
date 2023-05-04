@@ -17,6 +17,8 @@ spec:
       env:
         - name: LOG_LEVEL
           value: "info"
+        - name: PLANNER_PORT
+          value: "8081"
 
 ---
 
