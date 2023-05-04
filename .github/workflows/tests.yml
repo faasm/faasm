@@ -419,7 +419,7 @@ jobs:
       - name: "Re-build targets if necessary"
         run: docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release
       - name: "Re-start the services to pick up new binaries (if necessary)"
-        run: docker compose restart upload worker
+        run: docker compose restart upload worker nginx
       # This can fail when the container isn't ready, so we want to retry
       - name: "Wait for upload server to be available"
         run: |
