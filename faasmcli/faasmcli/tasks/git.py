@@ -14,7 +14,7 @@ VERSIONED_FILES = {
     "faabric": [
         ".env",
         ".github/workflows/tests.yml",
-        "deploy/k8s-common/planner.yml",
+        "./deploy/k8s-common/planner.yml",
     ],
     "cpp": [".env", ".github/workflows/tests.yml"],
     "python": [".env", ".github/workflows/tests.yml"],
@@ -162,7 +162,7 @@ def bump(ctx, ver=None, python=False, cpp=False, faabric=False):
                 r"{}\/planner:".format(ACR_NAME),
                 "FAABRIC_VERSION=",
             ]
-            for f in VERSIONED_FILES["python"]:
+            for f in VERSIONED_FILES["faabric"]:
                 for string in strings_to_check:
                     sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
                         string, old_ver, string, new_ver, f
