@@ -34,5 +34,11 @@ def get_version(project="faasm"):
         new_ver = read_version_from_file(new_ver_file)
         return old_ver, new_ver
 
+    if project == "faabric":
+        old_ver = read_version_from_env_file(env_file, "FAABRIC_VERSION")
+        new_ver_file = join(PROJ_ROOT, "faabric", "VERSION")
+        new_ver = read_version_from_file(new_ver_file)
+        return old_ver, new_ver
+
     print("Unrecognised project name to get version from: {}".format(project))
     raise RuntimeError("Unrecognised project name")
