@@ -16,6 +16,7 @@ spec:
     metadata:
       labels:
         run: faasm-worker
+        role: worker
     spec:
       affinity:
         podAntiAffinity:
@@ -48,6 +49,10 @@ spec:
               value: "redis-state"
             - name: REDIS_QUEUE_HOST
               value: "redis-queue"
+            - name: PLANNER_HOST
+              value: "planner"
+            - name: PLANNER_PORT
+              value: "8081"
             - name: LOG_LEVEL
               value: "info"
             - name: CAPTURE_STDOUT
@@ -79,3 +84,38 @@ spec:
       - name: var-run-aesmd
         hostPath:
           path: /var/run/aesmd
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker
+  namespace: faasm
+spec:
+  ports:
+    # Given that the planner and the worker are in different pods, we need to
+    # list all the ports we use for RPCs. These are the function call port,
+    # the PTP port, and the planner port (all in their sync and async versions).
+    # See faabric/include/faabric/transport/common.h for the full list
+    # Function Call Server
+    - name: function-call-sync
+      port: 8005
+      targetPort: 8005
+    - name: function-call-async
+      port: 8006
+      targetPort: 8006
+    - name: ptp-async
+      port: 8009
+      targetPort: 8009
+    - name: ptp-sync
+      port: 8010
+      targetPort: 8010
+    - name: planner-sync
+      port: 8011
+      targetPort: 8011
+    - name: planner-async
+      port: 8012
+      targetPort: 8012
+  selector:
+    role: worker
