@@ -178,6 +178,7 @@ def _deploy_faasm_services(worker_replicas, wasm_vm):
 
     # Lastly, wait for the load balancers to be assigned ingress IPs
     wait_for_faasm_lb("worker-lb")
+    wait_for_faasm_lb("planner-lb")
     wait_for_faasm_lb("upload-lb")
 
 
