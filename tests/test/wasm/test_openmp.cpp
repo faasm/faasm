@@ -31,8 +31,9 @@ class OpenMPTestFixture
     std::string doOmpTestLocal(const std::string& function)
     {
         faabric::Message msg = faabric::util::messageFactory("omp", function);
+        auto req = faabric::util::batchExecFactory("omp", function, 1);
         faabric::Message result =
-          execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
+          executeWithPool(req, OMP_TEST_TIMEOUT_MS).at(0);
 
         return result.outputdata();
     }
@@ -184,9 +185,10 @@ TEST_CASE_METHOD(OpenMPTestFixture,
 
     // Overload the number of cores
     faabric::Message msg = faabric::util::messageFactory("omp", "mem_stress");
+    auto req = faabric::util::batchExecFactory("omp", "mem_stress", 1);
     msg.set_cmdline(std::to_string(nOmpThreads));
 
-    execFuncWithPool(msg, false, OMP_TEST_TIMEOUT_MS);
+    executeWithPool(req, OMP_TEST_TIMEOUT_MS);
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
@@ -201,9 +203,9 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     res.set_slots(nSlots);
     sch.setThisHostResources(res);
 
-    faabric::Message msg =
-      faabric::util::messageFactory("omp", "nested_parallel");
-    faabric::Message result = execErrorFunction(msg);
+    auto req = faabric::util::batchExecFactory("omp", "nested_parallel", 1);
+    auto& msg = *req->mutable_messages(0);
+    faabric::Message result = executeWithPool(req).at(0);
 
     // Get result
     REQUIRE(result.returnvalue() > 0);

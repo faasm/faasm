@@ -11,7 +11,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "ptr_ptr");
-    execFunction(req);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture,
@@ -19,30 +19,30 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "long_double");
-    execFunction(req);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test sizes", "[faaslet]")
 {
     auto req = setUpContext("demo", "sizes");
-    execFunction(req);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test stack/ heap", "[faaslet]")
 {
     auto req = setUpContext("demo", "stackheap");
-    execFunction(req);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test backtrace", "[faaslet]")
 {
     auto req = setUpContext("demo", "backtrace");
-    execFunction(req);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test varargs", "[faaslet]")
 {
     auto req = setUpContext("demo", "va_arg");
-    execFunction(req);
+    executeWithPool(req);
 }
 }

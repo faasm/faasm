@@ -17,10 +17,9 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     REQUIRE(boost::filesystem::exists(filePath));
 
     auto req = setUpContext("demo", "dynlink");
-    faabric::Message& msg = req->mutable_messages()->at(0);
 
-    SECTION("Single execution") { execFunction(msg); }
+    SECTION("Single execution") { executeWithPool(req); }
 
-    SECTION("Multiple execution") { checkMultipleExecutions(msg, 3); }
+    SECTION("Multiple execution") { executeWithPoolMultipleTimes(req, 3); }
 }
 }

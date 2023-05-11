@@ -177,6 +177,7 @@ static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env,
 
     faabric::Message& call = ExecutorContext::get()->getMsg();
     call.set_outputdata(outBuff, outLen);
+    SPDLOG_WARN("Written output: {}", call.outputdata());
 }
 
 static NativeSymbol ns[] = {

@@ -11,7 +11,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "zygote_check");
-    execFunction(req);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture,
@@ -19,6 +19,6 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "zygote_check");
-    checkMultipleExecutions(req->mutable_messages()->at(0), 4);
+    executeWithPoolMultipleTimes(req, 4);
 }
 }

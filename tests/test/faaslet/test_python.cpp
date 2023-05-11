@@ -1,15 +1,15 @@
-#include "faabric/proto/faabric.pb.h"
+#include <catch2/catch.hpp>
+
 #include "faasm_fixtures.h"
 #include "utils.h"
-#include <catch2/catch.hpp>
+
+#include <faabric/proto/faabric.pb.h>
+#include <faabric/util/config.h>
+#include <faabric/util/func.h>
+#include <storage/FileLoader.h>
 
 #include <boost/algorithm/string.hpp>
 #include <dirent.h>
-
-#include <faabric/util/config.h>
-#include <faabric/util/func.h>
-
-#include <storage/FileLoader.h>
 
 namespace tests {
 
@@ -31,13 +31,14 @@ class PythonFuncTestFixture : public FunctionExecTestFixture
     void checkPythonFunction(const std::string& funcName, bool withPool)
     {
         auto req = setUpPythonContext("python", funcName);
-        faabric::Message& call = req->mutable_messages()->at(0);
 
         if (withPool) {
             // Note - some of the python checks can take a while to run
-            execFuncWithPool(call, false, 10000);
+            executeWithPool(req, 10000);
         } else {
-            execFunction(call);
+            // TODO: do we ever do it without pool, why?
+            // execFunction(call);
+            executeWithPool(req, 10000);
         }
     }
 };
@@ -55,7 +56,7 @@ TEST_CASE_METHOD(PythonFuncTestFixture, "Test python listdir", "[python]")
     call.set_inputdata(wasmDir);
 
     // Execute the function
-    execFunction(call);
+    executeWithPool(req);
     std::string actualOutput = call.outputdata();
 
     // Split the output into a list
@@ -126,7 +127,7 @@ TEST_CASE_METHOD(PythonFuncTestFixture, "Test python echo", "[python]")
     std::string input = "foobar blah blah";
     call.set_inputdata(input);
 
-    std::string result = execFunctionWithStringResult(call);
+    std::string result = executeWithPool(req).at(0).outputdata();
     REQUIRE(result == input);
 }
 
@@ -139,12 +140,11 @@ TEST_CASE_METHOD(PythonFuncTestFixture,
 
     std::string input = "foobar blah blah";
     writeCall.set_inputdata(input);
-    execFunction(writeCall);
+    executeWithPool(writeReq);
 
     // Now run the state read function
     auto readReq = setUpPythonContext("python", "state_test_read");
-    faabric::Message& readCall = readReq->mutable_messages()->at(0);
-    execFunction(readCall);
+    executeWithPool(readReq);
 }
 
 TEST_CASE_METHOD(PythonFuncTestFixture, "Test python chaining", "[python]")

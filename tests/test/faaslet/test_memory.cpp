@@ -9,18 +9,18 @@ namespace tests {
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test memcpy", "[faaslet]")
 {
     auto req = setUpContext("demo", "memcpy");
-    execFunction(req);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test memmove", "[faaslet]")
 {
     auto req = setUpContext("demo", "memmove");
-    execFunction(req);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test calloc", "[faaslet]")
 {
     auto req = setUpContext("demo", "calloc");
-    execFunction(req);
+    executeWithPool(req);
 }
 }

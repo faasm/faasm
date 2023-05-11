@@ -2,41 +2,27 @@
 
 #include <faabric/util/func.h>
 
-#include <faaslet/Faaslet.h>
+#define EXECUTE_POOL_TIMEOUT_MS 1000
 
 namespace tests {
-void execFunction(std::shared_ptr<faabric::BatchExecuteRequest> req,
-                  const std::string& expectedOutput = "");
+// ------
+// Base functions to execute a batch in a runner pool
+// ------
 
-void execFunction(faabric::Message& msg,
-                  const std::string& expectedOutput = "");
+std::vector<faabric::Message> waitForBatchResults(
+  std::shared_ptr<faabric::BatchExecuteRequest> req,
+  int timeoutMs,
+  bool requireSuccess);
 
-void execWamrFunction(faabric::Message& msg,
-                      const std::string& expectedOutput = "");
+std::vector<faabric::Message> executeWithPool(
+  std::shared_ptr<faabric::BatchExecuteRequest> req,
+  int timeoutMs = EXECUTE_POOL_TIMEOUT_MS,
+  bool requireSuccess = true);
 
-std::string execFunctionWithStringResult(faabric::Message& msg);
+void executeWithPoolMultipleTimes(
+  std::shared_ptr<faabric::BatchExecuteRequest> req,
+  int numRepeats);
 
-void execBatchWithPool(std::shared_ptr<faabric::BatchExecuteRequest> req,
-                       int nThreads);
-
-faabric::Message execFuncWithPool(faabric::Message& call,
-                                  bool clean = true,
-                                  int timeout = 1000);
-
-faabric::Message execErrorFunction(faabric::Message& call);
-
-void executeWithWamrPool(const std::string& user,
-                         const std::string& func,
-                         int timeout = 1000);
-
-void execSgxFunction(faabric::Message& call,
-                     const std::string& expectedOutput = "");
-
-void execFuncWithSgxPool(faabric::Message& call, int timeout = 1000);
-
-void checkMultipleExecutions(faabric::Message& msg, int nExecs);
-
-void checkCallingFunctionGivesBoolOutput(const std::string& user,
-                                         const std::string& funcName,
-                                         bool expected);
+bool executeWithPoolGetBooleanResult(
+  std::shared_ptr<faabric::BatchExecuteRequest> req);
 }

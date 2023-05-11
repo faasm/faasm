@@ -8,6 +8,6 @@ namespace tests {
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test time progresses", "[faaslet]")
 {
     auto req = setUpContext("demo", "gettime");
-    execFunction(req->mutable_messages()->at(0));
+    executeWithPool(req);
 }
 }

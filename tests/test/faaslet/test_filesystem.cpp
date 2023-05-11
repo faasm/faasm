@@ -36,9 +36,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                                           "hosts", "passwd", "resolv.conf" };
 
     auto req = setUpContext("demo", "getdents");
-    faabric::Message& msg = req->mutable_messages()->at(0);
 
-    const std::string result = execFunctionWithStringResult(msg);
+    const std::string result = executeWithPool(req).at(0).outputdata();
     std::vector<std::string> actual = splitString(result, ",");
 
     // Check we have a sensible number
@@ -59,64 +58,66 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "listdir");
-    execFunction(req);
+
+    executeWithPool(req);
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test fcntl",
-                 "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fcntl", "[faaslet]")
 {
     auto req = setUpContext("demo", "fcntl");
-    faabric::Message& msg = req->mutable_messages()->at(0);
 
-    SECTION("WAVM") { execFunction(msg); }
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { execWamrFunction(msg); }
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
 {
     auto req = setUpContext("demo", "fread");
-    faabric::Message& msg = req->mutable_messages()->at(0);
 
-    SECTION("WAVM") { execFunction(msg); }
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { execWamrFunction(msg); }
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+    executeWithPool(req);
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test fstat",
-                 "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fstat", "[faaslet]")
 {
     auto req = setUpContext("demo", "fstat");
-    faabric::Message& msg = req->mutable_messages()->at(0);
 
-    SECTION("WAVM") { execFunction(msg); }
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { execWamrFunction(msg); }
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test file operations",
-                 "[faaslet][wamr]")
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "file");
-    faabric::Message& msg = req->mutable_messages()->at(0);
 
-    SECTION("WAVM") { execFunction(msg); }
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { execWamrFunction(msg); }
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test file descriptors",
-                 "[faaslet][wamr]")
+                 "[faaslet]")
 {
     auto req = setUpContext("demo", "filedescriptor");
-    faabric::Message& msg = req->mutable_messages()->at(0);
 
-    SECTION("WAVM") { execFunction(msg); }
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { execWamrFunction(msg); }
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+    executeWithPool(req);
 }
 }

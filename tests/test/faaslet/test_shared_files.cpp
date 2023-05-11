@@ -4,16 +4,14 @@
 #include "fixtures.h"
 #include "utils.h"
 
-#include <storage/FileLoader.h>
-
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
+#include <storage/FileLoader.h>
+#include <wamr/WAMRWasmModule.h>
 
 #include <boost/filesystem.hpp>
-
-#include <wamr/WAMRWasmModule.h>
 
 namespace tests {
 
@@ -45,9 +43,11 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
 
     // Execute the function
     auto req = setUpContext("demo", "shared_file");
-    SECTION("WAVM") { execFunction(req); }
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { execWamrFunction(req->mutable_messages()->at(0)); }
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+    executeWithPool(req);
 
     // Check file has been synced locally
     REQUIRE(boost::filesystem::exists(fullPath));

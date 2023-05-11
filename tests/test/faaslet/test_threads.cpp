@@ -9,7 +9,6 @@
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/testing.h>
-
 #include <wavm/WAVMWasmModule.h>
 
 namespace tests {
@@ -28,7 +27,7 @@ class PthreadTestFixture
         std::shared_ptr<faabric::BatchExecuteRequest> req =
           faabric::util::batchExecFactory("demo", function, 1);
 
-        execBatchWithPool(req, nThreads);
+        executeWithPool(req);
     }
 
   protected:
