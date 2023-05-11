@@ -32,9 +32,9 @@ Upload and invoke a Python function with:
 # Run the Python CLI
 docker compose run python /bin/bash
 
-# Build and upload the Python runtime
-inv func
-inv func.upload
+# Build and upload the Python runtime (CPython cross-compiled to WebAssembly)
+inv cpython.func
+inv cpython.upload
 
 # Upload the hello function
 inv func.uploadpy hello
