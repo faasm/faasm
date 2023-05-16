@@ -1,6 +1,7 @@
 from time import sleep
 import pprint
 
+from base64 import b64encode
 from faasmcli.util.env import PYTHON_USER, PYTHON_FUNC
 from faasmcli.util.http import do_post
 from faasmcli.util.endpoints import get_invoke_host_port
@@ -107,7 +108,7 @@ def invoke_impl(
         msg["sgx"] = sgx
 
     if input:
-        msg["input_data"] = input
+        msg["input_data"] = b64encode(input.encode("utf-8")).decode("utf-8")
 
     if cmdline:
         msg["cmdline"] = cmdline
