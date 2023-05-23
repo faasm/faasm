@@ -31,4 +31,6 @@ class MachineCodeGenerator
 };
 
 MachineCodeGenerator& getMachineCodeGenerator();
+
+MachineCodeGenerator& getMachineCodeGenerator(storage::FileLoader& loaderIn);
 }

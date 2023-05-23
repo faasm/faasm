@@ -20,6 +20,12 @@ MachineCodeGenerator& getMachineCodeGenerator()
     return gen;
 }
 
+MachineCodeGenerator& getMachineCodeGenerator(storage::FileLoader& loaderIn)
+{
+    static thread_local MachineCodeGenerator gen(loaderIn);
+    return gen;
+}
+
 MachineCodeGenerator::MachineCodeGenerator()
   : conf(conf::getFaasmConfig())
   , loader(storage::getFileLoader())
@@ -97,9 +103,14 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg, bool clean)
         SPDLOG_DEBUG(
           "Skipping codegen for {} (WASM VM: {})", funcStr, conf.wasmVm);
         return;
-    } else if (oldHash.empty()) {
+    }
+
+    if (oldHash.empty()) {
         SPDLOG_DEBUG(
           "No old hash found for {} (WASM VM: {})", funcStr, conf.wasmVm);
+    } else if (clean) {
+        SPDLOG_DEBUG(
+          "Generating machine code for {} (WASM VM: {})", funcStr, conf.wasmVm);
     } else {
         SPDLOG_DEBUG(
           "Hashes differ for {} (WASM VM: {})", funcStr, conf.wasmVm);

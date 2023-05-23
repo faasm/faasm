@@ -118,7 +118,7 @@ void UploadServer::handleGet(const http_request& request)
     // Shortcut for ping
     std::string relativeUri = uri::decode(request.relative_uri().path());
     if (relativeUri == "/ping") {
-        SPDLOG_INFO("Responding to ping request");
+        SPDLOG_DEBUG("Responding to ping request");
         http_response response(status_codes::OK);
         response.set_body("PONG");
         setPermissiveHeaders(response);
@@ -324,12 +324,16 @@ void UploadServer::handleFunctionUpload(const http_request& request,
 
     SPDLOG_INFO("Uploading {}", faabric::util::funcToString(msg, false));
 
-    // Do the upload
+    // Upload the WASM bytes using a file loader without cache to make sure we
+    // always use the latest-uploaded WASM. We also want to make sure we use
+    // the same file loader to generate the machine code
     storage::FileLoader& l = storage::getFileLoaderWithoutLocalCache();
     l.uploadFunction(msg);
 
-    codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator();
-    gen.codegenForFunction(msg);
+    codegen::MachineCodeGenerator& gen = codegen::getMachineCodeGenerator(l);
+    // When uploading a function, we always want to re-run the code generation
+    // so we set the clean flag to true
+    gen.codegenForFunction(msg, true);
 
     request.reply(status_codes::OK, "Function upload complete\n");
 }
