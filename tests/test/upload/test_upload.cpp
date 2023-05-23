@@ -222,6 +222,59 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 }
 
 TEST_CASE_METHOD(UploadTestFixture,
+                 "Test uploading function always overwrites",
+                 "[upload]")
+{
+    std::string fileKey = "gamma/delta/function.wasm";
+    std::string objFileKey;
+    std::string objFileHashKey;
+
+    SECTION("WAVM")
+    {
+        objFileKey = "gamma/delta/function.wasm.o";
+        objFileHashKey = "gamma/delta/function.wasm.o.md5";
+    }
+
+/*
+    SECTION("WAMR")
+    {
+        std::string objFileKey = "gamma/delta/function.wasm.aot";
+        std::string objFileHashKey = "gamma/delta/function.wasm.aot.md5";
+    }
+
+// #ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX")
+    {
+        std::string objFileKey = "gamma/delta/function.wasm.aot.sgx";
+        std::string objFileHashKey = "gamma/delta/function.wasm.aot.sgx.md5";
+    }
+// #endif
+*/
+
+    // Ensure environment is clean before running
+    s3.deleteKey(conf.s3Bucket, fileKey);
+    s3.deleteKey(conf.s3Bucket, objFileKey);
+    s3.deleteKey(conf.s3Bucket, objFileHashKey);
+
+    std::string url = fmt::format("/{}/gamma/delta", FUNCTION_URL_PART);
+
+    // First, upload one WASM file under the given path
+    http_request request = createRequest(url, wasmBytesA);
+    checkPut(request, 3);
+    checkS3bytes(conf.s3Bucket, fileKey, wasmBytesA);
+    checkS3bytes(conf.s3Bucket, objFileKey, objBytesA);
+    checkS3bytes(conf.s3Bucket, objFileHashKey, hashBytesA);
+
+    // Second, upload a different WASM file under the same path, and check that
+    // both the WASM file and the machine code have been overwritten
+    request = createRequest(url, wasmBytesB);
+    checkPut(request, 0);
+    checkS3bytes(conf.s3Bucket, fileKey, wasmBytesB);
+    checkS3bytes(conf.s3Bucket, objFileKey, objBytesB);
+    checkS3bytes(conf.s3Bucket, objFileHashKey, hashBytesB);
+}
+
+TEST_CASE_METHOD(UploadTestFixture,
                  "Test upload server invalid requests",
                  "[upload]")
 {
