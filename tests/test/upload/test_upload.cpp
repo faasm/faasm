@@ -228,28 +228,45 @@ TEST_CASE_METHOD(UploadTestFixture,
     std::string fileKey = "gamma/delta/function.wasm";
     std::string objFileKey;
     std::string objFileHashKey;
+    std::vector<uint8_t> actualObjBytesA;
+    std::vector<uint8_t> actualObjBytesB;
+    std::vector<uint8_t> actualHashBytesA;
+    std::vector<uint8_t> actualHashBytesB;
 
     SECTION("WAVM")
     {
+        conf.wasmVm = "wavm";
         objFileKey = "gamma/delta/function.wasm.o";
         objFileHashKey = "gamma/delta/function.wasm.o.md5";
+        actualObjBytesA = objBytesA;
+        actualObjBytesB = objBytesB;
+        actualHashBytesA = hashBytesA;
+        actualHashBytesB = hashBytesB;
     }
 
-/*
     SECTION("WAMR")
     {
-        std::string objFileKey = "gamma/delta/function.wasm.aot";
-        std::string objFileHashKey = "gamma/delta/function.wasm.aot.md5";
+        conf.wasmVm = "wamr";
+        objFileKey = "gamma/delta/function.aot";
+        objFileHashKey = "gamma/delta/function.aot.md5";
+        actualObjBytesA = wamrObjBytesA;
+        actualObjBytesB = wamrObjBytesB;
+        actualHashBytesA = wamrHashBytesA;
+        actualHashBytesB = wamrHashBytesB;
     }
 
-// #ifndef FAASM_SGX_DISABLED_MODE
+#ifndef FAASM_SGX_DISABLED_MODE
     SECTION("SGX")
     {
-        std::string objFileKey = "gamma/delta/function.wasm.aot.sgx";
-        std::string objFileHashKey = "gamma/delta/function.wasm.aot.sgx.md5";
+        conf.wasmVm = "sgx";
+        objFileKey = "gamma/delta/function.aot.sgx";
+        objFileHashKey = "gamma/delta/function.aot.sgx.md5";
+        actualObjBytesA = sgxObjBytesA;
+        actualObjBytesB = sgxObjBytesB;
+        actualHashBytesA = sgxHashBytesA;
+        actualHashBytesB = sgxHashBytesB;
     }
-// #endif
-*/
+#endif
 
     // Ensure environment is clean before running
     s3.deleteKey(conf.s3Bucket, fileKey);
@@ -262,16 +279,16 @@ TEST_CASE_METHOD(UploadTestFixture,
     http_request request = createRequest(url, wasmBytesA);
     checkPut(request, 3);
     checkS3bytes(conf.s3Bucket, fileKey, wasmBytesA);
-    checkS3bytes(conf.s3Bucket, objFileKey, objBytesA);
-    checkS3bytes(conf.s3Bucket, objFileHashKey, hashBytesA);
+    checkS3bytes(conf.s3Bucket, objFileKey, actualObjBytesA);
+    checkS3bytes(conf.s3Bucket, objFileHashKey, actualHashBytesA);
 
     // Second, upload a different WASM file under the same path, and check that
     // both the WASM file and the machine code have been overwritten
     request = createRequest(url, wasmBytesB);
     checkPut(request, 0);
     checkS3bytes(conf.s3Bucket, fileKey, wasmBytesB);
-    checkS3bytes(conf.s3Bucket, objFileKey, objBytesB);
-    checkS3bytes(conf.s3Bucket, objFileHashKey, hashBytesB);
+    checkS3bytes(conf.s3Bucket, objFileKey, actualObjBytesB);
+    checkS3bytes(conf.s3Bucket, objFileHashKey, actualHashBytesB);
 }
 
 TEST_CASE_METHOD(UploadTestFixture,

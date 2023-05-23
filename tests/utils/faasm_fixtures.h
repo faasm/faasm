@@ -146,9 +146,23 @@ class FunctionLoaderTestFixture : public S3TestFixture
 
         objBytesA = loader.loadFunctionObjectFile(msgA);
         objBytesB = loader.loadFunctionObjectFile(msgB);
+        wamrObjBytesA = loader.loadFunctionWamrAotFile(msgA);
+        wamrObjBytesB = loader.loadFunctionWamrAotFile(msgB);
 
         hashBytesA = loader.loadFunctionObjectHash(msgA);
         hashBytesB = loader.loadFunctionObjectHash(msgB);
+        wamrHashBytesA = loader.loadFunctionWamrAotHash(msgA);
+        wamrHashBytesB = loader.loadFunctionWamrAotHash(msgB);
+
+#ifndef FAASM_SGX_DISABLED_MODE
+        std::string oldWasmVm = conf.wasmVm;
+        conf.wasmVm = "sgx";
+        sgxObjBytesA = loader.loadFunctionWamrAotFile(msgA);
+        sgxObjBytesB = loader.loadFunctionWamrAotFile(msgB);
+        sgxHashBytesA = loader.loadFunctionWamrAotHash(msgA);
+        sgxHashBytesB = loader.loadFunctionWamrAotHash(msgB);
+        conf.wasmVm = oldWasmVm;
+#endif
 
         // Use a shared object we know exists
         localSharedObjFile =
@@ -183,8 +197,20 @@ class FunctionLoaderTestFixture : public S3TestFixture
     std::vector<uint8_t> wasmBytesB;
     std::vector<uint8_t> objBytesA;
     std::vector<uint8_t> objBytesB;
+    std::vector<uint8_t> wamrObjBytesA;
+    std::vector<uint8_t> wamrObjBytesB;
+#ifndef FAASM_SGX_DISABLED_MODE
+    std::vector<uint8_t> sgxObjBytesA;
+    std::vector<uint8_t> sgxObjBytesB;
+#endif
     std::vector<uint8_t> hashBytesA;
     std::vector<uint8_t> hashBytesB;
+    std::vector<uint8_t> wamrHashBytesA;
+    std::vector<uint8_t> wamrHashBytesB;
+#ifndef FAASM_SGX_DISABLED_MODE
+    std::vector<uint8_t> sgxHashBytesA;
+    std::vector<uint8_t> sgxHashBytesB;
+#endif
 
     std::string localSharedObjFile;
     std::vector<uint8_t> sharedObjWasm;
