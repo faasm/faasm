@@ -446,10 +446,14 @@ jobs:
         run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
       # Re-invocation of same function with different code after flush
       - name: "Flush workers"
-        run: docker compose run -T cpp ./bin/inv_wrapper.sh func.flush
+        run: |
+          docker compose run -T cpp ./bin/inv_wrapper.sh func.flush
+          # Sleep for a bit after flush to give it time to propagate (flush is
+          # both asynchronous and gossip-based)
+          sleep 10s
       - name: "Build echo function and upload in place of hello function"
         run: ./deploy/local/replace_hello_with_echo.sh
-      - name: "Invoke cpp function"
+      - name: "Invoke same cpp function with different WASM code"
         run: |
           set -o pipefail
           docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_2.log
