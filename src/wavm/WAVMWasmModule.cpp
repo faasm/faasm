@@ -92,8 +92,20 @@ void WAVMWasmModule::reset(faabric::Message& msg,
     clone(cachedModule, snapshotKey);
 }
 
+// To keep API compatibility with WAMR we pass a generic std::exception, so in
+// WAVM we need to re-cast it
 void WAVMWasmModule::doThrowException(std::exception& e)
 {
+    if (dynamic_cast<faabric::util::FunctionMigratedException*>(&e) !=
+        nullptr) {
+        SPDLOG_DEBUG("here!");
+        throw *dynamic_cast<faabric::util::FunctionMigratedException*>(&e);
+    }
+    if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) !=
+        nullptr) {
+        throw *dynamic_cast<faabric::util::QueueTimeoutException*>(&e);
+    }
+
     throw e;
 }
 
