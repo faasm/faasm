@@ -3,6 +3,7 @@ faasm_private_lib(wasm
     WasmExecutionContext.cpp
     WasmModule.cpp
     chaining_util.cpp
+    host_interface_test.cpp
     migration.cpp
 )
 
