@@ -237,7 +237,7 @@ jobs:
           path: /build/faasm/bin
       # Environment set-up
       - name: "Run codegen for the tests"
-        run: ./bin/inv_wrapper.sh codegen.tests --clean
+        run: ./bin/inv_wrapper.sh codegen.tests
       - name: "Clear existing pyc files"
         run: ./bin/inv_wrapper.sh python.clear-runtime-pyc
       # Tests build (Debug required for tests)

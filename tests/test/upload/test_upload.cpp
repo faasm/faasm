@@ -244,7 +244,6 @@ TEST_CASE_METHOD(UploadTestFixture,
         actualHashBytesB = hashBytesB;
     }
 
-    /*
     SECTION("WAMR")
     {
         conf.wasmVm = "wamr";
@@ -255,7 +254,6 @@ TEST_CASE_METHOD(UploadTestFixture,
         actualHashBytesA = wamrHashBytesA;
         actualHashBytesB = wamrHashBytesB;
     }
-    */
 
 #ifndef FAASM_SGX_DISABLED_MODE
     SECTION("SGX")

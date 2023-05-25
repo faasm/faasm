@@ -144,25 +144,29 @@ class FunctionLoaderTestFixture : public S3TestFixture
         msgA.set_inputdata(wasmBytesA.data(), wasmBytesA.size());
         msgB.set_inputdata(wasmBytesB.data(), wasmBytesB.size());
 
+        std::string oldWasmVm = conf.wasmVm;
+
+        // Generate machine code for each different WASM VM
+        conf.wasmVm = "wavm";
         objBytesA = loader.loadFunctionObjectFile(msgA);
         objBytesB = loader.loadFunctionObjectFile(msgB);
-        wamrObjBytesA = loader.loadFunctionWamrAotFile(msgA);
-        wamrObjBytesB = loader.loadFunctionWamrAotFile(msgB);
-
         hashBytesA = loader.loadFunctionObjectHash(msgA);
         hashBytesB = loader.loadFunctionObjectHash(msgB);
+
+        conf.wasmVm = "wamr";
+        wamrObjBytesA = loader.loadFunctionWamrAotFile(msgA);
+        wamrObjBytesB = loader.loadFunctionWamrAotFile(msgB);
         wamrHashBytesA = loader.loadFunctionWamrAotHash(msgA);
         wamrHashBytesB = loader.loadFunctionWamrAotHash(msgB);
 
 #ifndef FAASM_SGX_DISABLED_MODE
-        std::string oldWasmVm = conf.wasmVm;
         conf.wasmVm = "sgx";
         sgxObjBytesA = loader.loadFunctionWamrAotFile(msgA);
         sgxObjBytesB = loader.loadFunctionWamrAotFile(msgB);
         sgxHashBytesA = loader.loadFunctionWamrAotHash(msgA);
         sgxHashBytesB = loader.loadFunctionWamrAotHash(msgB);
-        conf.wasmVm = oldWasmVm;
 #endif
+        conf.wasmVm = oldWasmVm;
 
         // Use a shared object we know exists
         localSharedObjFile =
