@@ -205,7 +205,6 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
                  inputData);
 
     // Work out the function signature from the function pointer
-    // TODO: maybe move to a different function
     AOTModuleInstance* aotModuleInstance =
       reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTTableInstance* tableInstance = aotModuleInstance->tables[0];
@@ -352,6 +351,36 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     SPDLOG_DEBUG("WAMR finished executing {}", funcName);
     return returnValue;
 }
+
+// -----
+// Exception handling
+// -----
+
+void WAMRWasmModule::doThrowException(std::exception& e)
+{
+    // Switch over the different exception types we support. Unfortunately,
+    // the setjmp/longjmp mechanism to catch C++ exceptions only lets us
+    // change the return value of setjmp, but we can't propagate the string
+    // associated to the exception
+    if (dynamic_cast<faabric::util::FunctionMigratedException*>(&e) !=
+        nullptr) {
+        SPDLOG_DEBUG("WAMR caught a FunctionMigratedException");
+        longjmp(wamrExceptionJmpBuf,
+                WAMRExceptionTypes::FunctionMigratedException);
+    } else if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) !=
+        nullptr) {
+        SPDLOG_DEBUG("WAMR caught a QueueTimeoutException");
+        longjmp(wamrExceptionJmpBuf,
+                WAMRExceptionTypes::QueueTimeoutException);
+    } else {
+        SPDLOG_DEBUG("WAMR caught a default (catch-all) exception: {}", e.what());
+        longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::DefaultException);
+    }
+}
+
+// -----
+// Helper functions
+// -----
 
 void WAMRWasmModule::writeStringToWasmMemory(const std::string& strHost,
                                              char* strWasm)

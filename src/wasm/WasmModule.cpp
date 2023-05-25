@@ -833,6 +833,11 @@ void WasmModule::unmapMemory(uint32_t offset, size_t nBytes)
     }
 }
 
+void WasmModule::doThrowException(std::exception& e)
+{
+    throw std::runtime_error("doThrowException not implemented");
+}
+
 uint8_t* WasmModule::wasmPointerToNative(uint32_t wasmPtr)
 {
     throw std::runtime_error("wasmPointerToNative not implemented");
