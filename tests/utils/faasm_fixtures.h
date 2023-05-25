@@ -146,7 +146,7 @@ class FunctionLoaderTestFixture : public S3TestFixture
 
         std::string oldWasmVm = conf.wasmVm;
 
-        // Generate machine code for each different WASM VM
+        // Load the machine code for each different WASM VM
         conf.wasmVm = "wavm";
         objBytesA = loader.loadFunctionObjectFile(msgA);
         objBytesB = loader.loadFunctionObjectFile(msgB);

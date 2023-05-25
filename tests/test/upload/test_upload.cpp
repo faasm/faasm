@@ -282,6 +282,8 @@ TEST_CASE_METHOD(UploadTestFixture,
     checkS3bytes(conf.s3Bucket, objFileKey, actualObjBytesA);
     checkS3bytes(conf.s3Bucket, objFileHashKey, actualHashBytesA);
 
+    SPDLOG_INFO("no error thus far!");
+
     // Second, upload a different WASM file under the same path, and check that
     // both the WASM file and the machine code have been overwritten
     request = createRequest(url, wasmBytesB);
