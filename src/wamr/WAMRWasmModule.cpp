@@ -206,6 +206,12 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
                  wasmFuncPtr,
                  inputData);
 
+    // Get singleton execution environment
+    WASMExecEnv* execEnv = wasm_runtime_get_exec_env_singleton(moduleInstance);
+    if (execEnv == nullptr) {
+        throw std::runtime_error("Failed to create WAMR exec env");
+    }
+
     // Work out the function signature from the function pointer
     AOTModuleInstance* aotModuleInstance =
       reinterpret_cast<AOTModuleInstance*>(moduleInstance);
@@ -255,7 +261,7 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
         }
     }
     std::vector<uint32_t> originalArgv = argv;
-    bool success = executeCatchException(nullptr, wasmFuncPtr, argCount, argv);
+    bool success = executeCatchException(execEnv, nullptr, wasmFuncPtr, argCount, argv);
 
     if (!success) {
         SPDLOG_ERROR("Error executing {}: {}",
@@ -281,6 +287,12 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
     SPDLOG_DEBUG("WAMR executing function from string {}", funcName);
 
+    // Get singleton execution environment
+    WASMExecEnv* execEnv = wasm_runtime_get_exec_env_singleton(moduleInstance);
+    if (execEnv == nullptr) {
+        throw std::runtime_error("Failed to create WAMR exec env");
+    }
+
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
     if (func == nullptr) {
@@ -294,7 +306,7 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     // pass it, therefore we should provide a single integer argv even though
     // it's not actually used
     std::vector<uint32_t> argv = { 0 };
-    bool success = executeCatchException(func, NO_WASM_FUNC_PTR, 0, argv);
+    bool success = executeCatchException(execEnv, func, NO_WASM_FUNC_PTR, 0, argv);
     uint32_t returnValue = argv[0];
 
     if (!success) {
@@ -311,7 +323,8 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 // Low-level method to call a WASM function in WAMR and catch any thrown
 // exceptions. This method is shared both if we call a function by pointer or
 // by name
-bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
+bool WAMRWasmModule::executeCatchException(WASMExecEnv* execEnv,
+                                           WASMFunctionInstanceCommon* func,
                                            int wasmFuncPtr,
                                            int argc,
                                            std::vector<uint32_t>& argv)
@@ -326,11 +339,13 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
           "Incorrect combination of arguments to execute WAMR function");
     }
 
+    /*
     // Get singleton execution environment
     WASMExecEnv* execEnv = wasm_runtime_get_exec_env_singleton(moduleInstance);
     if (execEnv == nullptr) {
         throw std::runtime_error("Failed to create WAMR exec env");
     }
+    */
 
     bool success;
     {

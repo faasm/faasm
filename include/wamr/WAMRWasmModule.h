@@ -87,7 +87,8 @@ class WAMRWasmModule final
 
     int executeWasmFunctionFromPointer(faabric::Message& msg);
 
-    bool executeCatchException(WASMFunctionInstanceCommon* func,
+    bool executeCatchException(WASMExecEnv* execEnv,
+                               WASMFunctionInstanceCommon* func,
                                int wasmFuncPtr,
                                int argc,
                                std::vector<uint32_t>& argv);
