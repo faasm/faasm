@@ -178,7 +178,7 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     int returnValue = 0;
 
     // Run wasm initialisers
-    executeWasmFunction(WASM_CTORS_FUNC_NAME);
+    // executeWasmFunction(WASM_CTORS_FUNC_NAME);
 
     if (msg.funcptr() > 0) {
         // Run the function from the pointer
@@ -327,13 +327,22 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
           "Incorrect combination of arguments to execute WAMR function");
     }
 
+    auto execEnvDtor = [&](WASMExecEnv* execEnv) {
+        if (execEnv != nullptr) {
+            wasm_runtime_destroy_exec_env(execEnv);
+        }
+        wasm_runtime_set_exec_env_tls(nullptr);
+    };
+
     // Create an execution environment
-    std::unique_ptr<WASMExecEnv, decltype(&wasm_exec_env_destroy)> execEnv(
-      wasm_exec_env_create(moduleInstance, STACK_SIZE_KB),
-      &wasm_exec_env_destroy);
+    std::unique_ptr<WASMExecEnv, decltype(execEnvDtor)> execEnv(
+      wasm_exec_env_create(moduleInstance, STACK_SIZE_KB), execEnvDtor);
     if (execEnv == nullptr) {
         throw std::runtime_error("Error creating execution environment");
     }
+
+    // Set thread handle and stack boundary (required by WAMR)
+    wasm_exec_env_set_thread_info(execEnv.get());
 
     bool success;
     {
