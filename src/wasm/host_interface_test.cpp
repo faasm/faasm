@@ -11,6 +11,10 @@ void doHostInterfaceTest(int testNum)
               faabric::util::FunctionMigratedException("Migrating MPI rank");
             getExecutingModule()->doThrowException(ex);
         }
+        default: {
+            SPDLOG_ERROR("Unrecognised host interface test: {}", testNum);
+            throw std::runtime_error("Unrecognised host interface test!");
+        }
     }
 }
 }
