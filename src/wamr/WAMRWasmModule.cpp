@@ -177,9 +177,6 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     WasmExecutionContext ctx(this);
     int returnValue = 0;
 
-    // Run wasm initialisers
-    // executeWasmFunction(WASM_CTORS_FUNC_NAME);
-
     if (msg.funcptr() > 0) {
         // Run the function from the pointer
         returnValue = executeWasmFunctionFromPointer(msg);
