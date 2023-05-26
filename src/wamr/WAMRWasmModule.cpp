@@ -396,12 +396,17 @@ void WAMRWasmModule::doThrowException(std::exception& e)
     // associated to the exception
     if (dynamic_cast<faabric::util::FunctionMigratedException*>(&e) !=
         nullptr) {
+        // Make sure to explicitly call the exceptions destructor explicitly
+        // to avoid memory leaks when longjmp-ing
+        e.~exception();
         longjmp(wamrExceptionJmpBuf,
                 WAMRExceptionTypes::FunctionMigratedException);
     } else if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) !=
                nullptr) {
+        e.~exception();
         longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::QueueTimeoutException);
     } else {
+        e.~exception();
         longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::DefaultException);
     }
 }
