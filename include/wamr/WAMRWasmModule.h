@@ -87,6 +87,12 @@ class WAMRWasmModule final
 
     int executeWasmFunctionFromPointer(faabric::Message& msg);
 
+    bool executeCatchException(wasm_exec_env_t execEnv,
+                               WASMFunctionInstanceCommon* func,
+                               int wasmFuncPtr,
+                               int argc,
+                               std::vector<uint32_t>& argv);
+
     void bindInternal(faabric::Message& msg);
 
     bool doGrowMemory(uint32_t pageChange) override;

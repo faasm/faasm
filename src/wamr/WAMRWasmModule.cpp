@@ -20,6 +20,8 @@
 #include <wasm_exec_env.h>
 #include <wasm_export.h>
 
+#define NO_WASM_FUNC_PTR -1
+
 namespace wasm {
 // The high level API for WAMR can be found here:
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/include/wasm_export.h
@@ -309,6 +311,38 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     // pass it, therefore we should provide a single integer argv even though
     // it's not actually used
     std::vector<uint32_t> argv = { 0 };
+    bool success = executeCatchException(execEnv, func, NO_WASM_FUNC_PTR, 0, argv);
+    uint32_t returnValue = argv[0];
+
+    if (!success) {
+        SPDLOG_ERROR("Error executing {}: {}",
+                     funcName,
+                     wasm_runtime_get_exception(moduleInstance));
+        throw std::runtime_error("Error executing WASM function with WAMR");
+    }
+
+    SPDLOG_DEBUG("WAMR finished executing {}", funcName);
+    return returnValue;
+}
+
+// Low-level method to call a WASM function in WAMR and catch any thrown
+// exceptions. This method is shared both if we call a function by pointer or
+// by name
+bool WAMRWasmModule::executeCatchException(wasm_exec_env_t execEnv,
+                                           WASMFunctionInstanceCommon* func,
+                                           int wasmFuncPtr,
+                                           int argc,
+                                           std::vector<uint32_t>& argv)
+{
+    bool isIndirect;
+    if (wasmFuncPtr == NO_WASM_FUNC_PTR && func != nullptr)  {
+        isIndirect = false;
+    } else if (wasmFuncPtr != NO_WASM_FUNC_PTR && func == nullptr) {
+        isIndirect = true;
+    } else {
+        throw std::runtime_error("Incorrect combination of arguments to execute WAMR function");
+    }
+
     bool success;
     {
         // This switch statement is used to catch exceptions thrown by native
@@ -317,7 +351,11 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
         // thus we implement our custom handler
         switch (setjmp(wamrExceptionJmpBuf)) {
             case 0: {
-                success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
+                if (isIndirect) {
+                    success = wasm_runtime_call_indirect(execEnv, wasmFuncPtr, argc, argv.data());
+                } else {
+                    success = wasm_runtime_call_wasm(execEnv, func, argc, argv.data());
+                }
                 break;
             }
             // Make sure that we throw an exception if setjmp is called from
@@ -339,17 +377,8 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
             }
         }
     }
-    uint32_t returnValue = argv[0];
 
-    if (!success) {
-        SPDLOG_ERROR("Error executing {}: {}",
-                     funcName,
-                     wasm_runtime_get_exception(moduleInstance));
-        throw std::runtime_error("Error executing WASM function with WAMR");
-    }
-
-    SPDLOG_DEBUG("WAMR finished executing {}", funcName);
-    return returnValue;
+    return success;
 }
 
 // -----
@@ -364,16 +393,13 @@ void WAMRWasmModule::doThrowException(std::exception& e)
     // associated to the exception
     if (dynamic_cast<faabric::util::FunctionMigratedException*>(&e) !=
         nullptr) {
-        SPDLOG_DEBUG("WAMR caught a FunctionMigratedException");
         longjmp(wamrExceptionJmpBuf,
                 WAMRExceptionTypes::FunctionMigratedException);
     } else if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) !=
         nullptr) {
-        SPDLOG_DEBUG("WAMR caught a QueueTimeoutException");
         longjmp(wamrExceptionJmpBuf,
                 WAMRExceptionTypes::QueueTimeoutException);
     } else {
-        SPDLOG_DEBUG("WAMR caught a default (catch-all) exception: {}", e.what());
         longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::DefaultException);
     }
 }
