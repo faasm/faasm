@@ -18,8 +18,7 @@ WAVM_DECLARE_INTRINSIC_MODULE(env)
 
 WAVM_DECLARE_INTRINSIC_MODULE(wasi)
 
-std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& wasmBytes,
-                                 const std::string& fileName);
+std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& wasmBytes);
 
 template<class T>
 T unalignedWavmRead(WAVM::Runtime::Memory* memory, WAVM::Uptr offset)

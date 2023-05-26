@@ -8,6 +8,7 @@
 #include <storage/S3Wrapper.h>
 #include <storage/SharedFiles.h>
 #include <wavm/WAVMWasmModule.h>
+#include <wamr/WAMRWasmModule.h>
 
 #include <faabric/util/files.h>
 
@@ -154,8 +155,10 @@ class FunctionLoaderTestFixture : public S3TestFixture
         hashBytesB = loader.loadFunctionObjectHash(msgB);
 
         conf.wasmVm = "wamr";
-        wamrObjBytesA = loader.loadFunctionWamrAotFile(msgA);
-        wamrObjBytesB = loader.loadFunctionWamrAotFile(msgB);
+        // wamrObjBytesA = loader.loadFunctionWamrAotFile(msgA);
+        // wamrObjBytesB = loader.loadFunctionWamrAotFile(msgB);
+        wamrObjBytesA = wasm::wamrCodegen(wasmBytesA, false);
+        wamrObjBytesB = wasm::wamrCodegen(wasmBytesB, false);
         wamrHashBytesA = loader.loadFunctionWamrAotHash(msgA);
         wamrHashBytesB = loader.loadFunctionWamrAotHash(msgB);
 

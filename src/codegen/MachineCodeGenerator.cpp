@@ -54,18 +54,17 @@ std::vector<uint8_t> MachineCodeGenerator::hashBytes(
     return result;
 }
 
-std::vector<uint8_t> MachineCodeGenerator::doCodegen(
-  std::vector<uint8_t>& bytes,
-  const std::string& fileName,
-  bool isSgx)
+std::vector<uint8_t> MachineCodeGenerator::doCodegen(std::vector<uint8_t>& bytes)
 {
     if (conf.wasmVm == "wamr") {
         return wasm::wamrCodegen(bytes, false);
-    } else if (conf.wasmVm == "sgx") {
-        return wasm::wamrCodegen(bytes, true);
-    } else {
-        return wasm::wavmCodegen(bytes, fileName);
     }
+
+    if (conf.wasmVm == "sgx") {
+        return wasm::wamrCodegen(bytes, true);
+    }
+
+    return wasm::wavmCodegen(bytes);
 }
 
 void MachineCodeGenerator::codegenForFunction(faabric::Message& msg, bool clean)
@@ -119,7 +118,7 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg, bool clean)
     // Run the actual codegen
     std::vector<uint8_t> objBytes;
     try {
-        objBytes = doCodegen(bytes, funcStr);
+        objBytes = doCodegen(bytes);
     } catch (std::runtime_error& ex) {
         SPDLOG_ERROR(
           "Codegen failed for {} (WASM VM: {})", funcStr, conf.wasmVm);
@@ -155,7 +154,7 @@ void MachineCodeGenerator::codegenForSharedObject(const std::string& inputPath,
     }
 
     // Run the actual codegen
-    std::vector<uint8_t> objBytes = doCodegen(bytes, inputPath);
+    std::vector<uint8_t> objBytes = doCodegen(bytes);
 
     // Do the upload
     if (conf.wasmVm == "wamr" || conf.wasmVm == "sgx") {
