@@ -237,9 +237,7 @@ jobs:
           path: /build/faasm/bin
       # Environment set-up
       - name: "Run codegen for the tests"
-        run: |
-          ./bin/inv_wrapper.sh codegen.tests
-          WASM_VM=wamr ./bin/inv_wrapper.sh codegen demo hello --clean codegen demo echo --clean
+        run: ./bin/inv_wrapper.sh codegen.tests
       - name: "Clear existing pyc files"
         run: ./bin/inv_wrapper.sh python.clear-runtime-pyc
       # Tests build (Debug required for tests)
@@ -341,9 +339,7 @@ jobs:
         run: ./bin/inv_wrapper.sh dev.tools --build Debug --sgx Simulation --clean
       # Environment set-up
       - name: "Run codegen for the tests"
-        run: |
-          ./bin/inv_wrapper.sh codegen.tests
-          WASM_VM=wamr ./bin/inv_wrapper.sh codegen demo hello --clean codegen demo echo --clean
+        run: ./bin/inv_wrapper.sh codegen.tests
       - name: "Clear existing pyc files"
         run: ./bin/inv_wrapper.sh python.clear-runtime-pyc
       # Test run
