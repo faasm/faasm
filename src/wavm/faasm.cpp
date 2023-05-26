@@ -16,6 +16,7 @@
 #include <faabric/util/state.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/chaining.h>
+#include <wasm/host_interface_test.h>
 #include <wasm/migration.h>
 #include <wavm/WAVMWasmModule.h>
 
@@ -756,5 +757,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     SPDLOG_DEBUG("S - emulatorSetCallStatus {}", success);
     throw std::runtime_error(
       "Should not be calling emulator functions from wasm");
+}
+
+WAVM_DEFINE_INTRINSIC_FUNCTION(env,
+                               "__faasm_host_interface_test",
+                               void,
+                               __faasm_host_interface_test,
+                               I32 testNum)
+{
+    wasm::doHostInterfaceTest(testNum);
 }
 }

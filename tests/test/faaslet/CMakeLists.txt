@@ -3,6 +3,7 @@ set(TEST_FILES ${TEST_FILES}
     ${CMAKE_CURRENT_LIST_DIR}/test_dynamic_linking.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_env.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_errors.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test_exceptions.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_exec_graph.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_filesystem.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test_flushing.cpp

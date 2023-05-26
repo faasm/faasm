@@ -8,6 +8,7 @@
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
+#include <wasm/host_interface_test.h>
 #include <wasm/migration.h>
 
 #include <wasm_export.h>
@@ -70,6 +71,15 @@ static int32_t __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
     faabric::Message& call = ExecutorContext::get()->getMsg();
     std::vector<uint8_t> inputData(BYTES(inBuff), BYTES(inBuff) + inLen);
     return makeChainedCall(call.function(), wasmFuncPtr, nullptr, inputData);
+}
+
+/*
+ * Single entry-point for testing the host interface behaviour
+ */
+static void __faasm_host_interface_test_wrapper(wasm_exec_env_t execEnv,
+                                                int32_t testNum)
+{
+    wasm::doHostInterfaceTest(testNum);
 }
 
 static void __faasm_migrate_point_wrapper(wasm_exec_env_t execEnv,
@@ -139,6 +149,7 @@ static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__faasm_await_call, "(i)i"),
     REG_NATIVE_FUNC(__faasm_chain_name, "($$i)i"),
     REG_NATIVE_FUNC(__faasm_chain_ptr, "(i$i)i"),
+    REG_NATIVE_FUNC(__faasm_host_interface_test, "(i)"),
     REG_NATIVE_FUNC(__faasm_migrate_point, "(i$)"),
     REG_NATIVE_FUNC(__faasm_pull_state, "(*i)"),
     REG_NATIVE_FUNC(__faasm_push_state, "(*)"),

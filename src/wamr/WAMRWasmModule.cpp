@@ -9,6 +9,7 @@
 #include <wasm/WasmModule.h>
 
 #include <cstdint>
+#include <setjmp.h>
 #include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,8 @@
 #include <platform_common.h>
 #include <wasm_exec_env.h>
 #include <wasm_export.h>
+
+#define NO_WASM_FUNC_PTR -1
 
 namespace wasm {
 // The high level API for WAMR can be found here:
@@ -174,12 +177,9 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     WasmExecutionContext ctx(this);
     int returnValue = 0;
 
-    // Run wasm initialisers
-    executeWasmFunction(WASM_CTORS_FUNC_NAME);
-
     if (msg.funcptr() > 0) {
         // Run the function from the pointer
-        returnValue = executeWasmFunctionFromPointer(msg.funcptr());
+        returnValue = executeWasmFunctionFromPointer(msg);
     } else {
         prepareArgcArgv(msg);
 
@@ -193,56 +193,90 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     return returnValue;
 }
 
-int WAMRWasmModule::executeWasmFunctionFromPointer(int wasmFuncPtr)
+int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
 {
+    // WASM function pointers are indices into the module's function table
+    int wasmFuncPtr = msg.funcptr();
+    std::string inputData = msg.inputdata();
+
+    SPDLOG_DEBUG("WAMR executing function from pointer {} (args: {})",
+                 wasmFuncPtr,
+                 inputData);
+
+    // Work out the function signature from the function pointer
+    AOTModuleInstance* aotModuleInstance =
+      reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTTableInstance* tableInstance = aotModuleInstance->tables[0];
+    if (tableInstance == nullptr || wasmFuncPtr >= tableInstance->cur_size) {
+        SPDLOG_ERROR("Error getting WAMR function signature from ptr: {}",
+                     wasmFuncPtr);
+        throw std::runtime_error("Error getting WAMR function signature");
+    }
+    uint32_t funcIdx = tableInstance->elems[wasmFuncPtr];
+    uint32_t funcTypeIdx = aotModuleInstance->func_type_indexes[funcIdx];
+
+    AOTModule* aotModule = reinterpret_cast<AOTModule*>(wasmModule);
+    AOTFuncType* funcType = aotModule->func_types[funcTypeIdx];
+    int argCount = funcType->param_count;
+    int resultCount = funcType->result_count;
+    SPDLOG_DEBUG("WAMR Function pointer has {} arguments and returns {} value",
+                 argCount,
+                 resultCount);
+    bool returnsVoid = resultCount == 0;
+
     // NOTE: WAMR doesn't provide a nice interface for calling functions using
     // function pointers, so we have to call a few more low-level functions to
     // get it to work.
 
-    std::unique_ptr<WASMExecEnv, decltype(&wasm_exec_env_destroy)> execEnv(
-      wasm_exec_env_create(moduleInstance, STACK_SIZE_KB),
-      &wasm_exec_env_destroy);
-    if (execEnv == nullptr) {
-        SPDLOG_ERROR("Failed to create exec env for func ptr {}", wasmFuncPtr);
-        throw std::runtime_error("Failed to create WAMR exec env");
+    std::vector<uint32_t> argv;
+    switch (argCount) {
+        // Even if the function takes no arguments, we need to pass an argv
+        // with at least one element, as WAMR will set the return value in
+        // argv[0]
+        case 0:
+            argv = { 0 };
+            break;
+        // If we are calling with just one argument, we assume its an integer
+        // value. We could switch on the data type of the AOTType*, but we
+        // don't do it just yet
+        case 1:
+            argv = { (uint32_t)std::stoi(inputData) };
+            break;
+        default: {
+            SPDLOG_ERROR("Unrecognised WAMR function pointer signature (args: "
+                         "{}, return: {})",
+                         argCount,
+                         resultCount);
+            throw std::runtime_error(
+              "Unrecognised WAMR function pointer signature");
+        }
     }
+    std::vector<uint32_t> originalArgv = argv;
+    bool success = executeCatchException(nullptr, wasmFuncPtr, argCount, argv);
 
-    // Set thread handle and stack boundary (required by WAMR)
-    wasm_exec_env_set_thread_info(execEnv.get());
-
-    // Call the function pointer
-    // NOTE: for some reason WAMR uses the argv array to pass the function
-    // return value, so we have to provide something big enough
-    std::vector<uint32_t> argv = { 0 };
-    bool success =
-      wasm_runtime_call_indirect(execEnv.get(), wasmFuncPtr, 0, argv.data());
-
-    uint32_t returnValue = argv[0];
-
-    // Handle errors
-    if (!success || returnValue != 0) {
-        std::string errorMessage(
-          ((AOTModuleInstance*)moduleInstance)->cur_exception);
-
-        SPDLOG_ERROR("Failed to execute from function pointer {}: {}",
+    if (!success) {
+        SPDLOG_ERROR("Error executing {}: {}",
                      wasmFuncPtr,
-                     returnValue);
-
-        return returnValue;
+                     wasm_runtime_get_exception(moduleInstance));
+        throw std::runtime_error("Error executing WASM func ptr with WAMR");
     }
 
+    // If we are calling a void function by pointer with some arguments, the
+    // return value will be, precisely, the input arguments (and not 0)
+    uint32_t returnValue;
+    if (returnsVoid) {
+        returnValue = !(argv[0] == originalArgv[0]);
+    } else {
+        returnValue = 0;
+    }
+
+    SPDLOG_DEBUG("WAMR finished executing func ptr {}", wasmFuncPtr);
     return returnValue;
 }
 
 int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
     SPDLOG_DEBUG("WAMR executing function from string {}", funcName);
-
-    WASMExecEnv* execEnv = wasm_runtime_get_exec_env_singleton(moduleInstance);
-    if (execEnv == nullptr) {
-        SPDLOG_ERROR("Failed to create exec env for func {}", funcName);
-        throw std::runtime_error("Failed to create WAMR exec env");
-    }
 
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
@@ -253,11 +287,12 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
                      boundFunction);
         throw std::runtime_error("Did not find named wasm function");
     }
+
     // Note, for some reason WAMR sets the return value in the argv array you
     // pass it, therefore we should provide a single integer argv even though
     // it's not actually used
     std::vector<uint32_t> argv = { 0 };
-    bool success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
+    bool success = executeCatchException(func, NO_WASM_FUNC_PTR, 0, argv);
     uint32_t returnValue = argv[0];
 
     if (!success) {
@@ -270,6 +305,112 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     SPDLOG_DEBUG("WAMR finished executing {}", funcName);
     return returnValue;
 }
+
+// Low-level method to call a WASM function in WAMR and catch any thrown
+// exceptions. This method is shared both if we call a function by pointer or
+// by name
+bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
+                                           int wasmFuncPtr,
+                                           int argc,
+                                           std::vector<uint32_t>& argv)
+{
+    bool isIndirect;
+    if (wasmFuncPtr == NO_WASM_FUNC_PTR && func != nullptr) {
+        isIndirect = false;
+    } else if (wasmFuncPtr != NO_WASM_FUNC_PTR && func == nullptr) {
+        isIndirect = true;
+    } else {
+        throw std::runtime_error(
+          "Incorrect combination of arguments to execute WAMR function");
+    }
+
+    auto execEnvDtor = [&](WASMExecEnv* execEnv) {
+        if (execEnv != nullptr) {
+            wasm_runtime_destroy_exec_env(execEnv);
+        }
+        wasm_runtime_set_exec_env_tls(nullptr);
+    };
+
+    // Create an execution environment
+    std::unique_ptr<WASMExecEnv, decltype(execEnvDtor)> execEnv(
+      wasm_exec_env_create(moduleInstance, STACK_SIZE_KB), execEnvDtor);
+    if (execEnv == nullptr) {
+        throw std::runtime_error("Error creating execution environment");
+    }
+
+    // Set thread handle and stack boundary (required by WAMR)
+    wasm_exec_env_set_thread_info(execEnv.get());
+
+    bool success;
+    {
+        // This switch statement is used to catch exceptions thrown by native
+        // functions (written in C++) called from WASM code executed in WAMR.
+        // Given that WAMR is written in C, exceptions are not propagated, and
+        // thus we implement our custom handler
+        switch (setjmp(wamrExceptionJmpBuf)) {
+            case 0: {
+                if (isIndirect) {
+                    success = wasm_runtime_call_indirect(
+                      execEnv.get(), wasmFuncPtr, argc, argv.data());
+                } else {
+                    success = wasm_runtime_call_wasm(
+                      execEnv.get(), func, argc, argv.data());
+                }
+                break;
+            }
+            // Make sure that we throw an exception if setjmp is called from
+            // a longjmp (and returns a value different than 0) as local
+            // variables in the stack could be corrupted
+            case WAMRExceptionTypes::FunctionMigratedException: {
+                throw faabric::util::FunctionMigratedException(
+                  "Migrating MPI rank");
+            }
+            case WAMRExceptionTypes::QueueTimeoutException: {
+                throw std::runtime_error("Timed-out dequeueing!");
+            }
+            case WAMRExceptionTypes::DefaultException: {
+                throw std::runtime_error("Default WAMR exception");
+            }
+            default: {
+                SPDLOG_ERROR("WAMR exception handler reached unreachable case");
+                throw std::runtime_error("Unreachable WAMR exception handler");
+            }
+        }
+    }
+
+    return success;
+}
+
+// -----
+// Exception handling
+// -----
+
+void WAMRWasmModule::doThrowException(std::exception& e)
+{
+    // Switch over the different exception types we support. Unfortunately,
+    // the setjmp/longjmp mechanism to catch C++ exceptions only lets us
+    // change the return value of setjmp, but we can't propagate the string
+    // associated to the exception
+    if (dynamic_cast<faabric::util::FunctionMigratedException*>(&e) !=
+        nullptr) {
+        // Make sure to explicitly call the exceptions destructor explicitly
+        // to avoid memory leaks when longjmp-ing
+        e.~exception();
+        longjmp(wamrExceptionJmpBuf,
+                WAMRExceptionTypes::FunctionMigratedException);
+    } else if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) !=
+               nullptr) {
+        e.~exception();
+        longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::QueueTimeoutException);
+    } else {
+        e.~exception();
+        longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::DefaultException);
+    }
+}
+
+// -----
+// Helper functions
+// -----
 
 void WAMRWasmModule::writeStringToWasmMemory(const std::string& strHost,
                                              char* strWasm)

@@ -63,6 +63,9 @@ class WAVMWasmModule final
 
     void reset(faabric::Message& msg, const std::string& snapshotKey) override;
 
+    // ----- Exception handling -----
+    void doThrowException(std::exception& e) override;
+
     // ----- Memory management -----
     uint32_t mmapFile(uint32_t fd, size_t length) override;
 
