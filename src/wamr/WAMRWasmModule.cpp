@@ -281,14 +281,6 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 {
     SPDLOG_DEBUG("WAMR executing function from string {}", funcName);
 
-    // Get singleton execution environment
-    /*
-    WASMExecEnv* execEnv = wasm_runtime_get_exec_env_singleton(moduleInstance);
-    if (execEnv == nullptr) {
-        throw std::runtime_error("Failed to create WAMR exec env");
-    }
-    */
-
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
     if (func == nullptr) {
@@ -298,6 +290,7 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
                      boundFunction);
         throw std::runtime_error("Did not find named wasm function");
     }
+
     // Note, for some reason WAMR sets the return value in the argv array you
     // pass it, therefore we should provide a single integer argv even though
     // it's not actually used
@@ -334,7 +327,7 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
           "Incorrect combination of arguments to execute WAMR function");
     }
 
-    // Get singleton execution environment
+    // Create an execution environment
     std::unique_ptr<WASMExecEnv, decltype(&wasm_exec_env_destroy)> execEnv(
       wasm_exec_env_create(moduleInstance, STACK_SIZE_KB),
       &wasm_exec_env_destroy);
@@ -354,8 +347,8 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
                     success = wasm_runtime_call_indirect(
                       execEnv.get(), wasmFuncPtr, argc, argv.data());
                 } else {
-                    success =
-                      wasm_runtime_call_wasm(execEnv.get(), func, argc, argv.data());
+                    success = wasm_runtime_call_wasm(
+                      execEnv.get(), func, argc, argv.data());
                 }
                 break;
             }
