@@ -20,6 +20,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     faabric::scheduler::ExecutorContext::set(nullptr, req, 0);
     faaslet::Faaslet f(msg);
 
-    REQUIRE_THROWS_AS(f.executeTask(0, 0, req), faabric::util::FunctionMigratedException);
+    REQUIRE_THROWS_AS(f.executeTask(0, 0, req),
+                      faabric::util::FunctionMigratedException);
 }
 }

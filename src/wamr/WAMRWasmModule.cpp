@@ -198,7 +198,7 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 
 int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
 {
-     // WASM function pointers are indices into the module's function table
+    // WASM function pointers are indices into the module's function table
     int wasmFuncPtr = msg.funcptr();
     std::string inputData = msg.inputdata();
 
@@ -317,12 +317,13 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
                                            std::vector<uint32_t>& argv)
 {
     bool isIndirect;
-    if (wasmFuncPtr == NO_WASM_FUNC_PTR && func != nullptr)  {
+    if (wasmFuncPtr == NO_WASM_FUNC_PTR && func != nullptr) {
         isIndirect = false;
     } else if (wasmFuncPtr != NO_WASM_FUNC_PTR && func == nullptr) {
         isIndirect = true;
     } else {
-        throw std::runtime_error("Incorrect combination of arguments to execute WAMR function");
+        throw std::runtime_error(
+          "Incorrect combination of arguments to execute WAMR function");
     }
 
     // Get singleton execution environment
@@ -340,9 +341,11 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
         switch (setjmp(wamrExceptionJmpBuf)) {
             case 0: {
                 if (isIndirect) {
-                    success = wasm_runtime_call_indirect(execEnv, wasmFuncPtr, argc, argv.data());
+                    success = wasm_runtime_call_indirect(
+                      execEnv, wasmFuncPtr, argc, argv.data());
                 } else {
-                    success = wasm_runtime_call_wasm(execEnv, func, argc, argv.data());
+                    success =
+                      wasm_runtime_call_wasm(execEnv, func, argc, argv.data());
                 }
                 break;
             }
@@ -384,9 +387,8 @@ void WAMRWasmModule::doThrowException(std::exception& e)
         longjmp(wamrExceptionJmpBuf,
                 WAMRExceptionTypes::FunctionMigratedException);
     } else if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) !=
-        nullptr) {
-        longjmp(wamrExceptionJmpBuf,
-                WAMRExceptionTypes::QueueTimeoutException);
+               nullptr) {
+        longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::QueueTimeoutException);
     } else {
         longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::DefaultException);
     }

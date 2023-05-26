@@ -7,7 +7,8 @@ namespace wasm {
  * runtime all the way to Faasm. With this enum we indicate the test number.
  * Note that, most likely, this header file needs to be duplicated in Faasm (?)
  */
-enum HostInterfaceTest {
+enum HostInterfaceTest
+{
     NoTest = 0,
     ExceptionPropagationTest = 1,
 };

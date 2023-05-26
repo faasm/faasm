@@ -76,7 +76,8 @@ static int32_t __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
 /*
  * Single entry-point for testing the host interface behaviour
  */
-static void __faasm_host_interface_test_wrapper(wasm_exec_env_t execEnv, int32_t testNum)
+static void __faasm_host_interface_test_wrapper(wasm_exec_env_t execEnv,
+                                                int32_t testNum)
 {
     wasm::doHostInterfaceTest(testNum);
 }

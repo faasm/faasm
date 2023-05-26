@@ -101,8 +101,7 @@ void WAVMWasmModule::doThrowException(std::exception& e)
         SPDLOG_DEBUG("here!");
         throw *dynamic_cast<faabric::util::FunctionMigratedException*>(&e);
     }
-    if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) !=
-        nullptr) {
+    if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) != nullptr) {
         throw *dynamic_cast<faabric::util::QueueTimeoutException*>(&e);
     }
 
