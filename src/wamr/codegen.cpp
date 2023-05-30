@@ -11,11 +11,11 @@
 #include <wasm_export.h>
 
 namespace wasm {
-std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx)
+std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
 {
     // WAMR may make modifications to the byte buffer when instantiating a
     // module and generating bytecode. Thus, we take a copy here
-    // std::vector<uint8_t> wasmBytes = wasmBytesIn;
+    std::vector<uint8_t> wasmBytes = wasmBytesIn;
 
     SPDLOG_TRACE("Starting WAMR codegen on {} bytes", wasmBytes.size());
 

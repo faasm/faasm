@@ -23,7 +23,7 @@ enum WAMRExceptionTypes
     QueueTimeoutException = 3,
 };
 
-std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytes, bool isSgx);
+std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx);
 
 class WAMRWasmModule final
   : public WasmModule

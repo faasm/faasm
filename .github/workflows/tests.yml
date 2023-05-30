@@ -245,17 +245,6 @@ jobs:
         run: ./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sanitiser ${{ matrix.sanitiser }}
       - name: "Build only the tests target"
         run: ./bin/inv_wrapper.sh dev.cc tests
-      # Run 1 test
-      # - name: "Run 1 test"
-        # run: |
-          # ./bin/inv_wrapper.sh dev.cc codegen_func
-          # This works sometimes (line below)
-          # ./bin/inv_wrapper.sh codegen.wamr --clean
-          # This does not work (line below)
-          # ./bin/inv_wrapper.sh codegen.tests --clean
-          # This works (line below)
-          # WASM_VM=wamr ./bin/inv_wrapper.sh codegen demo hello --clean codegen demo echo --clean
-      #           /build/faasm/bin/tests "Test uploading function always overwrites"
       # Run tests
       - name: "Run the tests"
         run: /build/faasm/bin/tests

@@ -155,9 +155,7 @@ class FunctionLoaderTestFixture : public S3TestFixture
         hashBytesB = loader.loadFunctionObjectHash(msgB);
 
         conf.wasmVm = "wamr";
-        // wamrObjBytesA = loader.loadFunctionWamrAotFile(msgA);
-        // wamrObjBytesB = loader.loadFunctionWamrAotFile(msgB);
-        // Like the below we got it to work locally
+        // Re-do the codegen to avoid caching problems
         wamrObjBytesA = wasm::wamrCodegen(wasmBytesA, false);
         wamrObjBytesB = wasm::wamrCodegen(wasmBytesB, false);
         wamrHashBytesA = loader.loadFunctionWamrAotHash(msgA);
