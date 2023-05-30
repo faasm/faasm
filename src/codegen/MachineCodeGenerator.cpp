@@ -20,6 +20,12 @@ MachineCodeGenerator& getMachineCodeGenerator()
     return gen;
 }
 
+MachineCodeGenerator& getMachineCodeGenerator(storage::FileLoader& loaderIn)
+{
+    static thread_local MachineCodeGenerator gen(loaderIn);
+    return gen;
+}
+
 MachineCodeGenerator::MachineCodeGenerator()
   : conf(conf::getFaasmConfig())
   , loader(storage::getFileLoader())
@@ -49,17 +55,17 @@ std::vector<uint8_t> MachineCodeGenerator::hashBytes(
 }
 
 std::vector<uint8_t> MachineCodeGenerator::doCodegen(
-  std::vector<uint8_t>& bytes,
-  const std::string& fileName,
-  bool isSgx)
+  std::vector<uint8_t>& bytes)
 {
     if (conf.wasmVm == "wamr") {
         return wasm::wamrCodegen(bytes, false);
-    } else if (conf.wasmVm == "sgx") {
-        return wasm::wamrCodegen(bytes, true);
-    } else {
-        return wasm::wavmCodegen(bytes, fileName);
     }
+
+    if (conf.wasmVm == "sgx") {
+        return wasm::wamrCodegen(bytes, true);
+    }
+
+    return wasm::wavmCodegen(bytes);
 }
 
 void MachineCodeGenerator::codegenForFunction(faabric::Message& msg, bool clean)
@@ -97,9 +103,14 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg, bool clean)
         SPDLOG_DEBUG(
           "Skipping codegen for {} (WASM VM: {})", funcStr, conf.wasmVm);
         return;
-    } else if (oldHash.empty()) {
+    }
+
+    if (oldHash.empty()) {
         SPDLOG_DEBUG(
           "No old hash found for {} (WASM VM: {})", funcStr, conf.wasmVm);
+    } else if (clean) {
+        SPDLOG_DEBUG(
+          "Generating machine code for {} (WASM VM: {})", funcStr, conf.wasmVm);
     } else {
         SPDLOG_DEBUG(
           "Hashes differ for {} (WASM VM: {})", funcStr, conf.wasmVm);
@@ -108,7 +119,7 @@ void MachineCodeGenerator::codegenForFunction(faabric::Message& msg, bool clean)
     // Run the actual codegen
     std::vector<uint8_t> objBytes;
     try {
-        objBytes = doCodegen(bytes, funcStr);
+        objBytes = doCodegen(bytes);
     } catch (std::runtime_error& ex) {
         SPDLOG_ERROR(
           "Codegen failed for {} (WASM VM: {})", funcStr, conf.wasmVm);
@@ -144,7 +155,7 @@ void MachineCodeGenerator::codegenForSharedObject(const std::string& inputPath,
     }
 
     // Run the actual codegen
-    std::vector<uint8_t> objBytes = doCodegen(bytes, inputPath);
+    std::vector<uint8_t> objBytes = doCodegen(bytes);
 
     // Do the upload
     if (conf.wasmVm == "wamr" || conf.wasmVm == "sgx") {

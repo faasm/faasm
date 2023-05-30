@@ -20,6 +20,7 @@ LIB_FAKE_FILES = [
 
 SGX_ALLOWED_FUNCS = [
     ["demo", "hello"],
+    ["demo", "echo"],
     ["demo", "chain_named_a"],
     ["demo", "chain_named_b"],
     ["demo", "chain_named_c"],

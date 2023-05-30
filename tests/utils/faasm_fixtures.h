@@ -7,6 +7,7 @@
 #include <storage/FileLoader.h>
 #include <storage/S3Wrapper.h>
 #include <storage/SharedFiles.h>
+#include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <faabric/util/files.h>
@@ -144,11 +145,30 @@ class FunctionLoaderTestFixture : public S3TestFixture
         msgA.set_inputdata(wasmBytesA.data(), wasmBytesA.size());
         msgB.set_inputdata(wasmBytesB.data(), wasmBytesB.size());
 
+        std::string oldWasmVm = conf.wasmVm;
+
+        // Load the machine code for each different WASM VM
+        conf.wasmVm = "wavm";
         objBytesA = loader.loadFunctionObjectFile(msgA);
         objBytesB = loader.loadFunctionObjectFile(msgB);
-
         hashBytesA = loader.loadFunctionObjectHash(msgA);
         hashBytesB = loader.loadFunctionObjectHash(msgB);
+
+        conf.wasmVm = "wamr";
+        // Re-do the codegen to avoid caching problems
+        wamrObjBytesA = wasm::wamrCodegen(wasmBytesA, false);
+        wamrObjBytesB = wasm::wamrCodegen(wasmBytesB, false);
+        wamrHashBytesA = loader.loadFunctionWamrAotHash(msgA);
+        wamrHashBytesB = loader.loadFunctionWamrAotHash(msgB);
+
+#ifndef FAASM_SGX_DISABLED_MODE
+        conf.wasmVm = "sgx";
+        sgxObjBytesA = loader.loadFunctionWamrAotFile(msgA);
+        sgxObjBytesB = loader.loadFunctionWamrAotFile(msgB);
+        sgxHashBytesA = loader.loadFunctionWamrAotHash(msgA);
+        sgxHashBytesB = loader.loadFunctionWamrAotHash(msgB);
+#endif
+        conf.wasmVm = oldWasmVm;
 
         // Use a shared object we know exists
         localSharedObjFile =
@@ -183,8 +203,20 @@ class FunctionLoaderTestFixture : public S3TestFixture
     std::vector<uint8_t> wasmBytesB;
     std::vector<uint8_t> objBytesA;
     std::vector<uint8_t> objBytesB;
+    std::vector<uint8_t> wamrObjBytesA;
+    std::vector<uint8_t> wamrObjBytesB;
+#ifndef FAASM_SGX_DISABLED_MODE
+    std::vector<uint8_t> sgxObjBytesA;
+    std::vector<uint8_t> sgxObjBytesB;
+#endif
     std::vector<uint8_t> hashBytesA;
     std::vector<uint8_t> hashBytesB;
+    std::vector<uint8_t> wamrHashBytesA;
+    std::vector<uint8_t> wamrHashBytesB;
+#ifndef FAASM_SGX_DISABLED_MODE
+    std::vector<uint8_t> sgxHashBytesA;
+    std::vector<uint8_t> sgxHashBytesB;
+#endif
 
     std::string localSharedObjFile;
     std::vector<uint8_t> sharedObjWasm;

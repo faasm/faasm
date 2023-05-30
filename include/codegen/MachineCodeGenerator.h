@@ -25,10 +25,10 @@ class MachineCodeGenerator
 
     std::vector<uint8_t> hashBytes(const std::vector<uint8_t>& bytes);
 
-    std::vector<uint8_t> doCodegen(std::vector<uint8_t>& bytes,
-                                   const std::string& fileName,
-                                   bool isSgx = false);
+    std::vector<uint8_t> doCodegen(std::vector<uint8_t>& bytes);
 };
 
 MachineCodeGenerator& getMachineCodeGenerator();
+
+MachineCodeGenerator& getMachineCodeGenerator(storage::FileLoader& loaderIn);
 }
