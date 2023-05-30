@@ -54,10 +54,10 @@ services:
       - minio
     restart: on-failure
     volumes:
-      - ./:/usr/local/code/faasm/
+      - ./:${FAASM_CODE_MOUNT}
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
-      - ./dev/faasm-local/wasm/:/usr/local/faasm/wasm
-      - ./dev/faasm-local/object/:/usr/local/faasm/object
+      - ./dev/faasm-local/wasm/:${FAASM_LOCAL_MOUNT}/wasm
+      - ./dev/faasm-local/object/:${FAASM_LOCAL_MOUNT}/object
     environment:
       - LOG_LEVEL=info
       - PLANNER_HOST=planner
@@ -84,7 +84,7 @@ services:
       - "5000"
     privileged: true
     volumes:
-      - ./:/usr/local/code/faasm/
+      - ./:${FAASM_CODE_MOUNT}
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
       - aesmd-socket:/var/run/aesmd
@@ -167,10 +167,10 @@ services:
       - AZ_ATTESTATION_PROVIDER_URL=https://faasmattprov.eus2.attest.azure.net
       - AZDCAP_DEBUG_LOG_LEVEL=info
     volumes:
-      - ./:/usr/local/code/faasm/
+      - ./:${FAASM_CODE_MOUNT}
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
       - ./dev/faasm-local/:${FAASM_LOCAL_MOUNT}
-      - ${CONAN_CACHE_MOUNT_SOURCE}:/root/.conan
+      - ${CONAN_CACHE_MOUNT_SOURCE}:${FAASM_CONAN_MOUNT}
       - aesmd-socket:/var/run/aesmd
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}:/dev/sgx
 

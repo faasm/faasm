@@ -5,6 +5,8 @@ export PROJ_ROOT=${THIS_DIR}/../..
 pushd ${PROJ_ROOT} > /dev/null
 
 export FAASM_BUILD_MOUNT=/build/faasm
+export FAASM_CODE_MOUNT=/usr/local/code/faasm
+export FAASM_CONAN_MOUNT=/root/.conan
 
 RETURN_VAL=0
 

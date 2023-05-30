@@ -77,6 +77,8 @@ INNER_SHELL=${SHELL:-"/bin/bash"}
 # This is how we ensure the development mode is on, mounting our local
 # directories into the containers to override what's already there
 export FAASM_BUILD_MOUNT=/build/faasm
+export FAASM_CODE_MOUNT=/usr/local/code/faasm
+export FAASM_CONAN_MOUNT=/root/.conan
 export FAASM_LOCAL_MOUNT=/usr/local/faasm
 
 # Make sure the CLI is running already in the background (avoids creating a new
@@ -87,11 +89,7 @@ docker compose \
     -d \
     ${CLI_CONTAINER}
 
-until test -f ${VENV_ROOT}/faasm_venv.BUILT
-do
-   echo "Waiting for python virtual environment to be ready..."
-   sleep 3
-done
+FAASM_DOCKER="on" ./bin/wait_for_venv.sh
 
 # Attach to the CLI container
 docker compose \
