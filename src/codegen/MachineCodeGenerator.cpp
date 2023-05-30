@@ -54,7 +54,8 @@ std::vector<uint8_t> MachineCodeGenerator::hashBytes(
     return result;
 }
 
-std::vector<uint8_t> MachineCodeGenerator::doCodegen(std::vector<uint8_t>& bytes)
+std::vector<uint8_t> MachineCodeGenerator::doCodegen(
+  std::vector<uint8_t>& bytes)
 {
     if (conf.wasmVm == "wamr") {
         return wasm::wamrCodegen(bytes, false);

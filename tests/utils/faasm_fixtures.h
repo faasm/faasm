@@ -7,8 +7,8 @@
 #include <storage/FileLoader.h>
 #include <storage/S3Wrapper.h>
 #include <storage/SharedFiles.h>
-#include <wavm/WAVMWasmModule.h>
 #include <wamr/WAMRWasmModule.h>
+#include <wavm/WAVMWasmModule.h>
 
 #include <faabric/util/files.h>
 
