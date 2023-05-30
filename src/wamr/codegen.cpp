@@ -13,7 +13,8 @@
 namespace wasm {
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
 {
-    // TODO: add commnet about why we need to do this
+    // WAMR may make modifications to the byte buffer when instantiating a
+    // module and generating bytecode. Thus, we take a copy here
     std::vector<uint8_t> wasmBytes = wasmBytesIn;
 
     SPDLOG_TRACE("Starting WAMR codegen on {} bytes", wasmBytes.size());
