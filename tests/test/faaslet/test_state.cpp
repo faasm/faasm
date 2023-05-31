@@ -117,7 +117,6 @@ TEST_CASE_METHOD(StateFuncTestFixture, "Test Pi estimate", "[state]")
 
     faabric::Message result = execFuncWithPool(call, true, 10000);
     std::string output = result.outputdata();
-    SPDLOG_INFO("Output: {}", output);
     REQUIRE(faabric::util::startsWith(output, "Pi estimate: 3.1"));
 }
 }

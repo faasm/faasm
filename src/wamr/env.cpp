@@ -100,7 +100,7 @@ static uint32_t wasi_random_get(wasm_exec_env_t exec_env,
                                 void* buf,
                                 uint32_t bufLen)
 {
-    SPDLOG_TRACE("S - random_get");
+    SPDLOG_DEBUG("S - random_get");
 
     getrandom(buf, bufLen, 0);
 

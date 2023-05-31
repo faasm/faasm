@@ -241,7 +241,6 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
         // don't do it just yet
         case 1:
             argv = { (uint32_t)std::stoi(inputData) };
-            SPDLOG_INFO("WAMR argv: {}", std::stoi(msg.inputdata()));
             break;
         default: {
             SPDLOG_ERROR("Unrecognised WAMR function pointer signature (args: "
