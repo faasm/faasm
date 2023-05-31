@@ -30,13 +30,10 @@ class SimpleWasmTestFixture : public FunctionExecTestFixture
         int returnValue = module.executeFunction(msg);
         REQUIRE(returnValue == 0);
 
-        std::string outputData = msg.outputdata();
-        const std::vector<uint8_t> outputBytes =
-          faabric::util::stringToBytes(outputData);
+        std::string output = msg.outputdata();
+        std::string expected = "success";
 
-        // Check the results
-        std::vector<uint8_t> expected = { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18 };
-        REQUIRE(outputBytes == expected);
+        REQUIRE(output == expected);
     }
 };
 

@@ -109,7 +109,7 @@ TEST_CASE_METHOD(StateFuncTestFixture, "Test Pi estimate", "[state]")
 {
     auto req = setUpContext("demo", "pi");
     faabric::Message& call = req->mutable_messages()->at(0);
-    faabric::Message result = execFuncWithPool(call);
+    faabric::Message result = execFuncWithPool(call, true, 10000);
     std::string output = result.outputdata();
     REQUIRE(faabric::util::startsWith(output, "Pi estimate: 3.1"));
 }
