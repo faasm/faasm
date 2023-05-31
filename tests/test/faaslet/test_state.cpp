@@ -109,8 +109,15 @@ TEST_CASE_METHOD(StateFuncTestFixture, "Test Pi estimate", "[state]")
 {
     auto req = setUpContext("demo", "pi");
     faabric::Message& call = req->mutable_messages()->at(0);
+    conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
+
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+
     faabric::Message result = execFuncWithPool(call, true, 10000);
     std::string output = result.outputdata();
+    SPDLOG_INFO("Output: {}", output);
     REQUIRE(faabric::util::startsWith(output, "Pi estimate: 3.1"));
 }
 }
