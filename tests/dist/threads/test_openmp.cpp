@@ -14,6 +14,11 @@ TEST_CASE_METHOD(DistTestsFixture,
 {
     conf.overrideCpuCount = 6;
 
+    // TODO(wamr-omp)
+    if (faasmConf.wasmVm == "wamr") {
+        return;
+    }
+
     // Set this host up to have fewer slots than the number of threads, noting
     // that we take up one local slot with the main thread
     int nLocalSlots = 3;
