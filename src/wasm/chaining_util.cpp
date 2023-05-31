@@ -141,7 +141,7 @@ int spawnChainedThread(const std::string& snapshotKey,
 }
 
 int awaitChainedCallOutput(unsigned int messageId,
-                           uint8_t* buffer,
+                           char* buffer,
                            int bufferLen)
 {
     int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;
@@ -162,14 +162,12 @@ int awaitChainedCallOutput(unsigned int messageId,
         SPDLOG_ERROR("Cannot find output for {}", messageId);
     }
 
-    std::vector<uint8_t> outputData =
-      faabric::util::stringToBytes(result.outputdata());
-    int outputLen =
-      faabric::util::safeCopyToBuffer(outputData, buffer, bufferLen);
+    std::string outputData = result.outputdata();
+    strncpy(buffer, outputData.c_str(), outputData.size());
 
-    if (outputLen < outputData.size()) {
+    if (bufferLen < outputData.size()) {
         SPDLOG_WARN(
-          "Undersized output buffer: {} for {} output", bufferLen, outputLen);
+          "Undersized output buffer: {} for {} output", bufferLen, outputData.size());
     }
 
     return result.returnvalue();

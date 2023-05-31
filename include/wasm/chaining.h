@@ -9,7 +9,7 @@ namespace wasm {
 int awaitChainedCall(unsigned int messageId);
 
 int awaitChainedCallOutput(unsigned int messageId,
-                           uint8_t* buffer,
+                           char* buffer,
                            int bufferLen);
 
 int makeChainedCall(const std::string& functionName,
