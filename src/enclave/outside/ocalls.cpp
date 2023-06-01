@@ -36,8 +36,7 @@ extern "C"
 
     void ocallFaasmWriteOutput(char* output, unsigned int outputSize)
     {
-        ExecutorContext::get()->getMsg().set_outputdata(output,
-                                                        outputSize);
+        ExecutorContext::get()->getMsg().set_outputdata(output, outputSize);
     }
 
     unsigned int ocallFaasmChainName(const char* name,
