@@ -89,6 +89,6 @@ bool executeWithPoolGetBooleanResult(
 
     SPDLOG_WARN("Result: {}", resultMsg.outputdata());
 
-    return resultMsg.outputdata() == "1";
+    return resultMsg.outputdata() == "success";
 }
 }
