@@ -205,7 +205,7 @@ TEST_CASE_METHOD(OpenMPTestFixture,
 
     auto req = faabric::util::batchExecFactory("omp", "nested_parallel", 1);
     auto& msg = *req->mutable_messages(0);
-    faabric::Message result = executeWithPool(req).at(0);
+    faabric::Message result = executeWithPool(req, 1000, false).at(0);
 
     // Get result
     REQUIRE(result.returnvalue() > 0);
