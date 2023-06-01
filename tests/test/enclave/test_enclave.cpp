@@ -14,9 +14,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[sgx]")
 {
     auto req = setUpContext("demo", "hello");
-    faabric::Message& msg = req->mutable_messages()->at(0);
+    conf.wasmVm = "sgx";
 
-    execSgxFunction(msg);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -24,8 +24,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[sgx]")
 {
     auto req = setUpContext("demo", "hello");
-    faabric::Message& msg = req->mutable_messages()->at(0);
+    conf.wasmVm = "sgx";
 
-    execFuncWithSgxPool(msg, 10000);
+    executeWithPool(req, 10000);
 }
 }
