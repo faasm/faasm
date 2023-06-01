@@ -46,7 +46,7 @@ static void __faasm_append_state_wrapper(wasm_exec_env_t execEnv,
     auto* module = getExecutingWAMRModule();
     module->validateNativePointer(dataPtr, dataLen);
 
-    SPDLOG_DEBUG("S - faasm_append_state {}", (char*) keyPtr);
+    SPDLOG_DEBUG("S - faasm_append_state {}", (char*)keyPtr);
 
     auto kv = getStateKV(keyPtr);
     kv->append(dataPtr, dataLen);
@@ -136,7 +136,7 @@ static void __faasm_read_appended_state_wrapper(wasm_exec_env_t execEnv,
     auto* module = getExecutingWAMRModule();
     module->validateNativePointer(bufferPtr, bufferLen);
 
-    SPDLOG_DEBUG("S - faasm_read_appended_state {}", (char*) keyPtr);
+    SPDLOG_DEBUG("S - faasm_read_appended_state {}", (char*)keyPtr);
 
     auto kv = getStateKV(keyPtr, bufferLen);
     kv->getAppended(bufferPtr, bufferLen, numElems);
