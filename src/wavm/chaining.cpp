@@ -40,7 +40,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     SPDLOG_DEBUG(
       "S - await_call_output - {} {} {}", messageId, bufferPtr, bufferLen);
 
-    auto buffer = &Runtime::memoryRef<uint8_t>(
+    auto buffer = &Runtime::memoryRef<char>(
       getExecutingWAVMModule()->defaultMemory, bufferPtr);
 
     return awaitChainedCallOutput(messageId, buffer, bufferLen);

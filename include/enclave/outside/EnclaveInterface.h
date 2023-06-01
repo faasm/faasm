@@ -1,10 +1,8 @@
 #pragma once
 
 #include <enclave/error.h>
-
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
-#include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 
 // Non-faasm SGX includes

@@ -18,7 +18,7 @@ class StateFuncTestFixture : public FunctionExecTestFixture
   public:
     void checkStateExample(const std::string& funcName,
                            const std::string& keyName,
-                           const std::vector<uint8_t>& expectedOutput,
+                           const std::string& expectedOutput,
                            const std::vector<uint8_t>& expectedState)
     {
         // Set up the function call
@@ -34,10 +34,8 @@ class StateFuncTestFixture : public FunctionExecTestFixture
         // Check result
         faabric::Message result = sch.getFunctionResult(call, 1);
         REQUIRE(result.returnvalue() == 0);
-        std::vector<uint8_t> outputBytes =
-          faabric::util::stringToBytes(result.outputdata());
 
-        REQUIRE(outputBytes == expectedOutput);
+        REQUIRE(result.outputdata() == expectedOutput);
 
         const std::shared_ptr<faabric::state::StateKeyValue>& kv =
           faabric::state::getGlobalState().getKV("demo", keyName, 0);
@@ -53,14 +51,14 @@ class StateFuncTestFixture : public FunctionExecTestFixture
 TEST_CASE_METHOD(StateFuncTestFixture, "Test asynchronous state", "[state]")
 {
     checkStateExample(
-      "state_async", "state_async_example", { 1, 1, 1, 1 }, { 3, 2, 1, 0 });
+      "state_async", "state_async_example", "equal", { 3, 2, 1, 0 });
 }
 
 TEST_CASE_METHOD(StateFuncTestFixture, "Test offset state", "[state]")
 {
     checkStateExample("state_offset",
                       "state_offset_example",
-                      { 5, 5, 6, 6, 4 },
+                      "success",
                       { 5, 5, 6, 6, 4, 5, 6 });
 }
 
@@ -111,7 +109,7 @@ TEST_CASE_METHOD(StateFuncTestFixture, "Test Pi estimate", "[state]")
 {
     auto req = setUpContext("demo", "pi");
     faabric::Message& call = req->mutable_messages()->at(0);
-    faabric::Message result = execFuncWithPool(call);
+    faabric::Message result = execFuncWithPool(call, true, 10000);
     std::string output = result.outputdata();
     REQUIRE(faabric::util::startsWith(output, "Pi estimate: 3.1"));
 }

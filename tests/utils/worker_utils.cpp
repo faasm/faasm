@@ -284,18 +284,15 @@ void checkCallingFunctionGivesBoolOutput(const std::string& user,
     // Check output is true
     faabric::Message result = sch.getFunctionResult(call, 1);
     REQUIRE(result.returnvalue() == 0);
-    std::vector<uint8_t> outputBytes =
-      faabric::util::stringToBytes(result.outputdata());
 
-    std::vector<uint8_t> expectedOutput;
-
+    std::string expectedOutput;
     if (expected) {
-        expectedOutput = { 1 };
+        expectedOutput = "success";
     } else {
-        expectedOutput = { 0 };
+        expectedOutput = "failure";
     }
 
-    REQUIRE(outputBytes == expectedOutput);
+    REQUIRE(result.outputdata() == expectedOutput);
 
     m.shutdown();
 }

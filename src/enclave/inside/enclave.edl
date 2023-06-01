@@ -51,7 +51,7 @@ enclave{
         );
 
         void ocallFaasmWriteOutput(
-            [in, size=outputSize]   uint8_t* output,
+            [in, size=outputSize]   char* output,
                                     unsigned int outputSize
         );
 
@@ -71,7 +71,7 @@ enclave{
 
         unsigned int ocallFaasmAwaitCallOutput(
                                     unsigned int callId,
-            [out, size=bufferSize]  uint8_t* buffer,
+            [out, size=bufferSize]  char* buffer,
                                     unsigned int bufferSize
         );
 
