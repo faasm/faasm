@@ -23,7 +23,7 @@ extern "C"
                                                       unsigned int bufferSize);
 
     extern sgx_status_t SGX_CDECL
-    ocallFaasmWriteOutput(uint8_t* output, unsigned int outputSize);
+    ocallFaasmWriteOutput(char* output, unsigned int outputSize);
 
     extern sgx_status_t SGX_CDECL ocallFaasmChainName(unsigned int* returnValue,
                                                       const char* name,
@@ -41,7 +41,7 @@ extern "C"
     extern sgx_status_t SGX_CDECL
     ocallFaasmAwaitCallOutput(unsigned int* returnValue,
                               unsigned int callId,
-                              uint8_t* buffer,
+                              char* buffer,
                               unsigned int bufferSize);
 
     extern sgx_status_t SGX_CDECL ocallSbrk(int32_t* returnValue,

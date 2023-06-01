@@ -15,7 +15,7 @@ static int32_t faasm_read_input_wrapper(wasm_exec_env_t execEnv,
 }
 
 static void faasm_write_output_wrapper(wasm_exec_env_t execEnv,
-                                       uint8_t* output,
+                                       char* output,
                                        unsigned int outputSize)
 {
     sgx_status_t sgxReturnValue;
@@ -66,7 +66,7 @@ static unsigned int faasm_await_call_wrapper(wasm_exec_env_t execEnv,
 
 static unsigned int faasm_await_call_output_wrapper(wasm_exec_env_t execEnv,
                                                     unsigned int callId,
-                                                    uint8_t* buffer,
+                                                    char* buffer,
                                                     unsigned int bufferSize)
 {
     sgx_status_t sgxReturnValue;
@@ -84,7 +84,7 @@ static NativeSymbol ns[] = {
     REG_FAASM_NATIVE_FUNC(faasm_chain_name, "($$i)i"),
     REG_FAASM_NATIVE_FUNC(faasm_chain_ptr, "(*$i)i"),
     REG_FAASM_NATIVE_FUNC(faasm_await_call, "(i)i"),
-    REG_FAASM_NATIVE_FUNC(faasm_await_call_output, "(i)i"),
+    REG_FAASM_NATIVE_FUNC(faasm_await_call_output, "(i$i)i"),
 };
 
 uint32_t getFaasmFunctionsApi(NativeSymbol** nativeSymbols)

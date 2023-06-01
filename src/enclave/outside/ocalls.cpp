@@ -34,9 +34,9 @@ extern "C"
         return 0;
     }
 
-    void ocallFaasmWriteOutput(uint8_t* output, unsigned int outputSize)
+    void ocallFaasmWriteOutput(char* output, unsigned int outputSize)
     {
-        ExecutorContext::get()->getMsg().set_outputdata((void*)output,
+        ExecutorContext::get()->getMsg().set_outputdata(output,
                                                         outputSize);
     }
 
@@ -66,7 +66,7 @@ extern "C"
     }
 
     unsigned int ocallFaasmAwaitCallOutput(unsigned int callId,
-                                           uint8_t* buffer,
+                                           char* buffer,
                                            unsigned int bufferSize)
     {
         return wasm::awaitChainedCallOutput(callId, buffer, bufferSize);
