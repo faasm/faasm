@@ -19,7 +19,7 @@ namespace wasm {
 
 static std::shared_ptr<faabric::state::StateKeyValue> getStateKV(
   int32_t* keyPtr,
-  size_t size)
+  size_t size = 0)
 {
     WAMRWasmModule* module = getExecutingWAMRModule();
     module->validateNativePointer(keyPtr, sizeof(int32_t));
@@ -28,9 +28,28 @@ static std::shared_ptr<faabric::state::StateKeyValue> getStateKV(
     char* key = reinterpret_cast<char*>(keyPtr); // second
 
     faabric::state::State& s = faabric::state::getGlobalState();
-    auto kv = s.getKV(call->user(), key, size);
+    std::shared_ptr<faabric::state::StateKeyValue> kv;
+    if (size > 0) {
+        kv = s.getKV(call->user(), key, size);
+    } else {
+        kv = s.getKV(call->user(), key);
+    }
 
     return kv;
+}
+
+static void __faasm_append_state_wrapper(wasm_exec_env_t execEnv,
+                                         int32_t* keyPtr,
+                                         uint8_t* dataPtr,
+                                         int32_t dataLen)
+{
+    auto* module = getExecutingWAMRModule();
+    module->validateNativePointer(dataPtr, dataLen);
+
+    SPDLOG_DEBUG("S - faasm_append_state {}", (char*)keyPtr);
+
+    auto kv = getStateKV(keyPtr);
+    kv->append(dataPtr, dataLen);
 }
 
 /**
@@ -84,11 +103,11 @@ static void __faasm_host_interface_test_wrapper(wasm_exec_env_t execEnv,
 
 static void __faasm_migrate_point_wrapper(wasm_exec_env_t execEnv,
                                           int32_t wasmFuncPtr,
-                                          std::string funcArg)
+                                          int32_t funcArg)
 {
     SPDLOG_DEBUG("S - faasm_migrate_point {} {}", wasmFuncPtr, funcArg);
 
-    wasm::doMigrationPoint(wasmFuncPtr, funcArg);
+    wasm::doMigrationPoint(wasmFuncPtr, std::to_string(funcArg));
 }
 
 static void __faasm_pull_state_wrapper(wasm_exec_env_t execEnv,
@@ -106,6 +125,21 @@ static void __faasm_push_state_wrapper(wasm_exec_env_t execEnv, int32_t* keyPtr)
     auto kv = getStateKV(keyPtr, 0);
     SPDLOG_DEBUG("S - push_state - {}", kv->key);
     kv->pushFull();
+}
+
+static void __faasm_read_appended_state_wrapper(wasm_exec_env_t execEnv,
+                                                int32_t* keyPtr,
+                                                uint8_t* bufferPtr,
+                                                int32_t bufferLen,
+                                                int32_t numElems)
+{
+    auto* module = getExecutingWAMRModule();
+    module->validateNativePointer(bufferPtr, bufferLen);
+
+    SPDLOG_DEBUG("S - faasm_read_appended_state {}", (char*)keyPtr);
+
+    auto kv = getStateKV(keyPtr, bufferLen);
+    kv->getAppended(bufferPtr, bufferLen, numElems);
 }
 
 /**
@@ -146,13 +180,15 @@ static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env,
 }
 
 static NativeSymbol ns[] = {
+    REG_NATIVE_FUNC(__faasm_append_state, "(**i)"),
     REG_NATIVE_FUNC(__faasm_await_call, "(i)i"),
     REG_NATIVE_FUNC(__faasm_chain_name, "($$i)i"),
     REG_NATIVE_FUNC(__faasm_chain_ptr, "(i$i)i"),
     REG_NATIVE_FUNC(__faasm_host_interface_test, "(i)"),
-    REG_NATIVE_FUNC(__faasm_migrate_point, "(i$)"),
+    REG_NATIVE_FUNC(__faasm_migrate_point, "(ii)"),
     REG_NATIVE_FUNC(__faasm_pull_state, "(*i)"),
     REG_NATIVE_FUNC(__faasm_push_state, "(*)"),
+    REG_NATIVE_FUNC(__faasm_read_appended_state, "(**ii)"),
     REG_NATIVE_FUNC(__faasm_read_input, "($i)i"),
     REG_NATIVE_FUNC(__faasm_write_output, "($i)"),
 };

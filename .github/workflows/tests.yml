@@ -338,8 +338,12 @@ jobs:
   dist-tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        wasm_vm: [wamr, wavm]
     env:
-        CONAN_CACHE_MOUNT_SOURCE: ~/.conan
+      CONAN_CACHE_MOUNT_SOURCE: ~/.conan
+      WASM_VM: ${{ matrix.wasm_vm }}
     steps:
       - name: "Check out code"
         uses: actions/checkout@v3

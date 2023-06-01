@@ -1,6 +1,7 @@
 #include <faabric/mpi/MpiWorldRegistry.h>
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
+#include <wasm/WasmExecutionContext.h>
 #include <wasm/migration.h>
 
 namespace wasm {
@@ -97,8 +98,9 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
             sch.logChainedFunction(*call, msg);
         }
 
-        // Throw an exception to be caught by the executor and terminate
-        throw faabric::util::FunctionMigratedException("Migrating MPI rank");
+        auto ex =
+          faabric::util::FunctionMigratedException("Migrating MPI rank");
+        getExecutingModule()->doThrowException(ex);
     }
 }
 }

@@ -210,6 +210,7 @@ services:
       - CGROUP_MODE=off
       - GLOBAL_MESSAGE_TIMEOUT=120000
       - BOUND_TIMEOUT=60000
+      - WASM_VM=${WASM_VM:-wavm}
     command: ./bin/dist_test_server
     volumes:
       - ./:/usr/local/code/faasm/

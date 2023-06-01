@@ -10,6 +10,11 @@ TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
 {
     conf.overrideCpuCount = 6;
 
+    // TODO(wamr-omp)
+    if (faasmConf.wasmVm == "wamr") {
+        return;
+    }
+
     // Set this host up to ensure the main thread and one child thread execute
     // on this host, but one executes remotely
     int nLocalSlots = 2;
