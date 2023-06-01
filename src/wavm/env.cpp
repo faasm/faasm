@@ -315,7 +315,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I32 bufPtr,
                                I32 bufLen)
 {
-    SPDLOG_DEBUG("S - random_get - {} {}", bufPtr, bufLen);
+    SPDLOG_TRACE("S - random_get - {} {}", bufPtr, bufLen);
 
     auto hostBuf = &Runtime::memoryRef<U8>(
       getExecutingWAVMModule()->defaultMemory, (Uptr)bufPtr);
