@@ -3,6 +3,8 @@
 #include "faasm_fixtures.h"
 #include "utils.h"
 
+#include <codegen/MachineCodeGenerator.h>
+#include <conf/FaasmConfig.h>
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecutorContext.h>
@@ -11,9 +13,7 @@
 #include <faabric/util/func.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/testing.h>
-
-#include <codegen/MachineCodeGenerator.h>
-#include <conf/FaasmConfig.h>
+#include <faaslet/Faaslet.h>
 #include <storage/FileLoader.h>
 #include <storage/SharedFiles.h>
 #include <wavm/IRModuleCache.h>
@@ -50,7 +50,7 @@ class FlushingTestFixture : public FunctionLoaderTestFixture
 
 TEST_CASE_METHOD(FlushingTestFixture,
                  "Test flushing clears shared files",
-                 "[flush]")
+                 "[faaslet]")
 {
     std::string fileName = "flush-test.txt";
     std::vector<uint8_t> fileBytes = { 0, 1, 2, 3 };
@@ -92,7 +92,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
 
 TEST_CASE_METHOD(FlushingTestFixture,
                  "Test flushing clears cached modules",
-                 "[flush]")
+                 "[faaslet]")
 {
     // Note, these have to be executed in a separate thread to fit with the
     // module's isolation expectation
@@ -118,7 +118,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
 
 TEST_CASE_METHOD(FlushingTestFixture,
                  "Test flushing clears IR module cache",
-                 "[flush]")
+                 "[faaslet]")
 {
     // Execute a task
     std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -142,7 +142,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
 
 TEST_CASE_METHOD(FlushingTestFixture,
                  "Test flushing picks up new version of function",
-                 "[flush]")
+                 "[faaslet]")
 {
     faabricConf.boundTimeout = 1000;
 
@@ -172,9 +172,10 @@ TEST_CASE_METHOD(FlushingTestFixture,
     m.startRunner();
 
     // Call the function
-    faabric::Message invokeMsgA = faabric::util::messageFactory("demo", "foo");
+    auto invokeReqA = faabric::util::batchExecFactory("demo", "foo", 1);
+    auto& invokeMsgA = *invokeReqA->mutable_messages(0);
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.callFunction(invokeMsgA);
+    sch.callFunctions(invokeReqA);
 
     // Check the result
     faabric::Message resultA = sch.getFunctionResult(invokeMsgA, 1000);
@@ -188,7 +189,8 @@ TEST_CASE_METHOD(FlushingTestFixture,
     sch.flushLocally();
 
     // Upload the second version and check wasm is as expected
-    faabric::Message invokeMsgB = faabric::util::messageFactory("demo", "foo");
+    auto invokeReqB = faabric::util::batchExecFactory("demo", "foo", 1);
+    auto& invokeMsgB = *invokeReqB->mutable_messages(0);
     loader.uploadFunction(uploadMsgB);
     gen.codegenForFunction(uploadMsgB);
 
@@ -197,7 +199,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
 
     // Invoke for the second time
     invokeMsgB.set_inputdata(inputB);
-    sch.callFunction(invokeMsgB);
+    sch.callFunctions(invokeReqB);
 
     // Check the output has changed to the second function
     faabric::Message resultB = sch.getFunctionResult(invokeMsgB, 1);

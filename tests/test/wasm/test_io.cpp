@@ -12,12 +12,12 @@ namespace tests {
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test printf", "[wasm]")
 {
     auto req = setUpContext("demo", "print");
-    execFunction(req);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test emscripten I/O", "[wasm]")
 {
     auto req = setUpContext("demo", "emscripten_check");
-    execFunction(req);
+    executeWithPool(req);
 }
 }

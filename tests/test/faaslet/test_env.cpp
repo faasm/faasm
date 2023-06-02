@@ -12,11 +12,12 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet][wamr]")
 {
     auto req = setUpContext("demo", "getenv");
-    faabric::Message& msg = req->mutable_messages()->at(0);
 
-    SECTION("WAVM") { execFunction(msg); }
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { execWamrFunction(msg); }
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -24,20 +25,20 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "conf_flags");
-    execFunction(req);
+
+    executeWithPool(req);
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test exit",
-                 "[faaslet][wamr]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test exit", "[faaslet]")
 {
     auto req = setUpContext("demo", "exit");
-    faabric::Message& msg = req->mutable_messages()->at(0);
 
-    SECTION("WAVM") { execFunction(msg); }
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
     // 21/02/2023 - See bytecodealliance/wasm-micro-runtime#1979
     // SECTION("WAMR") { execWamrFunction(msg); }
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -45,7 +46,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "optarg");
-    execFunction(req);
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -53,13 +55,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "sysconf");
-    execFunction(req);
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test uname", "[faaslet]")
 {
     auto req = setUpContext("demo", "uname");
-    execFunction(req);
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -67,7 +71,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "getpwuid");
-    execFunction(req);
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -75,7 +80,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "getcwd");
-    execFunction(req);
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -86,15 +92,17 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     faabric::Message& msg = req->mutable_messages()->at(0);
     msg.set_cmdline("alpha B_eta G$mma d3-lt4");
 
-    SECTION("WAVM") { execFunction(msg); }
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { execWamrFunction(msg); }
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
     /* 04/03/2023 - This test is failing in hardware mode
     #ifndef FAASM_SGX_DISABLED_MODE
         SECTION("SGX") { execSgxFunction(msg); }
     #endif
     */
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -102,6 +110,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "waitpid");
-    execFunction(req);
+
+    executeWithPool(req);
 }
 }

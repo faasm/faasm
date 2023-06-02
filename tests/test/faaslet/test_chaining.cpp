@@ -5,32 +5,28 @@
 
 #include <faabric/util/environment.h>
 
-using namespace faaslet;
-
 namespace tests {
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test function chaining",
+                 "Test function chaining by pointer",
                  "[faaslet]")
 {
     SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
     SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
-    faabric::Message call = faabric::util::messageFactory("demo", "chain");
-    execFuncWithPool(call, true, 5000);
+    auto req = faabric::util::batchExecFactory("demo", "chain", 1);
+    executeWithPool(req, 5000);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test named function chaining",
+                 "Test function chaining by name",
                  "[faaslet]")
 {
     SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
     SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
-    faabric::Message call =
-      faabric::util::messageFactory("demo", "chain_named_a");
-    execFuncWithPool(call, true, 5000);
+    auto req = faabric::util::batchExecFactory("demo", "chain_named_a", 1);
+    executeWithPool(req, 5000);
 }
-
 }

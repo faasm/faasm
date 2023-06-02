@@ -6,7 +6,7 @@
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/util/func.h>
 #include <faabric/util/macros.h>
-
+#include <faaslet/Faaslet.h>
 #include <wavm/WAVMWasmModule.h>
 
 namespace tests {

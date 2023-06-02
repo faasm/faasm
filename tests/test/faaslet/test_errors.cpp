@@ -3,11 +3,6 @@
 #include "faasm_fixtures.h"
 #include "utils.h"
 
-#include <faabric/runner/FaabricMain.h>
-#include <faabric/scheduler/InMemoryMessageQueue.h>
-
-using namespace faaslet;
-
 namespace tests {
 
 class ErrorCheckFixture : public MultiRuntimeFunctionExecTestFixture
@@ -16,8 +11,10 @@ class ErrorCheckFixture : public MultiRuntimeFunctionExecTestFixture
     void checkError(const std::string& funcName, const std::string& expectedMsg)
     {
         auto req = setUpContext("errors", funcName);
-        faabric::Message& call = req->mutable_messages()->at(0);
-        faabric::Message result = execErrorFunction(call);
+        // Let the executor know its fine if the return value is non-zero
+        bool requireSuccess = false;
+        faabric::Message result =
+          executeWithPool(req, EXECUTE_POOL_TIMEOUT_MS, requireSuccess).at(0);
 
         // Get result
         REQUIRE(result.returnvalue() > 0);
@@ -44,7 +41,7 @@ class ErrorCheckFixture : public MultiRuntimeFunctionExecTestFixture
 
 TEST_CASE_METHOD(ErrorCheckFixture,
                  "Test non-zero return code is error",
-                 "[wasm]")
+                 "[faaslet]")
 {
     SECTION("WAVM") { conf.wasmVm = "wavm"; }
 

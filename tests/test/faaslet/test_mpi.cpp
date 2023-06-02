@@ -30,7 +30,8 @@ class MPIFuncTestFixture
         // Note: we don't `set_mpiworldsize` here, so all tests run with the
         // default MPI world size (5). Some tests will fail if we change this.
         faabric::Message msg = faabric::util::messageFactory("mpi", funcName);
-        faabric::Message result = execFuncWithPool(msg, true, 10000);
+        auto req = faabric::util::batchExecFactory("mpi", funcName, 1);
+        faabric::Message result = executeWithPool(req, 10000).at(0);
 
         // Check all other functions were successful
         auto& sch = faabric::scheduler::getScheduler();

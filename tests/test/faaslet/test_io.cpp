@@ -3,12 +3,6 @@
 #include "faasm_fixtures.h"
 #include "utils.h"
 
-#include <faabric/util/config.h>
-
-#include <conf/FaasmConfig.h>
-
-using namespace faaslet;
-
 namespace tests {
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -16,12 +10,14 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet][wamr]")
 {
     auto req = setUpContext("demo", "check_input");
-    faabric::Message& call = req->mutable_messages()->at(0);
+    auto& call = req->mutable_messages()->at(0);
     call.set_inputdata("http://www.foobar.com");
 
-    SECTION("WAVM") { execFunction(call); }
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { execWamrFunction(call); }
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
@@ -33,12 +29,11 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     std::string inputData = "http://www.testinput/foo.com";
     call.set_inputdata(inputData.c_str());
 
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
     SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
     SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
-    const std::string actual = execFunctionWithStringResult(call);
+    const std::string actual = executeWithPool(req).at(0).outputdata();
     REQUIRE(actual == inputData);
 }
 
@@ -77,7 +72,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                    "Normal Faasm output";
     }
 
-    const std::string actual = execFunctionWithStringResult(call);
+    const std::string actual = executeWithPool(req).at(0).outputdata();
     REQUIRE(actual == expected);
 }
 
@@ -86,8 +81,6 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[faaslet]")
 {
     auto req = setUpContext("demo", "stderr");
-    faabric::Message& call = req->mutable_messages()->at(0);
-
     std::string expected;
 
     SECTION("Capture off")
@@ -110,7 +103,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                    "This is for stderr\n\n";
     }
 
-    const std::string actual = execFunctionWithStringResult(call);
+    const std::string actual = executeWithPool(req).at(0).outputdata();
     REQUIRE(actual == expected);
 }
 }

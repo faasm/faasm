@@ -3,14 +3,14 @@
 // Disable catch signal catching to avoid interfering with dirty tracking
 #define CATCH_CONFIG_NO_POSIX_SIGNALS 1
 
+#include <catch2/catch.hpp>
+
 #include "faabric_utils.h"
 #include "utils.h"
 
-#include <catch2/catch.hpp>
-
 #include <faabric/util/crash.h>
 #include <faabric/util/logging.h>
-
+#include <faaslet/Faaslet.h>
 #include <storage/S3Wrapper.h>
 #include <storage/SharedFiles.h>
 

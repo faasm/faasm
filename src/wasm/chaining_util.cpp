@@ -104,42 +104,6 @@ int makeChainedCall(const std::string& functionName,
     return msg.id();
 }
 
-// TODO: is this used?
-int spawnChainedThread(const std::string& snapshotKey,
-                       size_t snapshotSize,
-                       int funcPtr,
-                       int argsPtr)
-{
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-
-    faabric::Message& originalMsg =
-      faabric::scheduler::ExecutorContext::get()->getMsg();
-    faabric::Message call =
-      faabric::util::messageFactory(originalMsg.user(), originalMsg.function());
-    call.set_isasync(true);
-
-    // Propagate app ID
-    call.set_appid(originalMsg.appid());
-
-    // Snapshot details
-    call.set_snapshotkey(snapshotKey);
-
-    // Function pointer and args
-    // NOTE - with a pthread interface we only ever pass the function a single
-    // pointer argument, hence we use the input data here to hold this argument
-    // as a string
-    call.set_funcptr(funcPtr);
-    call.set_inputdata(std::to_string(argsPtr));
-
-    const std::string origStr = faabric::util::funcToString(originalMsg, false);
-    const std::string chainedStr = faabric::util::funcToString(call, false);
-
-    // Schedule the call
-    sch.callFunction(call);
-
-    return call.id();
-}
-
 int awaitChainedCallOutput(unsigned int messageId, char* buffer, int bufferLen)
 {
     int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;

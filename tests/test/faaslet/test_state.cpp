@@ -22,14 +22,15 @@ class StateFuncTestFixture : public FunctionExecTestFixture
                            const std::vector<uint8_t>& expectedState)
     {
         // Set up the function call
-        faabric::Message call = faabric::util::messageFactory("demo", funcName);
+        auto req = faabric::util::batchExecFactory("demo", funcName, 1);
+        auto& call = *req->mutable_messages(0);
 
         auto fac = std::make_shared<faaslet::FaasletFactory>();
         faabric::runner::FaabricMain m(fac);
         m.startRunner();
 
         faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-        sch.callFunction(call);
+        sch.callFunctions(req);
 
         // Check result
         faabric::Message result = sch.getFunctionResult(call, 1);
@@ -65,7 +66,7 @@ TEST_CASE_METHOD(StateFuncTestFixture, "Test offset state", "[state]")
 TEST_CASE_METHOD(StateFuncTestFixture, "Test state size", "[state]")
 {
     auto req = setUpContext("demo", "state_size");
-    execFunction(req);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(StateFuncTestFixture,
@@ -73,10 +74,12 @@ TEST_CASE_METHOD(StateFuncTestFixture,
                  "[state]")
 {
     // Run the function to write
-    checkCallingFunctionGivesBoolOutput("demo", "state_shared_write", true);
+    auto reqWrite = setUpContext("demo", "state_shared_write");
+    REQUIRE(executeWithPoolGetBooleanResult(reqWrite));
 
     // Run the function to read
-    checkCallingFunctionGivesBoolOutput("demo", "state_shared_read", true);
+    auto reqRead = setUpContext("demo", "state_shared_read");
+    REQUIRE(executeWithPoolGetBooleanResult(reqRead));
 }
 
 TEST_CASE_METHOD(StateFuncTestFixture,
@@ -84,31 +87,29 @@ TEST_CASE_METHOD(StateFuncTestFixture,
                  "[state]")
 {
     // Run the function to write
-    checkCallingFunctionGivesBoolOutput(
-      "demo", "state_shared_write_offset", true);
+    auto reqWrite = setUpContext("demo", "state_shared_write_offset");
+    REQUIRE(executeWithPoolGetBooleanResult(reqWrite));
 
     // Run the function to read
-    checkCallingFunctionGivesBoolOutput(
-      "demo", "state_shared_read_offset", true);
+    auto reqRead = setUpContext("demo", "state_shared_read_offset");
+    REQUIRE(executeWithPoolGetBooleanResult(reqRead));
 }
 
 TEST_CASE_METHOD(StateFuncTestFixture, "Test writing file to state", "[state]")
 {
     auto req = setUpContext("demo", "state_file");
-    execFunction(req);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(StateFuncTestFixture, "Test appended state", "[state]")
 {
     auto req = setUpContext("demo", "state_append");
-    faabric::Message& call = req->mutable_messages()->at(0);
-    execFuncWithPool(call);
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(StateFuncTestFixture, "Test Pi estimate", "[state]")
 {
     auto req = setUpContext("demo", "pi");
-    faabric::Message& call = req->mutable_messages()->at(0);
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
     std::string oldWasmVm = faasmConf.wasmVm;
 
@@ -116,7 +117,7 @@ TEST_CASE_METHOD(StateFuncTestFixture, "Test Pi estimate", "[state]")
 
     SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
-    faabric::Message result = execFuncWithPool(call, true, 10000);
+    faabric::Message result = executeWithPool(req, 10000).at(0);
     std::string output = result.outputdata();
     REQUIRE(faabric::util::startsWith(output, "Pi estimate: 3.1"));
 

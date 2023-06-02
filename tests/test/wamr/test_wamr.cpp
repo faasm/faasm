@@ -3,10 +3,10 @@
 #include "faasm_fixtures.h"
 #include "utils.h"
 
+#include <conf/FaasmConfig.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
-
-#include <conf/FaasmConfig.h>
+#include <faaslet/Faaslet.h>
 #include <wamr/WAMRWasmModule.h>
 
 using namespace wasm;

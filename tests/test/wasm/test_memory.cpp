@@ -153,24 +153,26 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test mmap/munmap",
-                 "[faaslet]")
+                 "[wasm]")
 {
+    auto req = setUpContext("demo", "mmap");
+
     SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
     SECTION("WAMR") { conf.wasmVm = "wamr"; }
 
-    checkCallingFunctionGivesBoolOutput("demo", "mmap", true);
+    REQUIRE(executeWithPoolGetBooleanResult(req));
 }
 
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
-                 "Test big mmap",
-                 "[faaslet]")
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test big mmap", "[wasm]")
 {
     auto req = setUpContext("demo", "mmap_big");
 
-    SECTION("WAVM") { execFunction(req); }
+    SECTION("WAVM") { conf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { execWamrFunction(req->mutable_messages()->at(0)); }
+    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+
+    executeWithPool(req);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture,
