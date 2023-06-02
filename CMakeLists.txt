@@ -9,6 +9,7 @@ if (FAASM_STATIC_LIBS)
 endif ()
 
 # Performance functionality
+option(FAASM_CODE_COVERAGE "Build Faasm with code coverage profiling" OFF)
 option(FAASM_SELF_TRACING "Turn on system tracing using the logger" OFF)
 
 # This option customises the SGX features _provided_ SGX is found:
@@ -38,6 +39,10 @@ if (${FAASM_SELF_TRACING})
     add_definitions(-DTRACE_ALL=1)
     set(FAABRIC_SELF_TRACING 1)
 endif ()
+
+if (FAASM_CODE_COVERAGE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
+endif()
 
 # Ensure all targets can generate readable stacktraces
 add_compile_options(-fno-omit-frame-pointer)
