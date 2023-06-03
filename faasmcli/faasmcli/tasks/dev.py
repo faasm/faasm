@@ -82,6 +82,7 @@ def tools(
     parallel=0,
     sanitiser=SANITISER_NONE,
     sgx=FAASM_SGX_MODE_DISABLED,
+    coverage=False,
 ):
     """
     Builds all the targets commonly used for development
@@ -89,7 +90,7 @@ def tools(
     if sgx != FAASM_SGX_MODE_DISABLED and sanitiser != SANITISER_NONE:
         raise RuntimeError("SGX and sanitised builds are incompatible!")
 
-    cmake(ctx, clean=clean, build=build, sanitiser=sanitiser, sgx=sgx)
+    cmake(ctx, clean=clean, build=build, sanitiser=sanitiser, sgx=sgx, coverage=coverage)
 
     targets = " ".join(DEV_TARGETS)
 
