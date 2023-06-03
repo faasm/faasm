@@ -162,7 +162,7 @@ jobs:
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
     container:
-      image: faasm.azurecr.io/cli-sgx-sim:0.9.9
+      image: faasm.azurecr.io/cli:0.9.9
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -228,7 +228,7 @@ jobs:
           path: /build/faasm/bin
       # Code build with coverage
       - name: "Build dev tools with code coverage"
-        run: ./bin/inv_wrapper.sh dev.tools --build Debug --sgx Simulation --clean --coverage
+        run: ./bin/inv_wrapper.sh dev.tools --build Debug --clean --coverage
       # Environment set-up
       - name: "Run codegen for the tests"
         run: ./bin/inv_wrapper.sh codegen.tests
