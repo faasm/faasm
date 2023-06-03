@@ -241,7 +241,7 @@ jobs:
           LLVM_PROFILE_FILE: faasm.profraw
       - name: "Generate code coverage report"
         run: |
-          llvm-profdata-13 merge -sparse faabric.profraw -o faasm.profdata
+          llvm-profdata-13 merge -sparse faasm.profraw -o faasm.profdata
           llvm-cov-13 show /build/faasm/bin/tests -instr-profile=faasm.profdata > coverage.txt
       - name: "Upload coverage report to CodeCov"
         uses: codecov/codecov-action@v3
