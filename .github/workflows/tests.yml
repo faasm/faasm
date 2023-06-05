@@ -157,7 +157,7 @@ jobs:
       HOST_TYPE: ci
       LOG_LEVEL: info
       NETNS_MODE: off
-      PLANNER_HOST: planner
+      PLANNER_HOST: localhost
       PLANNER_PORT: 8080
       REDIS_QUEUE_HOST: redis
       REDIS_STATE_HOST: redis
@@ -276,8 +276,6 @@ jobs:
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
-      planner:
-        image: faasm.azurecr.io/planner:0.4.4
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
