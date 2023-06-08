@@ -1,5 +1,5 @@
 from invoke import task
-from os import listdir
+from os import environ, listdir
 from os.path import join
 from subprocess import run
 from faasmcli.util.env import (
@@ -7,13 +7,20 @@ from faasmcli.util.env import (
     PROJ_ROOT,
 )
 
+# Depending on whether we run the tests on GHA or locally, some env. variables
+# related to service names, or ports, need to change
+IS_CI = "HOST_TYPE" in environ and environ["HOST_TYPE"] == "ci"
+
 TEST_ENV = {
+    # TODO: what do we need to do w/ cgroup?
     "CGROUP_MODE": "on",
+    "LD_LIBRARY_PATH": "/build/faasm/third-party/lib:/usr/local/lib",
     "LOG_LEVEL": "info",
     "NETNS_MODE": "off",
     "PLANNER_HOST": "planner",
-    "REDIS_QUEUE_HOST": "redis",
-    "REDIS_STATE_HOST": "redis",
+    "PLANNER_PORT": "8080" if IS_CI else "8081",
+    "REDIS_QUEUE_HOST": "redis" if IS_CI else "redis-queue",
+    "REDIS_STATE_HOST": "redis" if IS_CI else "redis-state",
     "TERM": "xterm-256color",
     "WASM_VM": "wavm",
     # Sanitiser env. variables
@@ -62,7 +69,8 @@ def tests(
     tests_cmd = [
         join(FAASM_BUILD_DIR, "bin", "tests"),
         "--use-colour yes",
-        "--abort" if abort else "",
+        # "--abort" if abort else "",
+        "--abortx 4" if abort else "",
     ]
 
     if debug:
@@ -77,6 +85,8 @@ def tests(
         for file_name in listdir(join(PROJ_ROOT, "tests", "test", test_dir)):
             tag_str += "[#{}],".format(file_name.split(".")[0])
         tests_cmd.append(tag_str[:-1])
+
+    # TODO: run ./bin/cgroup.sh ?
 
     tests_cmd = " ".join(tests_cmd)
     for i in range(repeats):

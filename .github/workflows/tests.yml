@@ -156,6 +156,8 @@ jobs:
       fail-fast: false
       matrix:
         sanitiser: [None, Address, Thread, Undefined]
+    env:
+      HOST_TYPE: ci
     container:
       image: faasm.azurecr.io/cli:0.9.9
       credentials:
