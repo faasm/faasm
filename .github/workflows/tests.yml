@@ -237,7 +237,7 @@ jobs:
       # Run tests
       - name: "Run the tests"
         # TODO: temporarily run in abort, to see if we are missing any env. vars
-        run: ./bin/inv_wrapper.sh tests --abort
+        run: ./bin/inv_wrapper.sh tests
 
   sgx-tests:
     if: github.event.pull_request.draft == false

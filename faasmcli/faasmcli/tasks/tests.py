@@ -12,7 +12,7 @@ from faasmcli.util.env import (
 IS_CI = "HOST_TYPE" in environ and environ["HOST_TYPE"] == "ci"
 
 TEST_ENV = {
-    "CGROUP_MODE": "off" if IS_CI else "on",
+    "CGROUP_MODE": "on",
     "LD_LIBRARY_PATH": "/build/faasm/third-party/lib:/usr/local/lib",
     "LOG_LEVEL": "info",
     "NETNS_MODE": "off",
@@ -68,8 +68,7 @@ def tests(
     tests_cmd = [
         join(FAASM_BUILD_DIR, "bin", "tests"),
         "--use-colour yes",
-        # "--abort" if abort else "",
-        "--abortx 4" if abort else "",
+        "--abort" if abort else "",
     ]
 
     if debug:
