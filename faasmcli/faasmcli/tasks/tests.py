@@ -18,7 +18,9 @@ TEST_ENV = {
     "WASM_VM": "wavm",
     # Sanitiser env. variables
     "ASAN_OPTIONS": "halt_on_error=1:quarantine_size_mb=16",
-    "LSAN_OPTIONS": "suppressions={}/leak-sanitizer-ignorelist.txt".format(PROJ_ROOT),
+    "LSAN_OPTIONS": "suppressions={}/leak-sanitizer-ignorelist.txt".format(
+        PROJ_ROOT
+    ),
     "TSAN_OPTIONS": " ".join(
         [
             "history_size=0",
