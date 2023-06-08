@@ -46,6 +46,8 @@ TEST_ENV = {
     ),
 }
 
+ENV_VAR_ALLOWLIST = ["HOST_TYPE", "LLVM_PROFILE_FILE"]
+
 
 @task(default=True)
 def tests(
@@ -70,6 +72,11 @@ def tests(
         "--use-colour yes",
         "--abort" if abort else "",
     ]
+
+    # Allow specific environment variables
+    for env_var in ENV_VAR_ALLOWLIST:
+        if env_var in environ:
+            TEST_ENV[env_var] = environ[env_var]
 
     if debug:
         TEST_ENV["LOG_LEVEL"] = "debug"
