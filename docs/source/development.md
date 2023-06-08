@@ -76,7 +76,7 @@ inv func.local libfake
 
 # --- Python CLI ---
 # Build Python wrapper function and upload Python code
-inv func func.upload-all --local
+inv cpython.func func.upload-all --local
 
 # --- Faasm CLI ---
 # Build the development tools
@@ -85,11 +85,13 @@ inv dev.tools
 # Run codegen (this may take a while the first time it's run)
 inv codegen.tests
 
-# Set up cgroup
-./bin/cgroup.sh
-
 # Run the tests
-tests
+inv tests
+
+# You may also want to run groups of tests by name, by file, or by directory
+inv tests [--test-case <test_name>]
+inv tests [--test-file <file_name_no_extension>] # e.g. test_dynamic_linking
+inv tests [--test-dir <directory_name>] # e.g. faaslet
 ```
 
 ## Tooling - editors, IDEs etc.
