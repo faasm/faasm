@@ -41,7 +41,7 @@ TEST_ENV = {
         [
             "print_stacktrace=1",
             "halt_on_error=1",
-            "suppressions={}/ub-sanitizer-ignorelist.txt",
+            "suppressions={}/ub-sanitizer-ignorelist.txt".format(PROJ_ROOT),
         ]
     ),
 }
