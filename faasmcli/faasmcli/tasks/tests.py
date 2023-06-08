@@ -12,8 +12,7 @@ from faasmcli.util.env import (
 IS_CI = "HOST_TYPE" in environ and environ["HOST_TYPE"] == "ci"
 
 TEST_ENV = {
-    # TODO: what do we need to do w/ cgroup?
-    "CGROUP_MODE": "on",
+    "CGROUP_MODE": "off" if IS_CI else "on",
     "LD_LIBRARY_PATH": "/build/faasm/third-party/lib:/usr/local/lib",
     "LOG_LEVEL": "info",
     "NETNS_MODE": "off",
