@@ -243,6 +243,8 @@ jobs:
     if: github.event.pull_request.draft == false
     needs: [cpp-funcs, py-funcs, conan-cache]
     runs-on: ubuntu-latest
+    env:
+      HOST_TYPE: ci
     container:
       image: faasm.azurecr.io/cli-sgx-sim:0.9.9
       credentials:
