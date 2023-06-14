@@ -244,6 +244,7 @@ jobs:
       - name: "Upload coverage report to CodeCov"
         uses: codecov/codecov-action@v3
         with:
+          # Note that this secret is specific to this repository
           token: ${{ secrets.CODECOV_TOKEN }}
 
   tests:
