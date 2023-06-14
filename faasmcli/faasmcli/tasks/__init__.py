@@ -21,6 +21,7 @@ from . import redis
 from . import run
 from . import sgx
 from . import state
+from . import tests
 from . import upload
 from . import wast
 
@@ -45,6 +46,7 @@ ns = Collection(
     run,
     sgx,
     state,
+    tests,
     upload,
     wast,
 )
