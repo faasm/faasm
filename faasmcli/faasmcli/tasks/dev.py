@@ -136,3 +136,31 @@ def cc(ctx, target, clean=False, parallel=0):
         shell=True,
         check=True,
     )
+
+
+@task
+def coverage_report(ctx, file_in, file_out):
+    """
+    Generate code coverage report
+    """
+    tmp_file = "tmp_gha.profdata"
+
+    # First, merge in the raw profiling data
+    llvm_cmd = [
+        "llvm-profdata-13",
+        "merge -sparse {}".format(file_in),
+        "-o {}".format(tmp_file),
+    ]
+    llvm_cmd = " ".join(llvm_cmd)
+    run(llvm_cmd, shell=True, check=True, cwd=PROJ_ROOT)
+
+    # Second, generate the coverage report
+    llvm_cmd = [
+        "llvm-cov-13 show",
+        "--ignore-filename-regex=/usr/local/code/faasm/tests/*",
+        join(FAASM_BUILD_DIR, "bin", "tests"),
+        "-instr-profile={}".format(tmp_file),
+        "> {}".format(file_out),
+    ]
+    llvm_cmd = " ".join(llvm_cmd)
+    run(llvm_cmd, shell=True, check=True, cwd=PROJ_ROOT)
