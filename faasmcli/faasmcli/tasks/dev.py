@@ -7,7 +7,7 @@ from faasmcli.util.env import (
 from faasmtools.build import FAASM_RUNTIME_ENV_DICT, get_dict_as_cmake_vars
 from invoke import task
 from os import makedirs
-from os.path import exists
+from os.path import exists, join
 from subprocess import run
 
 DEV_TARGETS = [
