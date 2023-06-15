@@ -1,0 +1,5 @@
+ignore:
+    # Exclude faabric from the code-coverage measures
+    - "faabric"
+    # We exclude the tests from the coverage results
+    - "tests"
