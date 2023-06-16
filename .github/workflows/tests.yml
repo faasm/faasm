@@ -153,14 +153,7 @@ jobs:
     needs: [cpp-funcs, py-funcs, conan-cache]
     runs-on: ubuntu-latest
     env:
-      CGROUP_MODE: off
       HOST_TYPE: ci
-      LOG_LEVEL: info
-      NETNS_MODE: off
-      PLANNER_HOST: localhost
-      PLANNER_PORT: 8080
-      REDIS_QUEUE_HOST: redis
-      REDIS_STATE_HOST: redis
     container:
       image: faasm.azurecr.io/cli:0.9.9
       credentials:
@@ -236,7 +229,7 @@ jobs:
         run: ./bin/inv_wrapper.sh python.clear-runtime-pyc
       # Test run
       - name: "Run the tests"
-        run: /build/faasm/bin/tests
+        run: ./bin/inv_wrapper.sh tests
         env:
           LLVM_PROFILE_FILE: faasm.profraw
       - name: "Generate code coverage report"
@@ -333,7 +326,6 @@ jobs:
         run: ./bin/inv_wrapper.sh dev.cc tests
       # Run tests
       - name: "Run the tests"
-        # TODO: temporarily run in abort, to see if we are missing any env. vars
         run: ./bin/inv_wrapper.sh tests
 
   sgx-tests:
