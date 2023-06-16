@@ -13,8 +13,10 @@
 namespace tests {
 
 class MPIFuncTestFixture
-  : public FunctionExecTestFixture
-  , public MpiBaseTestFixture
+  : public MpiBaseTestFixture
+  , public WAVMModuleCacheTestFixture
+  , public IRModuleCacheTestFixture
+  , public ExecutorContextTestFixture
 {
   public:
     MPIFuncTestFixture()
@@ -144,16 +146,6 @@ TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI message ordering", "[mpi]")
     SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
     checkMpiFunc("mpi_order");
-}
-
-// 31/12/21 - Probe support is broken after faasm/faabric#205
-TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI probe", "[.]")
-{
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
-
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
-
-    checkMpiFunc("mpi_probe");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI reduce", "[mpi]")
