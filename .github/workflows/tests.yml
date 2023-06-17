@@ -64,8 +64,31 @@ jobs:
       - name: "Build docs"
         run: ./bin/inv_wrapper.sh docs
 
+  # Work out if we need to re-cross-compile the WASM functions used in the
+  # tests. We need to run `cpp-funcs` if there's a change in the `clients/cpp`
+  # submodule, and `py-funcs` if there's a change in the `clients/python`
+  # submodule
+  wasm-funcs-cache:
+    runs-on: ubuntu-latest
+    outputs:
+      cpp: ${{ steps.filter.outputs.cpp }}
+      python: ${{ steps.filter.outputs.python }}
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          cpp:
+            - './clients/cpp/**'
+          python:
+            - './clients/python/**'
+
   cpp-funcs:
-    if: github.event.pull_request.draft == false
+    needs: wasm-funcs-cache
+    if: ${{ needs.wasm-funcs-cache.outputs.cpp == 'true' }}
     runs-on: ubuntu-latest
     container:
       image: faasm.azurecr.io/cpp-sysroot:0.2.7
@@ -98,7 +121,8 @@ jobs:
           path: /usr/local/faasm/runtime_root/lib/fake
 
   py-funcs:
-    if: github.event.pull_request.draft == false
+    needs: wasm-funcs-cache
+    if: ${{ needs.wasm-funcs-cache.outputs.cpp == 'true' }}
     runs-on: ubuntu-latest
     container:
       image: faasm.azurecr.io/cpython:0.2.5
