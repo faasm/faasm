@@ -122,7 +122,7 @@ jobs:
 
   py-funcs:
     needs: wasm-funcs-cache
-    if: ${{ needs.wasm-funcs-cache.outputs.cpp == 'true' }}
+    if: ${{ needs.wasm-funcs-cache.outputs.python == 'true' }}
     runs-on: ubuntu-latest
     container:
       image: faasm.azurecr.io/cpython:0.2.5
@@ -164,13 +164,6 @@ jobs:
         uses: faasm/conan-cache-action@v1
       - name: "Build Conan dependencies to be shared by all runs"
         run: ./bin/inv_wrapper.sh dev.cmake --build Debug --clean
-      - name: "Build codegen without sanitisers for all test runs"
-        run: ./bin/inv_wrapper.sh dev.cc codegen_func dev.cc codegen_shared_obj
-      - name: "Upload codegen binaries"
-        uses: actions/upload-artifact@v3.1.0
-        with:
-          name: codegen-bin
-          path: /build/faasm/bin
 
   code-coverage:
     if: github.event.pull_request.draft == false
@@ -265,8 +258,12 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   tests:
-    if: github.event.pull_request.draft == false
     needs: [cpp-funcs, py-funcs, conan-cache]
+    if: |
+      always() &&
+      !cancelled() &&
+      (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
+      (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -330,17 +327,21 @@ jobs:
         run: echo "${{ env.CPU_MODEL}}"
       - name: "Configure machine code cache"
         uses: actions/cache@v3.0.11
+        id: machine-code-cache
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
-      - name: "Download codegen binaries shared between test runs"
-        uses: actions/download-artifact@v3.0.1
-        with:
-          name: codegen-bin
-          path: /build/faasm/bin
-      # Environment set-up
+      # We only re-build the codegen binaries if `clients/cpp` or
+      # `clients/python` have changed, or (ii) `cpp` and `python` have not
+      # changed, but we have a cache miss (i.e. new CPU).
       - name: "Run codegen for the tests"
-        run: ./bin/inv_wrapper.sh codegen.tests
+        if: |
+          (${{ needs.wasm-funcs-cache.outputs.cpp == 'true' }} || \
+           ${{ needs.wasm-funcs-cache.outputs.python == 'true' }}) \
+           || steps.cache-primes.outputs.cache-hit != 'true'
+        run: |
+          ./bin/inv_wrapper.sh dev.cc codegen_func dev.cc codegen_shared_obj
+          ./bin/inv_wrapper.sh codegen.tests
       - name: "Clear existing pyc files"
         run: ./bin/inv_wrapper.sh python.clear-runtime-pyc
       # Tests build (Debug required for tests)
