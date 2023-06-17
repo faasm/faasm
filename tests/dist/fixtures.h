@@ -38,7 +38,7 @@ class DistTestsFixture
         redis.flushAll();
 
         // Planner reset
-        faabric::scheduler::Scheduler::getPlannerClient()->ping();
+        sch.getPlannerClient()->ping();
         resetPlanner();
 
         // Clean up the scheduler

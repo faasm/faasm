@@ -26,7 +26,9 @@
 
 namespace tests {
 
-class FlushingTestFixture : public FunctionLoaderTestFixture
+class FlushingTestFixture
+  : public FunctionLoaderTestFixture
+  , public PlannerClientServerTestFixture
 {
   public:
     FlushingTestFixture()

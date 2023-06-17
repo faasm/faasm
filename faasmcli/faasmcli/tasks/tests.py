@@ -16,7 +16,7 @@ TEST_ENV = {
     "LD_LIBRARY_PATH": "/build/faasm/third-party/lib:/usr/local/lib",
     "LOG_LEVEL": "info",
     "NETNS_MODE": "off",
-    "PLANNER_HOST": "planner",
+    "PLANNER_HOST": "localhost",
     "PLANNER_PORT": "8080" if IS_CI else "8081",
     "REDIS_QUEUE_HOST": "redis" if IS_CI else "redis-queue",
     "REDIS_STATE_HOST": "redis" if IS_CI else "redis-state",
