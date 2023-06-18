@@ -72,8 +72,8 @@ jobs:
   wasm-funcs-cache:
     runs-on: ubuntu-latest
     outputs:
-      needs-cpp-wasm: ${{ steps.filter.outputs.cpp-changed }} || steps.cpp-wasm-cache.outputs.cache-hit != 'true'
-      needs-py-wasm: ${{ steps.filter.outputs.py-changed }} || steps.py-wasm-cache.outputs.cache-hit != 'true'
+      needs-cpp-wasm: ${{ steps.filter.outputs.cpp-changed }} || ${{ steps.cpp-wasm-cache.outputs.cache-hit != 'true' }}
+      needs-py-wasm: ${{ steps.filter.outputs.py-changed }} || ${{ steps.py-wasm-cache.outputs.cache-hit != 'true' }}
     steps:
     - uses: actions/checkout@v3
       with:
@@ -92,18 +92,17 @@ jobs:
     - name: "Get CPP/Python commits"
       id: submodule-commit
       run: |
-        mkdir -p ./dev/wasm
         echo "cpp-commit=$(git submodule status ./clients/cpp | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
         echo "py-commit=$(git submodule status ./clients/python | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
     - uses: actions/cache@v3.0.11
       id: cpp-wasm-cache
       with:
-        path: ./dev/wasm
+        path: /usr/local/faasm/wasm
         key: wasm-cpp-${{ steps.submodule-commit.outputs.cpp-commit }}
     - uses: actions/cache@v3.0.11
       id: py-wasm-cache
       with:
-        path: ./dev/wasm/python
+        path: /usr/local/faasm/wasm/python
         key: wasm-py-${{ steps.submodule-commit.outputs.py-commit }}
 
   cpp-funcs:
