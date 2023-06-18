@@ -88,7 +88,7 @@ jobs:
 
   cpp-funcs:
     needs: wasm-funcs-cache
-    if: ${{ needs.wasm-funcs-cache.outputs.cpp == 'true' }}
+      # if: ${{ needs.wasm-funcs-cache.outputs.cpp == 'true' }}
     runs-on: ubuntu-latest
     container:
       image: faasm.azurecr.io/cpp-sysroot:0.2.7
@@ -122,7 +122,7 @@ jobs:
 
   py-funcs:
     needs: wasm-funcs-cache
-    if: ${{ needs.wasm-funcs-cache.outputs.python == 'true' }}
+      # if: ${{ needs.wasm-funcs-cache.outputs.python == 'true' }}
     runs-on: ubuntu-latest
     container:
       image: faasm.azurecr.io/cpython:0.2.5
@@ -259,11 +259,11 @@ jobs:
 
   tests:
     needs: [cpp-funcs, py-funcs, conan-cache]
-    if: |
-      always() &&
-      !cancelled() &&
-      (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
-      (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
+      #     if: |
+      #       always() &&
+      #       !cancelled() &&
+      #       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
+      #       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
