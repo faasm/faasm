@@ -94,12 +94,12 @@ jobs:
       run: |
         echo "cpp-commit=$(git submodule status ./clients/cpp | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
         echo "py-commit=$(git submodule status ./clients/python | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
-    - uses: actions/cache@v3.0.11
+    - uses: actions/cache/restore@v3.3.1
       id: wasm-cpp-cache
       with:
         path: /usr/local/faasm/wasm
         key: wasm-cpp-${{ steps.submodule-commit.outputs.cpp-commit }}
-    - uses: actions/cache@v3.0.11
+    - uses: actions/cache/restore@v3.3.1
       id: wasm-py-cache
       with:
         path: /usr/local/faasm/wasm/python
@@ -137,7 +137,7 @@ jobs:
           mv /usr/local/faasm/runtime_root/lib /usr/local/faasm/wasm
         working-directory: ${{ github.workspace }}
       - name: "Cpp WASM cache"
-        uses: actions/cache@v3.0.11
+        uses: actions/cache/save@v3.3.1
         id: cpp-wasm-cache
         with:
           path: /usr/local/faasm/wasm
@@ -171,7 +171,7 @@ jobs:
           mv /usr/local/faasm/shared/pyfuncs /usr/local/faasm/wasm/python/
         working-directory: ${{ github.workspace }}
       - name: "Python WASM cache"
-        uses: actions/cache@v3.0.11
+        uses: actions/cache/save@v3.3.1
         id: py-wasm-cache
         with:
           path: /usr/local/faasm/wasm/python
@@ -421,7 +421,7 @@ jobs:
           path: /usr/local/faasm/wasm
           key: wasm-cpp-${{ steps.submodule-commit.outputs.cpp-commit }}
       - name: "Get Python WASM cache"
-        uses: actions/cache@v3.0.11
+        uses: actions/cache/restore@v3.3.1
         id: py-wasm-cache
         with:
           path: /usr/local/faasm/wasm/python
@@ -439,7 +439,7 @@ jobs:
       - name: "Print CPU model"
         run: echo "${{ env.CPU_MODEL}}"
       - name: "Configure machine code cache"
-        uses: actions/cache@v3.0.11
+        uses: actions/cache@v3.3.1
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
