@@ -245,14 +245,9 @@ jobs:
       # Move libfake and pyfuncs that are misplaced to only use one cache
       - name: "Post-WASM cache"
         run: |
-          mv /usr/local/faasm/wasm/fake /usr/local/faasm/runtime_root/lib/
-          mv /usr/local/faasm/wasm/python/pyfuncs /usr/local/faasm/shared/
-      - name: "list files"
-        run: |
-          ls /usr/local/faasm/wasm/python
-          ls /usr/local/faasm/wasm/shared
-          ls /usr/local/faasm/wasm/shared/pyfuncs
-          ls /usr/local/faasm/wasm/shared/pyfuncs/python
+          mv /usr/local/faasm/wasm/fake /usr/local/faasm/runtime_root/lib/fake
+          mkdir -p /usr/local/faasm/shared
+          mv /usr/local/faasm/wasm/python/pyfuncs /usr/local/faasm/shared/pyfuncs
       # Cache contains architecture-specific machine code
       - name: "CPU info"
         run: cat /proc/cpuinfo
@@ -347,8 +342,9 @@ jobs:
       # Move libfake and pyfuncs that are misplaced to only use one cache
       - name: "Post-WASM cache"
         run: |
-          mv /usr/local/faasm/wasm/fake /usr/local/faasm/runtime_root/lib/
-          mv /usr/local/faasm/wasm/python/pyfuncs /usr/local/faasm/shared/
+          mv /usr/local/faasm/wasm/fake /usr/local/faasm/runtime_root/lib/fake
+          mkdir -p /usr/local/faasm/shared
+          mv /usr/local/faasm/wasm/python/pyfuncs /usr/local/faasm/shared/pyfuncs
       # Cache contains architecture-specific machine code
       - name: "CPU info"
         run: cat /proc/cpuinfo
@@ -439,8 +435,9 @@ jobs:
       # Move libfake and pyfuncs that are misplaced to only use one cache
       - name: "Post-WASM cache"
         run: |
-          mv /usr/local/faasm/wasm/fake /usr/local/faasm/runtime_root/lib/
-          mv /usr/local/faasm/wasm/python/pyfuncs /usr/local/faasm/shared/
+          mv /usr/local/faasm/wasm/fake /usr/local/faasm/runtime_root/lib/fake
+          mkdir -p /usr/local/faasm/shared
+          mv /usr/local/faasm/wasm/python/pyfuncs /usr/local/faasm/shared/pyfuncs
       # Cache contains architecture-specific machine code
       - name: "CPU info"
         run: cat /proc/cpuinfo
