@@ -67,28 +67,47 @@ jobs:
   # Work out if we need to re-cross-compile the WASM functions used in the
   # tests. We need to run `cpp-funcs` if there's a change in the `clients/cpp`
   # submodule, and `py-funcs` if there's a change in the `clients/python`
-  # submodule
+  # submodule. Additionally, even if there are no changes, we also want to run
+  # `clients/cpp` and `clients/python` if the WASM cache is not in place
   wasm-funcs-cache:
     runs-on: ubuntu-latest
     outputs:
-      cpp: ${{ steps.filter.outputs.cpp }}
-      python: ${{ steps.filter.outputs.python }}
+      needs-cpp-wasm: ${{ steps.filter.outputs.cpp-changed }} || steps.cpp-wasm-cache.outputs.cache-hit != 'true'
+      needs-py-wasm: ${{ steps.filter.outputs.py-changed }} || steps.py-wasm-cache.outputs.cache-hit != 'true'
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: true
+    # Check if any of the submodules have been modified
     - uses: dorny/paths-filter@v2
       id: filter
       with:
         filters: |
-          cpp:
+          cpp-changed:
             - './clients/cpp/**'
-          python:
+          py-changed:
             - './clients/python/**'
+    # Even if they have not been modified, check whether the WASM cache is
+    # available
+    - name: "Get CPP/Python commits"
+      id: submodule-commit
+      run: |
+        echo "cpp-commit=$(git submodule status ./clients/cpp | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
+        echo "py-commit=$(git submodule status ./clients/python | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
+    - uses: actions/cache@v3.0.11
+      id: cpp-wasm-cache
+      with:
+        path: /usr/local/faasm/wasm
+        key: wasm-cpp-${{ steps.submodule-commit.outputs.cpp-commit }}
+    - uses: actions/cache@v3.0.11
+      id: py-wasm-cache
+      with:
+        path: /usr/local/faasm/wasm/python
+        key: wasm-py-${{ steps.submodule-commit.outputs.py-commit }}
 
   cpp-funcs:
     needs: wasm-funcs-cache
-      # if: ${{ needs.wasm-funcs-cache.outputs.cpp == 'true' }}
+    if: ${{ needs.wasm-funcs-cache.outputs.needs-cpp-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
       image: faasm.azurecr.io/cpp-sysroot:0.2.7
@@ -99,7 +118,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v3
         with:
-          submodules: recursive
+          recursive: true
       - name: "Build C++ functions"
         run: ./bin/inv_wrapper.sh func.local
         working-directory: ${{ github.workspace }}/clients/cpp
@@ -109,20 +128,24 @@ jobs:
       - name: "Build libfake"
         run: ./bin/inv_wrapper.sh libfake
         working-directory: ${{ github.workspace }}/clients/cpp
-      - name: "Upload cpp wasm"
-        uses: actions/upload-artifact@v3.1.0
+      - name: "Prepare Cpp WASM cache"
+        id: submodule-commit
+        run: |
+          echo "cpp-commit=$(git submodule status ./clients/cpp | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
+          # We move the libfake shared library to the WASM dir to use only one
+          # cache
+          mv /usr/local/faasm/runtime_root/lib /usr/local/faasm/wasm
+        working-directory: ${{ github.workspace }}
+      - name: "Cpp WASM cache"
+        uses: actions/cache@v3.0.11
+        id: cpp-wasm-cache
         with:
-          name: cpp-wasm
           path: /usr/local/faasm/wasm
-      - name: "Upload fake lib wasm"
-        uses: actions/upload-artifact@v3.1.0
-        with:
-          name: libfake-wasm
-          path: /usr/local/faasm/runtime_root/lib/fake
+          key: wasm-cpp-${{ steps.submodule-commit.outputs.cpp-commit }}
 
   py-funcs:
     needs: wasm-funcs-cache
-      # if: ${{ needs.wasm-funcs-cache.outputs.python == 'true' }}
+    if: ${{ needs.wasm-funcs-cache.outputs.needs-python-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
       image: faasm.azurecr.io/cpython:0.2.5
@@ -140,16 +163,19 @@ jobs:
       - name: "Put Python functions in place"
         run: ./bin/inv_wrapper.sh func.upload-all --local
         working-directory: ${{ github.workspace }}/clients/python
-      - name: "Upload python wasm"
-        uses: actions/upload-artifact@v3.1.0
+      - name: "Prepare Cpp WASM cache"
+        id: submodule-commit
+        run: |
+          echo "py-commit=$(git submodule status ./clients/python | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
+          # We temporarily move the pyfuncs to only use one cache
+          mv /usr/local/faasm/shared/pyfuncs /usr/local/faasm/wasm/python/
+        working-directory: ${{ github.workspace }}
+      - name: "Python WASM cache"
+        uses: actions/cache@v3.0.11
+        id: py-wasm-cache
         with:
-          name: py-wasm
           path: /usr/local/faasm/wasm/python
-      - name: "Upload python functions"
-        uses: actions/upload-artifact@v3.1.0
-        with:
-          name: py-funcs
-          path: /usr/local/faasm/shared
+          key: wasm-py-${{ steps.submodule-commit.outputs.py-commit }}
 
   conan-cache:
     if: github.event.pull_request.draft == false
@@ -231,11 +257,6 @@ jobs:
         with:
           path: /usr/local/faasm/object
           key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
-      - name: "Download codegen binaries shared between test runs"
-        uses: actions/download-artifact@v3.0.1
-        with:
-          name: codegen-bin
-          path: /build/faasm/bin
       # Code build with coverage
       - name: "Build dev tools with code coverage"
         run: ./bin/inv_wrapper.sh dev.tools --build Debug --clean --coverage
@@ -259,11 +280,11 @@ jobs:
 
   tests:
     needs: [cpp-funcs, py-funcs, conan-cache]
-      #     if: |
-      #       always() &&
-      #       !cancelled() &&
-      #       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
-      #       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
+    if: |
+      always() &&
+      !cancelled() &&
+      (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
+      (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -388,26 +409,28 @@ jobs:
       - name: "Ping minio"
         run: curl -f http://minio:9000/minio/health/live
       # Download wasm generated by previous steps
-      - name: "Download CPP wasm"
-        uses: actions/download-artifact@v3.0.1
+      - name: "Get CPP/Python commits"
+        id: submodule-commit
+        run: |
+          echo "cpp-commit=$(git submodule status ./clients/cpp | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
+          echo "py-commit=$(git submodule status ./clients/python | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
+      - name: "Get Cpp WASM cache"
+        uses: actions/cache@v3.0.11
+        id: cpp-wasm-cache
         with:
-          name: cpp-wasm
           path: /usr/local/faasm/wasm
-      - name: "Download libfake wasm"
-        uses: actions/download-artifact@v3.0.1
+          key: wasm-cpp-${{ steps.submodule-commit.outputs.cpp-commit }}
+      - name: "Get Python WASM cache"
+        uses: actions/cache@v3.0.11
+        id: py-wasm-cache
         with:
-          name: libfake-wasm
-          path: /usr/local/faasm/runtime_root/lib/fake
-      - name: "Download Python wasm"
-        uses: actions/download-artifact@v3.0.1
-        with:
-          name: py-wasm
           path: /usr/local/faasm/wasm/python
-      - name: "Download Python funcs"
-        uses: actions/download-artifact@v3.0.1
-        with:
-          name: py-funcs
-          path: /usr/local/faasm/shared
+          key: wasm-py-${{ steps.submodule-commit.outputs.py-commit }}
+      # Move libfake and pyfuncs that are misplaced to only use one cache
+      - name: "Post-WASM cache"
+        run: |
+          mv /usr/local/faasm/wasm/lib /usr/local/faasm/runtime_root/
+          mv /usr/local/faasm/wasm/python/pyfuncs /usr/local/faasm/shared/
       # Cache contains architecture-specific machine code
       - name: "CPU info"
         run: cat /proc/cpuinfo
