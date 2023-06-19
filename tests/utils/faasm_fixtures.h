@@ -102,10 +102,9 @@ class WAVMModuleCacheTestFixture
  * caches etc.).
  */
 class FunctionExecTestFixture
-  : public SchedulerTestFixture
+  : public ExecutorContextTestFixture
   , public WAVMModuleCacheTestFixture
   , public IRModuleCacheTestFixture
-  , public ExecutorContextTestFixture
 {
   public:
     FunctionExecTestFixture() {}

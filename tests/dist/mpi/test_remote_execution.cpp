@@ -35,7 +35,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     REQUIRE(result.returnvalue() == 0);
 
     // Check exec graph
-    auto execGraph = sch.getFunctionExecGraph(result.id());
+    auto execGraph = sch.getFunctionExecGraph(result);
     int numNodes = faabric::scheduler::countExecGraphNodes(execGraph);
     REQUIRE(numNodes == mpiWorldSize);
     std::set<std::string> hosts =

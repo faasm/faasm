@@ -47,8 +47,8 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     REQUIRE(result.returnvalue() == 0);
 
     // Get the execution graph for both requests
-    auto execGraph = sch.getFunctionExecGraph(result.id());
-    auto execGraphCopy = sch.getFunctionExecGraph(resultCopy.id());
+    auto execGraph = sch.getFunctionExecGraph(result);
+    auto execGraphCopy = sch.getFunctionExecGraph(resultCopy);
 
     // Builld the expectation for both requests
     std::vector<std::string> expectedHosts(worldSize, getDistTestMasterIp());

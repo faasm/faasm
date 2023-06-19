@@ -27,7 +27,7 @@ TEST_CASE_METHOD(
     faabric::Message result = sch.getFunctionResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
-    auto execGraph = sch.getFunctionExecGraph(call.id());
+    auto execGraph = sch.getFunctionExecGraph(call);
     int numNodes = faabric::scheduler::countExecGraphNodes(execGraph);
     REQUIRE(numNodes == expectedNumNodes);
     REQUIRE(execGraph.rootNode.msg.id() == call.id());
@@ -54,7 +54,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     faabric::Message result = sch.getFunctionResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
-    auto execGraph = sch.getFunctionExecGraph(call.id());
+    auto execGraph = sch.getFunctionExecGraph(call);
     int numNodes = faabric::scheduler::countExecGraphNodes(execGraph);
     REQUIRE(numNodes == expectedNumNodes);
     REQUIRE(execGraph.rootNode.msg.id() == call.id());
