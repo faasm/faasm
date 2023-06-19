@@ -99,11 +99,13 @@ jobs:
       with:
         path: /usr/local/faasm/wasm
         key: wasm-cpp-${{ steps.submodule-commit.outputs.cpp-commit }}
+        lookup-only: true
     - uses: actions/cache/restore@v3.3.1
       id: wasm-py-cache
       with:
         path: /usr/local/faasm/wasm/python
         key: wasm-py-${{ steps.submodule-commit.outputs.py-commit }}
+        lookup-only: true
 
   cpp-funcs:
     needs: wasm-funcs-cache
