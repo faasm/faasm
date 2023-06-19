@@ -142,7 +142,7 @@ jobs:
           mv /usr/local/faasm/runtime_root/lib/fake /usr/local/faasm/wasm/
         working-directory: ${{ github.workspace }}
       - name: "Cpp WASM cache"
-        uses: actions/cache/save@v3.3.1
+        uses: actions/cache@v3.3.1
         id: cpp-wasm-cache
         with:
           path: /usr/local/faasm/wasm
@@ -168,7 +168,7 @@ jobs:
       - name: "Put Python functions in place"
         run: ./bin/inv_wrapper.sh func.upload-all --local
         working-directory: ${{ github.workspace }}/clients/python
-      - name: "Prepare Cpp WASM cache"
+      - name: "Prepare Python WASM cache"
         id: submodule-commit
         run: |
           git config --global --add safe.directory ${GITHUB_WORKSPACE}
@@ -177,7 +177,7 @@ jobs:
           mv /usr/local/faasm/shared/pyfuncs /usr/local/faasm/wasm/python/
         working-directory: ${{ github.workspace }}
       - name: "Python WASM cache"
-        uses: actions/cache/save@v3.3.1
+        uses: actions/cache@v3.3.1
         id: py-wasm-cache
         with:
           path: /usr/local/faasm/wasm/python
