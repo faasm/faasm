@@ -15,11 +15,12 @@ TEST_CASE_METHOD(FaasmConfTestFixture,
                  "Test running out of namespaces",
                  "[faaslet][network]")
 {
-    conf.netNsMode = "on";
+    faasmConf.netNsMode = "on";
 
     // Drain the existing namespaces
-    std::vector<std::shared_ptr<NetworkNamespace>> namespaces(conf.maxNetNs);
-    for (int i = 0; i < conf.maxNetNs; i++) {
+    std::vector<std::shared_ptr<NetworkNamespace>> namespaces(
+      faasmConf.maxNetNs);
+    for (int i = 0; i < faasmConf.maxNetNs; i++) {
         namespaces.at(i) = claimNetworkNamespace();
     }
 

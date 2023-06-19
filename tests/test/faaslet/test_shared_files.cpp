@@ -43,9 +43,9 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
 
     // Execute the function
     auto req = setUpContext("demo", "shared_file");
-    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
     executeWithPool(req);
 
@@ -58,8 +58,8 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
     REQUIRE(actual == expected);
 
     // Check contents from S3
-    REQUIRE(s3.listKeys(conf.s3Bucket).size() == 1);
-    std::string s3Actual = s3.getKeyStr(conf.s3Bucket, relativePath);
+    REQUIRE(s3.listKeys(faasmConf.s3Bucket).size() == 1);
+    std::string s3Actual = s3.getKeyStr(faasmConf.s3Bucket, relativePath);
     REQUIRE(s3Actual == expected);
 }
 

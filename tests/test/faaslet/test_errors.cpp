@@ -43,7 +43,7 @@ TEST_CASE_METHOD(ErrorCheckFixture,
                  "Test non-zero return code is error",
                  "[faaslet]")
 {
-    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
     // 21/02/2023 - See bytecodealliance/wasm-micro-runtime#1979
     // SECTION("WAMR") { conf.wasmVm = "wamr"; }

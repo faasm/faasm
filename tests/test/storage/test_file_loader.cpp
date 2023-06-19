@@ -58,12 +58,12 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
     std::string cachedObjectHash = loader.getHashFilePath(cachedObjFile);
 
     // Ensure nothing in S3 to start with
-    REQUIRE(s3.listKeys(conf.s3Bucket).empty());
+    REQUIRE(s3.listKeys(faasmConf.s3Bucket).empty());
 
     // Upload the function and machine code
     loader.uploadFunction(msgB);
     gen.codegenForFunction(msgB);
-    REQUIRE(s3.listKeys(conf.s3Bucket).size() == 3);
+    REQUIRE(s3.listKeys(faasmConf.s3Bucket).size() == 3);
     REQUIRE(boost::filesystem::exists(cachedWasmFile) == useFsCache);
     REQUIRE(boost::filesystem::exists(cachedObjFile) == useFsCache);
     REQUIRE(boost::filesystem::exists(cachedObjectHash) == useFsCache);
@@ -96,15 +96,15 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
                  "Test clearing local file loader cache",
                  "[storage]")
 {
-    std::string funcFile = conf.functionDir + "/function.wasm";
-    std::string objFile = conf.objectFileDir + "/function.obj";
+    std::string funcFile = faasmConf.functionDir + "/function.wasm";
+    std::string objFile = faasmConf.objectFileDir + "/function.obj";
 
     // Clean directories
-    boost::filesystem::remove_all(conf.functionDir);
-    boost::filesystem::remove_all(conf.objectFileDir);
+    boost::filesystem::remove_all(faasmConf.functionDir);
+    boost::filesystem::remove_all(faasmConf.objectFileDir);
 
-    boost::filesystem::create_directories(conf.functionDir);
-    boost::filesystem::create_directories(conf.objectFileDir);
+    boost::filesystem::create_directories(faasmConf.functionDir);
+    boost::filesystem::create_directories(faasmConf.objectFileDir);
 
     // Write some junk to a couple of files
     std::vector<uint8_t> bytes = { 0, 1, 2, 3 };
@@ -127,7 +127,7 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
                  "[storage]")
 {
     // Ensure nothing in S3 to start with
-    REQUIRE(s3.listKeys(conf.s3Bucket).empty());
+    REQUIRE(s3.listKeys(faasmConf.s3Bucket).empty());
 
     // Check we can try loading the file and it throws an exception
     std::string relativePath = "test/local_file_loader.txt";
@@ -150,7 +150,7 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
     storage::FileLoader loader;
     loader.uploadSharedFile(relativePath, expected);
 
-    REQUIRE(s3.listKeys(conf.s3Bucket).size() == 1);
+    REQUIRE(s3.listKeys(faasmConf.s3Bucket).size() == 1);
 
     const std::vector<uint8_t> actual = loader.loadSharedFile(relativePath);
     REQUIRE(actual == expected);
@@ -198,7 +198,8 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
     loader.uploadPythonFunction(msg);
 
     std::string relativePath = "pyfuncs/foo/bar/function.py";
-    std::string expectedRuntimePath = conf.sharedFilesDir + "/" + relativePath;
+    std::string expectedRuntimePath =
+      faasmConf.sharedFilesDir + "/" + relativePath;
 
     REQUIRE(boost::filesystem::exists(expectedRuntimePath));
 

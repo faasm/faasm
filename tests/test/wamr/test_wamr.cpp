@@ -41,7 +41,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     }
 
     // Set to run WAMR
-    conf.wasmVm = "wamr";
+    faasmConf.wasmVm = "wamr";
 
     // Create a Faaslet
     std::shared_ptr<faabric::BatchExecuteRequest> req =

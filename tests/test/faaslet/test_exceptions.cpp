@@ -9,9 +9,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test exceptions are propagated from handler to runtime",
                  "[faaslet]")
 {
-    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-    SECTION("WAVM") { conf.wasmVm = "wamr"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wamr"; }
 
     // TODO: make this default executeFunction in utils
     std::shared_ptr<faabric::BatchExecuteRequest> req =

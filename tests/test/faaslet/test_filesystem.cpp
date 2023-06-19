@@ -66,9 +66,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fcntl", "[faaslet]")
 {
     auto req = setUpContext("demo", "fcntl");
 
-    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
     executeWithPool(req);
 }
@@ -77,9 +77,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
 {
     auto req = setUpContext("demo", "fread");
 
-    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
     executeWithPool(req);
 }
@@ -88,9 +88,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fstat", "[faaslet]")
 {
     auto req = setUpContext("demo", "fstat");
 
-    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
     executeWithPool(req);
 }
@@ -101,9 +101,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 {
     auto req = setUpContext("demo", "file");
 
-    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
     executeWithPool(req);
 }
@@ -114,9 +114,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 {
     auto req = setUpContext("demo", "filedescriptor");
 
-    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
     executeWithPool(req);
 }

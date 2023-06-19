@@ -13,9 +13,7 @@
 
 namespace tests {
 
-class PthreadTestFixture
-  : public FunctionExecTestFixture
-  , ConfTestFixture
+class PthreadTestFixture : public FunctionExecTestFixture
 {
   public:
     PthreadTestFixture() { conf.overrideCpuCount = nThreads + 2; }

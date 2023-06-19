@@ -22,12 +22,13 @@ class FaasmConfTestFixture
 {
   public:
     FaasmConfTestFixture()
-      : conf(conf::getFaasmConfig())
+      : faasmConf(conf::getFaasmConfig())
     {}
-    ~FaasmConfTestFixture() { conf.reset(); }
+
+    ~FaasmConfTestFixture() { faasmConf.reset(); }
 
   protected:
-    conf::FaasmConfig& conf;
+    conf::FaasmConfig& faasmConf;
 };
 
 /**
@@ -37,21 +38,21 @@ class S3TestFixture
 {
   public:
     S3TestFixture()
-      : conf(conf::getFaasmConfig())
+      : faasmConf(conf::getFaasmConfig())
     {
-        conf.s3Bucket = "faasm-test";
-        s3.createBucket(conf.s3Bucket);
+        faasmConf.s3Bucket = "faasm-test";
+        s3.createBucket(faasmConf.s3Bucket);
     };
 
     ~S3TestFixture()
     {
-        s3.deleteBucket(conf.s3Bucket);
-        conf.reset();
+        s3.deleteBucket(faasmConf.s3Bucket);
+        faasmConf.reset();
     };
 
   protected:
     storage::S3Wrapper s3;
-    conf::FaasmConfig& conf;
+    conf::FaasmConfig& faasmConf;
 };
 
 /**
@@ -103,6 +104,7 @@ class WAVMModuleCacheTestFixture
  */
 class FunctionExecTestFixture
   : public ExecutorContextTestFixture
+  , public ClientServerFixture
   , public WAVMModuleCacheTestFixture
   , public IRModuleCacheTestFixture
 {
@@ -144,16 +146,16 @@ class FunctionLoaderTestFixture : public S3TestFixture
         msgA.set_inputdata(wasmBytesA.data(), wasmBytesA.size());
         msgB.set_inputdata(wasmBytesB.data(), wasmBytesB.size());
 
-        std::string oldWasmVm = conf.wasmVm;
+        std::string oldWasmVm = faasmConf.wasmVm;
 
         // Load the machine code for each different WASM VM
-        conf.wasmVm = "wavm";
+        faasmConf.wasmVm = "wavm";
         objBytesA = loader.loadFunctionObjectFile(msgA);
         objBytesB = loader.loadFunctionObjectFile(msgB);
         hashBytesA = loader.loadFunctionObjectHash(msgA);
         hashBytesB = loader.loadFunctionObjectHash(msgB);
 
-        conf.wasmVm = "wamr";
+        faasmConf.wasmVm = "wamr";
         // Re-do the codegen to avoid caching problems
         wamrObjBytesA = wasm::wamrCodegen(wasmBytesA, false);
         wamrObjBytesB = wasm::wamrCodegen(wasmBytesB, false);
@@ -167,17 +169,17 @@ class FunctionLoaderTestFixture : public S3TestFixture
         sgxHashBytesA = loader.loadFunctionWamrAotHash(msgA);
         sgxHashBytesB = loader.loadFunctionWamrAotHash(msgB);
 #endif
-        conf.wasmVm = oldWasmVm;
+        faasmConf.wasmVm = oldWasmVm;
 
         // Use a shared object we know exists
         localSharedObjFile =
-          conf.runtimeFilesDir + "/lib/python3.8/lib-dynload/syslog.so";
+          faasmConf.runtimeFilesDir + "/lib/python3.8/lib-dynload/syslog.so";
         sharedObjWasm = faabric::util::readFileToBytes(localSharedObjFile);
 
         // Dummy directories for functions and object files
-        conf.functionDir = "/tmp/func";
-        conf.objectFileDir = "/tmp/obj";
-        conf.sharedFilesDir = "/tmp/shared";
+        faasmConf.functionDir = "/tmp/func";
+        faasmConf.objectFileDir = "/tmp/obj";
+        faasmConf.sharedFilesDir = "/tmp/shared";
     }
 
     void uploadTestWasm()

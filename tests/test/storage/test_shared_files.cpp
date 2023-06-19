@@ -69,8 +69,10 @@ TEST_CASE_METHOD(SharedFilesTestFixture, "Check sync python file", "[storage]")
 
     // Prepare paths
     std::string sharedFilePath = loader.getPythonFunctionFile(msg);
-    std::string runtimeFilePath = fmt::format(
-      "{}/{}", conf.runtimeFilesDir, loader.getPythonFunctionRelativePath(msg));
+    std::string runtimeFilePath =
+      fmt::format("{}/{}",
+                  faasmConf.runtimeFilesDir,
+                  loader.getPythonFunctionRelativePath(msg));
 
     // Ensure files don't exist already
     boost::filesystem::remove(sharedFilePath);

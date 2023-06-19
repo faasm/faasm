@@ -61,7 +61,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
     loader.uploadSharedFile(fileName, fileBytes);
 
     // Check that the underlying shared file is in place
-    std::filesystem::path sharedPath(conf.sharedFilesDir);
+    std::filesystem::path sharedPath(faasmConf.sharedFilesDir);
     sharedPath.append(fileName);
     REQUIRE(std::filesystem::exists(sharedPath));
 
@@ -73,7 +73,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
     loader.clearLocalCache();
 
     // Check the shared files dir exists, but not the specific shared file path
-    REQUIRE(std::filesystem::exists(conf.sharedFilesDir));
+    REQUIRE(std::filesystem::exists(faasmConf.sharedFilesDir));
     REQUIRE(!std::filesystem::exists(sharedPath));
 
     SECTION("Check using FileLoader")

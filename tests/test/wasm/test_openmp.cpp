@@ -20,7 +20,6 @@ namespace tests {
 
 class OpenMPTestFixture
   : public FunctionExecTestFixture
-  , public ConfTestFixture
   , public SnapshotTestFixture
 {
   public:

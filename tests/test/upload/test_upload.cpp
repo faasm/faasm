@@ -54,7 +54,8 @@ class UploadTestFixture
 
     void checkPut(http_request request, int numAddedKeys)
     {
-        int expectedNumKeys = s3.listKeys(conf.s3Bucket).size() + numAddedKeys;
+        int expectedNumKeys =
+          s3.listKeys(faasmConf.s3Bucket).size() + numAddedKeys;
 
         // Submit PUT request
         edge::UploadServer::handlePut(request);
@@ -62,7 +63,7 @@ class UploadTestFixture
         REQUIRE(response.status_code() == status_codes::OK);
 
         // Check keys are added
-        REQUIRE(s3.listKeys(conf.s3Bucket).size() == expectedNumKeys);
+        REQUIRE(s3.listKeys(faasmConf.s3Bucket).size() == expectedNumKeys);
     }
 
     void checkGet(http_request& request, const std::vector<uint8_t>& bytes)
@@ -154,9 +155,9 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         std::string fileKey = "gamma/delta/function.wasm";
         std::string objFileKey = "gamma/delta/function.wasm.o";
         std::string objFileHashKey = "gamma/delta/function.wasm.o.md5";
-        s3.deleteKey(conf.s3Bucket, fileKey);
-        s3.deleteKey(conf.s3Bucket, objFileKey);
-        s3.deleteKey(conf.s3Bucket, objFileHashKey);
+        s3.deleteKey(faasmConf.s3Bucket, fileKey);
+        s3.deleteKey(faasmConf.s3Bucket, objFileKey);
+        s3.deleteKey(faasmConf.s3Bucket, objFileHashKey);
 
         // Check putting the file adds three keys
         std::string url = fmt::format("/{}/gamma/delta", FUNCTION_URL_PART);
@@ -164,9 +165,9 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         checkPut(request, 3);
 
         // Check wasm, object file and hash stored in s3
-        checkS3bytes(conf.s3Bucket, fileKey, wasmBytesA);
-        checkS3bytes(conf.s3Bucket, objFileKey, objBytesA);
-        checkS3bytes(conf.s3Bucket, objFileHashKey, hashBytesA);
+        checkS3bytes(faasmConf.s3Bucket, fileKey, wasmBytesA);
+        checkS3bytes(faasmConf.s3Bucket, objFileKey, objBytesA);
+        checkS3bytes(faasmConf.s3Bucket, objFileHashKey, hashBytesA);
     }
 
     SECTION("Test uploading and downloading shared file")
@@ -175,7 +176,7 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 
         // Clear out any existing
         std::string fileKey = "test/dummy_file.txt";
-        s3.deleteKey(conf.s3Bucket, fileKey);
+        s3.deleteKey(faasmConf.s3Bucket, fileKey);
 
         // Check putting the file
         std::string url = fmt::format("/{}/", SHARED_FILE_URL_PART);
@@ -184,7 +185,7 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 
         checkPut(request, 1);
 
-        checkS3bytes(conf.s3Bucket, fileKey, fileBytes);
+        checkS3bytes(faasmConf.s3Bucket, fileKey, fileBytes);
 
         // Check downloading the file
         http_request requestB = createRequest(url, fileBytes);
@@ -211,7 +212,7 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         http_request request = createRequest(url, fileBytes);
         checkPut(request, 1);
 
-        checkS3bytes(conf.s3Bucket, pythonFuncKey, fileBytes);
+        checkS3bytes(faasmConf.s3Bucket, pythonFuncKey, fileBytes);
 
         // Check getting as shared file
         std::string sharedFileUrl = fmt::format("/{}/", SHARED_FILE_URL_PART);
@@ -235,7 +236,7 @@ TEST_CASE_METHOD(UploadTestFixture,
 
     SECTION("WAVM")
     {
-        conf.wasmVm = "wavm";
+        faasmConf.wasmVm = "wavm";
         objFileKey = "gamma/delta/function.wasm.o";
         objFileHashKey = "gamma/delta/function.wasm.o.md5";
         actualObjBytesA = objBytesA;
@@ -246,7 +247,7 @@ TEST_CASE_METHOD(UploadTestFixture,
 
     SECTION("WAMR")
     {
-        conf.wasmVm = "wamr";
+        faasmConf.wasmVm = "wamr";
         objFileKey = "gamma/delta/function.aot";
         objFileHashKey = "gamma/delta/function.aot.md5";
         actualObjBytesA = wamrObjBytesA;
@@ -258,7 +259,7 @@ TEST_CASE_METHOD(UploadTestFixture,
 #ifndef FAASM_SGX_DISABLED_MODE
     SECTION("SGX")
     {
-        conf.wasmVm = "sgx";
+        faasmConf.wasmVm = "sgx";
         objFileKey = "gamma/delta/function.aot.sgx";
         objFileHashKey = "gamma/delta/function.aot.sgx.md5";
         actualObjBytesA = sgxObjBytesA;
@@ -269,28 +270,27 @@ TEST_CASE_METHOD(UploadTestFixture,
 #endif
 
     // Ensure environment is clean before running
-    s3.deleteKey(conf.s3Bucket, fileKey);
-    s3.deleteKey(conf.s3Bucket, objFileKey);
-    s3.deleteKey(conf.s3Bucket, objFileHashKey);
+    s3.deleteKey(faasmConf.s3Bucket, fileKey);
+    s3.deleteKey(faasmConf.s3Bucket, objFileKey);
+    s3.deleteKey(faasmConf.s3Bucket, objFileHashKey);
 
     std::string url = fmt::format("/{}/gamma/delta", FUNCTION_URL_PART);
 
     // First, upload one WASM file under the given path
     http_request request = createRequest(url, wasmBytesA);
     checkPut(request, 3);
-    checkS3bytes(conf.s3Bucket, fileKey, wasmBytesA);
+    checkS3bytes(faasmConf.s3Bucket, fileKey, wasmBytesA);
+    // TODO: FIXME
     // checkS3bytes(conf.s3Bucket, objFileKey, actualObjBytesA);
-    checkS3bytes(conf.s3Bucket, objFileHashKey, actualHashBytesA);
-
-    SPDLOG_INFO("no error thus far!");
+    checkS3bytes(faasmConf.s3Bucket, objFileHashKey, actualHashBytesA);
 
     // Second, upload a different WASM file under the same path, and check that
     // both the WASM file and the machine code have been overwritten
     request = createRequest(url, wasmBytesB);
     checkPut(request, 0);
-    checkS3bytes(conf.s3Bucket, fileKey, wasmBytesB);
-    checkS3bytes(conf.s3Bucket, objFileKey, actualObjBytesB);
-    checkS3bytes(conf.s3Bucket, objFileHashKey, actualHashBytesB);
+    checkS3bytes(faasmConf.s3Bucket, fileKey, wasmBytesB);
+    checkS3bytes(faasmConf.s3Bucket, objFileKey, actualObjBytesB);
+    checkS3bytes(faasmConf.s3Bucket, objFileHashKey, actualHashBytesB);
 }
 
 TEST_CASE_METHOD(UploadTestFixture,

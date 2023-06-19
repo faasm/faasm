@@ -58,7 +58,7 @@ TEST_CASE_METHOD(CodegenTestFixture, "Test basic codegen", "[codegen]")
     REQUIRE(!objBytes.empty());
 
     // Check expected keys in S3
-    REQUIRE(s3.listKeys(conf.s3Bucket).size() == 3);
+    REQUIRE(s3.listKeys(faasmConf.s3Bucket).size() == 3);
 
     // Clear the local cache to remove local copies
     loader.clearLocalCache();
@@ -104,21 +104,21 @@ TEST_CASE_METHOD(CodegenTestFixture,
 
     SECTION("WAVM codegen")
     {
-        conf.wasmVm = "wavm";
+        faasmConf.wasmVm = "wavm";
         objectFileA = "/tmp/obj/demo/hello/function.wasm.o";
         objectFileB = "/tmp/obj/demo/echo/function.wasm.o";
     }
 
     SECTION("WAMR codegen")
     {
-        conf.wasmVm = "wamr";
+        faasmConf.wasmVm = "wamr";
         objectFileA = "/tmp/obj/demo/hello/function.aot";
         objectFileB = "/tmp/obj/demo/echo/function.aot";
     }
 
     SECTION("SGX codegen")
     {
-        conf.wasmVm = "sgx";
+        faasmConf.wasmVm = "sgx";
         objectFileA = "/tmp/obj/demo/hello/function.aot.sgx";
         objectFileB = "/tmp/obj/demo/echo/function.aot.sgx";
     }
@@ -146,7 +146,7 @@ TEST_CASE_METHOD(CodegenTestFixture,
     gen.codegenForFunction(msgB);
 
     // Check keys exist in S3
-    REQUIRE(s3.listKeys(conf.s3Bucket).size() == 6);
+    REQUIRE(s3.listKeys(faasmConf.s3Bucket).size() == 6);
 
     // Check hashes now exist locally
     REQUIRE(std::filesystem::exists(hashFileA));
@@ -294,31 +294,31 @@ TEST_CASE_METHOD(CodegenTestFixture,
     // Do codegen for both in different orders
     SECTION("SGX first")
     {
-        conf.wasmVm = "sgx";
+        faasmConf.wasmVm = "sgx";
         gen.codegenForFunction(msgSgx);
         REQUIRE(std::filesystem::exists(hashFileSgx));
         REQUIRE(!std::filesystem::exists(hashFile));
 
-        conf.wasmVm = "wamr";
+        faasmConf.wasmVm = "wamr";
         gen.codegenForFunction(msg);
         REQUIRE(std::filesystem::exists(hashFile));
     }
 
     SECTION("SGX second")
     {
-        conf.wasmVm = "wamr";
+        faasmConf.wasmVm = "wamr";
         gen.codegenForFunction(msg);
         REQUIRE(std::filesystem::exists(hashFile));
         REQUIRE(!std::filesystem::exists(hashFileSgx));
 
-        conf.wasmVm = "sgx";
+        faasmConf.wasmVm = "sgx";
         gen.codegenForFunction(msgSgx);
         REQUIRE(std::filesystem::exists(hashFileSgx));
     }
 
     // Check hashes in S3
     const std::string preffix = "/tmp/obj/";
-    const std::vector<std::string> bucketKeys = s3.listKeys(conf.s3Bucket);
+    const std::vector<std::string> bucketKeys = s3.listKeys(faasmConf.s3Bucket);
     REQUIRE(std::find(bucketKeys.begin(),
                       bucketKeys.end(),
                       objectFile.substr(preffix.length())) != bucketKeys.end());
