@@ -131,6 +131,7 @@ jobs:
       - name: "Prepare Cpp WASM cache"
         id: submodule-commit
         run: |
+          git submodule status
           echo "cpp-commit=$(git submodule status ./clients/cpp | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
           # We move the libfake shared library to the WASM dir to use only one
           # cache
