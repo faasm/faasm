@@ -14,6 +14,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     int nLocalSlots = 5;
     int worldSize = 4;
     faabric::HostResources res;
+    res.set_usedslots(0);
     res.set_slots(nLocalSlots);
     sch.setThisHostResources(res);
 
