@@ -207,6 +207,8 @@ jobs:
 
   code-coverage:
     needs: [cpp-funcs, py-funcs, conan-cache]
+    # Run the tests both if the dependencies have succeeded or have been
+    # skipped
     if:
       always() &&
       !cancelled() &&
@@ -303,6 +305,8 @@ jobs:
 
   tests:
     needs: [cpp-funcs, py-funcs, conan-cache]
+    # Run the tests both if the dependencies have succeeded or have been
+    # skipped
     if: |
       always() &&
       !cancelled() &&
@@ -403,8 +407,14 @@ jobs:
         run: ./bin/inv_wrapper.sh tests
 
   sgx-tests:
-    if: github.event.pull_request.draft == false
     needs: [cpp-funcs, py-funcs, conan-cache]
+    # Run the tests both if the dependencies have succeeded or have been
+    # skipped
+    if:
+      always() &&
+      !cancelled() &&
+      (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
+      (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: ubuntu-latest
     env:
       HOST_TYPE: ci
@@ -440,6 +450,7 @@ jobs:
       - name: "Get CPP/Python commits"
         id: submodule-commit
         run: |
+          apt install -y zstd
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           echo "cpp-commit=$(git submodule status ./clients/cpp | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
           echo "py-commit=$(git submodule status ./clients/python | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
