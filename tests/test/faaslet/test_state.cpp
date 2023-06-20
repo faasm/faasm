@@ -23,7 +23,7 @@ class StateFuncTestFixture : public FunctionExecTestFixture
     {
         // Set up the function call
         auto req = faabric::util::batchExecFactory("demo", funcName, 1);
-        auto& call = *req->mutable_messages(0);
+        auto call = req->messages(0);
 
         auto fac = std::make_shared<faaslet::FaasletFactory>();
         faabric::runner::FaabricMain m(fac);
@@ -33,7 +33,7 @@ class StateFuncTestFixture : public FunctionExecTestFixture
         sch.callFunctions(req);
 
         // Check result
-        faabric::Message result = sch.getFunctionResult(call, 1);
+        faabric::Message result = sch.getFunctionResult(call, 1000);
         REQUIRE(result.returnvalue() == 0);
 
         REQUIRE(result.outputdata() == expectedOutput);

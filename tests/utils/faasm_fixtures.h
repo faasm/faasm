@@ -34,25 +34,19 @@ class FaasmConfTestFixture
 /**
  * Fixture that sets up a dummy S3 bucket and deletes it after each test.
  */
-class S3TestFixture
+class S3TestFixture : public FaasmConfTestFixture
 {
   public:
     S3TestFixture()
-      : faasmConf(conf::getFaasmConfig())
     {
         faasmConf.s3Bucket = "faasm-test";
         s3.createBucket(faasmConf.s3Bucket);
     };
 
-    ~S3TestFixture()
-    {
-        s3.deleteBucket(faasmConf.s3Bucket);
-        faasmConf.reset();
-    };
+    ~S3TestFixture() { s3.deleteBucket(faasmConf.s3Bucket); };
 
   protected:
     storage::S3Wrapper s3;
-    conf::FaasmConfig& faasmConf;
 };
 
 /**
@@ -103,8 +97,9 @@ class WAVMModuleCacheTestFixture
  * caches etc.).
  */
 class FunctionExecTestFixture
-  : public ExecutorContextTestFixture
-  , public ClientServerFixture
+  : public ExecutorContextFixture
+  , public FunctionCallClientServerFixture
+  , public SchedulerFixture
   , public WAVMModuleCacheTestFixture
   , public IRModuleCacheTestFixture
 {

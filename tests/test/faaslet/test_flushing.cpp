@@ -28,7 +28,8 @@ namespace tests {
 
 class FlushingTestFixture
   : public FunctionLoaderTestFixture
-  , public PlannerClientServerTestFixture
+  , public FunctionCallClientServerFixture
+  , public SchedulerFixture
 {
   public:
     FlushingTestFixture()
@@ -36,7 +37,6 @@ class FlushingTestFixture
     {
         uploadTestWasm();
 
-        // Switch off test mode to allow proper flushing
         faabric::util::setTestMode(false);
     }
 
@@ -177,6 +177,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
     auto invokeReqA = faabric::util::batchExecFactory("demo", "foo", 1);
     auto& invokeMsgA = *invokeReqA->mutable_messages(0);
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+    faabric::scheduler::setExecutorFactory(fac);
     sch.callFunctions(invokeReqA);
 
     // Check the result
@@ -192,7 +193,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
 
     // Upload the second version and check wasm is as expected
     auto invokeReqB = faabric::util::batchExecFactory("demo", "foo", 1);
-    auto& invokeMsgB = *invokeReqB->mutable_messages(0);
+    auto invokeMsgB = invokeReqB->messages(0);
     loader.uploadFunction(uploadMsgB);
     gen.codegenForFunction(uploadMsgB);
 
@@ -200,11 +201,11 @@ TEST_CASE_METHOD(FlushingTestFixture,
     REQUIRE(wasmAfterUpload == wasmBytesB);
 
     // Invoke for the second time
-    invokeMsgB.set_inputdata(inputB);
+    invokeReqB->mutable_messages(0)->set_inputdata(inputB);
     sch.callFunctions(invokeReqB);
 
     // Check the output has changed to the second function
-    faabric::Message resultB = sch.getFunctionResult(invokeMsgB, 1);
+    faabric::Message resultB = sch.getFunctionResult(invokeMsgB, 1000);
     REQUIRE(resultB.returnvalue() == 0);
     REQUIRE(resultB.outputdata() == inputB);
 

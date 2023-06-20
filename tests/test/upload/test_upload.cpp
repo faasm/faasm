@@ -24,7 +24,7 @@ namespace tests {
 
 class UploadTestFixture
   : public FunctionLoaderTestFixture
-  , public RedisTestFixture
+  , public RedisFixture
 {
   public:
     UploadTestFixture() {}

@@ -16,7 +16,7 @@ class MPIFuncTestFixture
   : public MpiBaseTestFixture
   , public WAVMModuleCacheTestFixture
   , public IRModuleCacheTestFixture
-  , public ExecutorContextTestFixture
+  , public ExecutorContextFixture
 {
   public:
     MPIFuncTestFixture()

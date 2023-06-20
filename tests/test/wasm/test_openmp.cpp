@@ -20,7 +20,8 @@ namespace tests {
 
 class OpenMPTestFixture
   : public FunctionExecTestFixture
-  , public SnapshotTestFixture
+  , public SnapshotRegistryFixture
+  , public ConfFixture
 {
   public:
     OpenMPTestFixture() { conf.overrideCpuCount = 30; }

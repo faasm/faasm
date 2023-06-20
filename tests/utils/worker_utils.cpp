@@ -5,6 +5,7 @@
 #include <conf/FaasmConfig.h>
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/runner/FaabricMain.h>
+#include <faabric/util/gids.h>
 #include <faaslet/Faaslet.h>
 
 using namespace faaslet;
@@ -78,6 +79,15 @@ void executeWithPoolMultipleTimes(
   int numRepeats)
 {
     for (int i = 0; i < numRepeats; i++) {
+        // We must give each message in the request a different id, as faasm
+        // expects message ids to be unique (and executing the same request
+        // multiple times breaks this assumption)
+        int appId = faabric::util::generateGid();
+        for (auto& msg : *req->mutable_messages()) {
+            msg.set_appid(appId);
+            msg.set_id(faabric::util::generateGid());
+        }
+
         executeWithPool(req);
     }
 }
@@ -86,8 +96,6 @@ bool executeWithPoolGetBooleanResult(
   std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
     auto resultMsg = executeWithPool(req).at(0);
-
-    SPDLOG_WARN("Result: {}", resultMsg.outputdata());
 
     return resultMsg.outputdata() == "success";
 }

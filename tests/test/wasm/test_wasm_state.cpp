@@ -12,7 +12,7 @@ using namespace WAVM;
 
 namespace tests {
 
-class WasmStateTestFixture : public StateTestFixture
+class WasmStateTestFixture : public StateFixture
 {
   public:
     void checkMapping(wasm::WAVMWasmModule& module,
