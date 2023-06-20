@@ -13,7 +13,9 @@ using namespace faaslet;
 
 namespace tests {
 
-class StateFuncTestFixture : public FunctionExecTestFixture
+class StateFuncTestFixture
+  : public FunctionExecTestFixture
+  , public StateFixture
 {
   public:
     void checkStateExample(const std::string& funcName,

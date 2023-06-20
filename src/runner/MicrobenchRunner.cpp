@@ -64,7 +64,7 @@ int MicrobenchRunner::doRun(std::ofstream& outFs,
     redis.flushAll();
 
     auto req = createBatchRequest(user, function, inputData);
-    faabric::Message& msg = req->mutable_messages()->at(0);
+    faabric::Message msg = req->messages().at(0);
 
     // Check files have been uploaded
     storage::FileLoader& loader = storage::getFileLoader();
@@ -93,6 +93,11 @@ int MicrobenchRunner::doRun(std::ofstream& outFs,
 
     // Main loop
     for (int r = 0; r < nRuns; r++) {
+        // Create a new batch request for each execution, Faasm requires
+        // request/message ids to be unique
+        req = createBatchRequest(user, function, inputData);
+        msg = req->messages().at(0);
+
         // Execute
         TimePoint execStart = startTimer();
         sch.callFunctions(req);
