@@ -87,8 +87,9 @@ int MicrobenchRunner::doRun(std::ofstream& outFs,
     // Preflight if necessary
     if (PREFLIGHT_CALLS) {
         auto preflightReq = createBatchRequest(user, function, inputData);
+        auto preflightMsg = preflightReq->messages(0);
         sch.callFunctions(preflightReq);
-        sch.getFunctionResult(preflightReq->messages().at(0), 10000);
+        sch.getFunctionResult(preflightMsg, 10000);
     }
 
     // Main loop
