@@ -175,7 +175,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
 
     // Call the function
     auto invokeReqA = faabric::util::batchExecFactory("demo", "foo", 1);
-    auto& invokeMsgA = *invokeReqA->mutable_messages(0);
+    auto invokeMsgA = invokeReqA->messages(0);
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     faabric::scheduler::setExecutorFactory(fac);
     sch.callFunctions(invokeReqA);

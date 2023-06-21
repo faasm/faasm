@@ -38,13 +38,13 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
                  "[exec-graph][mpi]")
 {
     auto req = faabric::util::batchExecFactory("mpi", "mpi_bcast", 1);
-    auto& call = *req->mutable_messages(0);
-    call.set_mpiworldsize(5);
+    auto call = req->messages(0);
+    req->mutable_messages(0)->set_mpiworldsize(5);
     int expectedNumNodes;
 
     SECTION("Turn recording on")
     {
-        call.set_recordexecgraph(true);
+        req->mutable_messages(0)->set_recordexecgraph(true);
         expectedNumNodes = 5;
     }
 

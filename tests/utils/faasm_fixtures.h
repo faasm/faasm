@@ -158,7 +158,7 @@ class FunctionLoaderTestFixture : public S3TestFixture
         wamrHashBytesB = loader.loadFunctionWamrAotHash(msgB);
 
 #ifndef FAASM_SGX_DISABLED_MODE
-        conf.wasmVm = "sgx";
+        faasmConf.wasmVm = "sgx";
         sgxObjBytesA = loader.loadFunctionWamrAotFile(msgA);
         sgxObjBytesB = loader.loadFunctionWamrAotFile(msgB);
         sgxHashBytesA = loader.loadFunctionWamrAotHash(msgA);

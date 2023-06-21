@@ -10,7 +10,9 @@ namespace tests {
 // ------
 
 std::vector<faabric::Message> waitForBatchResults(
-  std::shared_ptr<faabric::BatchExecuteRequest> req,
+  bool isThreads,
+  int appId,
+  const std::set<int>& msgIds,
   int timeoutMs,
   bool requireSuccess);
 
