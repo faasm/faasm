@@ -14,7 +14,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[sgx]")
 {
     auto req = setUpContext("demo", "hello");
-    conf.wasmVm = "sgx";
+    faasmConf.wasmVm = "sgx";
 
     executeWithPool(req);
 }
@@ -24,7 +24,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[sgx]")
 {
     auto req = setUpContext("demo", "hello");
-    conf.wasmVm = "sgx";
+    faasmConf.wasmVm = "sgx";
 
     executeWithPool(req, 10000);
 }
