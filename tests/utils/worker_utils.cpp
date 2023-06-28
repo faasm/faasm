@@ -12,12 +12,11 @@ using namespace faaslet;
 
 namespace tests {
 
-std::vector<faabric::Message> waitForBatchResults(
-  bool isThreads,
-  int appId,
-  const std::set<int>& msgIds,
-  int timeoutMs,
-  bool requireSuccess)
+std::vector<faabric::Message> waitForBatchResults(bool isThreads,
+                                                  int appId,
+                                                  const std::set<int>& msgIds,
+                                                  int timeoutMs,
+                                                  bool requireSuccess)
 {
     auto& sch = faabric::scheduler::getScheduler();
 
@@ -34,7 +33,8 @@ std::vector<faabric::Message> waitForBatchResults(
             result.set_returnvalue(returnValue);
             resultMsgs.push_back(result);
         } else {
-            faabric::Message result = sch.getFunctionResult(appId, msgId, 20000);
+            faabric::Message result =
+              sch.getFunctionResult(appId, msgId, 20000);
             if (requireSuccess) {
                 REQUIRE(result.returnvalue() == 0);
             }
@@ -82,7 +82,8 @@ std::vector<faabric::Message> executeWithPool(
     usleep(1000 * 500);
 
     // Wait for all functions to complete
-    auto resultMsgs = waitForBatchResults(isThreads, appId, reqMsgIds, timeoutMs, requireSuccess);
+    auto resultMsgs = waitForBatchResults(
+      isThreads, appId, reqMsgIds, timeoutMs, requireSuccess);
 
     m.shutdown();
 

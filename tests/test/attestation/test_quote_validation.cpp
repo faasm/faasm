@@ -9,7 +9,8 @@ TEST_CASE_METHOD(FaasmConfTestFixture,
                  "Test SGX quote validation",
                  "[attestation]")
 {
-    faasmConf.attestationProviderUrl = "https://faasmattprov.eus2.attest.azure.net";
+    faasmConf.attestationProviderUrl =
+      "https://faasmattprov.eus2.attest.azure.net";
     std::string quoteFilePath;
     bool expectedSuccess;
 

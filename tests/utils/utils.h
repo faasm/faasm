@@ -9,12 +9,11 @@ namespace tests {
 // Base functions to execute a batch in a runner pool
 // ------
 
-std::vector<faabric::Message> waitForBatchResults(
-  bool isThreads,
-  int appId,
-  const std::set<int>& msgIds,
-  int timeoutMs,
-  bool requireSuccess);
+std::vector<faabric::Message> waitForBatchResults(bool isThreads,
+                                                  int appId,
+                                                  const std::set<int>& msgIds,
+                                                  int timeoutMs,
+                                                  bool requireSuccess);
 
 std::vector<faabric::Message> executeWithPool(
   std::shared_ptr<faabric::BatchExecuteRequest> req,
