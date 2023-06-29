@@ -17,17 +17,6 @@ namespace tests {
 
 class DistTestsFixture
 {
-  protected:
-    faabric::redis::Redis& redis;
-    faabric::scheduler::Scheduler& sch;
-    faabric::util::SystemConfig& conf;
-    conf::FaasmConfig& faasmConf;
-
-    int functionCallTimeout = 60000;
-
-    std::string masterIp;
-    std::string workerIp;
-
   public:
     DistTestsFixture()
       : redis(faabric::redis::Redis::getQueue())
@@ -42,7 +31,7 @@ class DistTestsFixture
         resetPlanner();
 
         // Clean up the scheduler
-        sch.shutdown();
+        sch.reset();
 
         // Set slots
         setLocalRemoteSlots(faabric::util::getUsableCores(),
@@ -87,6 +76,17 @@ class DistTestsFixture
         remoteResources->set_usedslots(nRemoteUsedSlots);
         sch.addHostToGlobalSet(getDistTestWorkerIp(), remoteResources);
     }
+
+  protected:
+    faabric::redis::Redis& redis;
+    faabric::scheduler::Scheduler& sch;
+    faabric::util::SystemConfig& conf;
+    conf::FaasmConfig& faasmConf;
+
+    int functionCallTimeout = 60000;
+
+    std::string masterIp;
+    std::string workerIp;
 };
 
 class MpiDistTestsFixture : public DistTestsFixture
