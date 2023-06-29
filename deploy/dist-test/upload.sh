@@ -9,6 +9,7 @@ pushd ${PROJ_ROOT} > /dev/null
 export FAASM_BUILD_MOUNT=/build/faasm
 export FAASM_CODE_MOUNT=/usr/local/code/faasm
 export FAASM_CONAN_MOUNT=/root/.conan
+export PLANNER_BUILD_MOUNT=${FAASM_BUILD_MOUNT}
 
 # Make sure upload server is running
 docker compose \
