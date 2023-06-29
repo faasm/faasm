@@ -80,6 +80,7 @@ export FAASM_BUILD_MOUNT=/build/faasm
 export FAASM_CODE_MOUNT=/usr/local/code/faasm
 export FAASM_CONAN_MOUNT=/root/.conan
 export FAASM_LOCAL_MOUNT=/usr/local/faasm
+export PLANNER_BUILD_MOUNT=${FAASM_BUILD_MOUNT}
 
 # Make sure the CLI is running already in the background (avoids creating a new
 # container every time)
