@@ -40,6 +40,7 @@ def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
     env["FAASM_BUILD_DIR"] = join(PROJ_ROOT, "dev/faasm/build")
     env["FAASM_BUILD_MOUNT"] = "/build/faasm"
     env["FAASM_LOCAL_MOUNT"] = "/usr/local/faasm"
+    env["PLANNER_BUILD_MOUNT"] = env["FAASM_BUILD_MOUNT"]
 
     faasm_ver = get_version()
     if sgx == FAASM_SGX_MODE_SIM:

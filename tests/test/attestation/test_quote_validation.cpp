@@ -9,7 +9,8 @@ TEST_CASE_METHOD(FaasmConfTestFixture,
                  "Test SGX quote validation",
                  "[attestation]")
 {
-    conf.attestationProviderUrl = "https://faasmattprov.eus2.attest.azure.net";
+    faasmConf.attestationProviderUrl =
+      "https://faasmattprov.eus2.attest.azure.net";
     std::string quoteFilePath;
     bool expectedSuccess;
 
@@ -31,10 +32,10 @@ TEST_CASE_METHOD(FaasmConfTestFixture,
 
     if (expectedSuccess) {
         REQUIRE_NOTHROW(
-          sgx::validateQuote(enclaveInfo, conf.attestationProviderUrl));
+          sgx::validateQuote(enclaveInfo, faasmConf.attestationProviderUrl));
     } else {
         REQUIRE_THROWS(
-          sgx::validateQuote(enclaveInfo, conf.attestationProviderUrl));
+          sgx::validateQuote(enclaveInfo, faasmConf.attestationProviderUrl));
     }
 }
 }

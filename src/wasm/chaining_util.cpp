@@ -17,10 +17,10 @@ int awaitChainedCall(unsigned int messageId)
 
     int returnCode = 1;
     try {
-        auto msg = exec->getChainedMessage(messageId);
+        int appId = exec->getBoundMessage().appid();
         faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
         const faabric::Message result =
-          sch.getFunctionResult(msg, callTimeoutMs);
+          sch.getFunctionResult(appId, messageId, callTimeoutMs);
         returnCode = result.returnvalue();
     } catch (faabric::scheduler::ChainedCallException& ex) {
         SPDLOG_ERROR(

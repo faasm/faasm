@@ -25,6 +25,7 @@ TEST_CASE_METHOD(DistTestsFixture,
     std::string workerIp = getDistTestWorkerIp();
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("demo", "echo", nMessages);
+    int appId = req->messages(0).appid();
     for (int i = 0; i < 3; i++) {
         faabric::Message& msg = req->mutable_messages()->at(i);
         msg.set_inputdata(fmt::format("foobar {}", i));
@@ -39,7 +40,7 @@ TEST_CASE_METHOD(DistTestsFixture,
     // Check it's successful
     for (int i = 0; i < 3; i++) {
         faabric::Message result =
-          sch.getFunctionResult(req->messages(i), functionCallTimeout);
+          sch.getFunctionResult(appId, msgIds.at(i), functionCallTimeout);
         REQUIRE(result.returnvalue() == 0);
         REQUIRE(result.outputdata() == fmt::format("foobar {}", i));
         REQUIRE(result.executedhost() == workerIp);

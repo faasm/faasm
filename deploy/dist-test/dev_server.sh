@@ -7,6 +7,7 @@ pushd ${PROJ_ROOT} > /dev/null
 
 export FAASM_BUILD_MOUNT=/build/faasm
 export FAASM_LOCAL_MOUNT=/usr/local/faasm
+export PLANNER_BUILD_MOUNT=${FAASM_BUILD_MOUNT}
 
 if [[ -z "$1" ]]; then
     docker compose up -d dist-test-server

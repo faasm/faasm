@@ -94,8 +94,7 @@ TEST_CASE_METHOD(FileDescriptorTestFixture, "Test stat and mkdir", "[storage]")
 
     std::string dummyDir = "fs_test_dir";
 
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    std::string realDir = conf.runtimeFilesDir + "/" + dummyDir;
+    std::string realDir = faasmConf.runtimeFilesDir + "/" + dummyDir;
     if (boost::filesystem::exists(realDir)) {
         boost::filesystem::remove_all(realDir);
     }
@@ -129,14 +128,13 @@ TEST_CASE_METHOD(FileDescriptorTestFixture,
     std::string dummyPath = dummyDir + "/dummy_file.txt";
 
     // Set up the directory
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    std::string realDir = conf.runtimeFilesDir + "/" + dummyDir;
+    std::string realDir = faasmConf.runtimeFilesDir + "/" + dummyDir;
     if (!boost::filesystem::exists(realDir)) {
         boost::filesystem::create_directories(realDir);
     }
 
     // Remove the file
-    std::string realPath = conf.runtimeFilesDir + "/" + dummyPath;
+    std::string realPath = faasmConf.runtimeFilesDir + "/" + dummyPath;
     boost::filesystem::remove(realPath);
 
     // Stat the file to begin with
@@ -195,7 +193,7 @@ TEST_CASE_METHOD(FileDescriptorTestFixture, "Test seek", "[storage]")
     SECTION("Local file")
     {
         dummyPath = "dummy_test_file.txt";
-        realPath = conf.runtimeFilesDir + "/" + dummyPath;
+        realPath = faasmConf.runtimeFilesDir + "/" + dummyPath;
         contentPath = realPath;
         faabric::util::writeBytesToFile(realPath, contents);
     }
@@ -301,7 +299,8 @@ void checkWasiDirentInBuffer(uint8_t* buffer, DirEnt e)
     auto wasiDirent = faabric::util::unalignedRead<__wasi_dirent_t>(
       reinterpret_cast<std::uint8_t*>(buffer));
 
-    auto direntPathPtr = reinterpret_cast<const char*>(buffer + wasiDirentSize);
+    const auto* direntPathPtr =
+      reinterpret_cast<const char*>(buffer + wasiDirentSize);
     std::string_view direntPath(direntPathPtr, direntPathPtr + e.path.size());
 
     REQUIRE(wasiDirent.d_namlen == e.path.size());

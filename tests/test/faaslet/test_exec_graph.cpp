@@ -27,7 +27,7 @@ TEST_CASE_METHOD(
     faabric::Message result = sch.getFunctionResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
-    auto execGraph = sch.getFunctionExecGraph(call.id());
+    auto execGraph = sch.getFunctionExecGraph(call);
     int numNodes = faabric::scheduler::countExecGraphNodes(execGraph);
     REQUIRE(numNodes == expectedNumNodes);
     REQUIRE(execGraph.rootNode.msg.id() == call.id());
@@ -38,13 +38,13 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
                  "[exec-graph][mpi]")
 {
     auto req = faabric::util::batchExecFactory("mpi", "mpi_bcast", 1);
-    auto& call = *req->mutable_messages(0);
-    call.set_mpiworldsize(5);
+    auto call = req->messages(0);
+    req->mutable_messages(0)->set_mpiworldsize(5);
     int expectedNumNodes;
 
     SECTION("Turn recording on")
     {
-        call.set_recordexecgraph(true);
+        req->mutable_messages(0)->set_recordexecgraph(true);
         expectedNumNodes = 5;
     }
 
@@ -54,7 +54,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     faabric::Message result = sch.getFunctionResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
-    auto execGraph = sch.getFunctionExecGraph(call.id());
+    auto execGraph = sch.getFunctionExecGraph(call);
     int numNodes = faabric::scheduler::countExecGraphNodes(execGraph);
     REQUIRE(numNodes == expectedNumNodes);
     REQUIRE(execGraph.rootNode.msg.id() == call.id());

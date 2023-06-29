@@ -48,7 +48,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     REQUIRE(result.returnvalue() == 0);
 
     // Check that we have indeed migrated
-    auto execGraph = sch.getFunctionExecGraph(msg.id());
+    auto execGraph = sch.getFunctionExecGraph(msg);
     std::vector<std::string> expectedHostsBefore = { getDistTestMasterIp(),
                                                      getDistTestMasterIp(),
                                                      getDistTestWorkerIp(),
@@ -95,7 +95,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     REQUIRE(result.returnvalue() == 0);
 
     // Get the execution graph
-    auto execGraph = sch.getFunctionExecGraph(msg.id());
+    auto execGraph = sch.getFunctionExecGraph(msg);
 
     // Prepare the expectation
     std::vector<std::string> expectedHostsBefore = { getDistTestMasterIp(),

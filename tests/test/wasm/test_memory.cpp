@@ -61,8 +61,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[wasm]")
 {
     // Test different WASM VMs
-    SECTION("WAVM") { conf.wasmVm = "wavm"; }
-    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     wasm::WAVMWasmModule module;
@@ -157,9 +157,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 {
     auto req = setUpContext("demo", "mmap");
 
-    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
     REQUIRE(executeWithPoolGetBooleanResult(req));
 }
@@ -168,9 +168,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test big mmap", "[wasm]")
 {
     auto req = setUpContext("demo", "mmap_big");
 
-    SECTION("WAVM") { conf.wasmVm = "wavm"; }
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-    SECTION("WAMR") { conf.wasmVm = "wamr"; }
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
     executeWithPool(req);
 }

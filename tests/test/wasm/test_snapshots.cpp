@@ -24,10 +24,10 @@ using namespace wasm;
 namespace tests {
 
 class WasmSnapTestFixture
-  : public RedisTestFixture
-  , public SchedulerTestFixture
-  , public SnapshotTestFixture
-  , public ConfTestFixture
+  : public RedisFixture
+  , public SchedulerFixture
+  , public SnapshotRegistryFixture
+  , public ConfFixture
 {
   public:
     WasmSnapTestFixture() { wasm::getWAVMModuleCache().clear(); }
