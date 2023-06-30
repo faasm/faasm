@@ -1,4 +1,4 @@
-from faasmcli.util.endpoints import get_invoke_host_port, get_planner_host_port
+from faasmcli.util.endpoints import get_planner_host_port
 from faasmcli.util.http import do_post
 from faasmcli.util.planner import PLANNER_MESSAGE_TYPE
 from invoke import task
