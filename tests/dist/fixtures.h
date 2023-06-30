@@ -55,9 +55,11 @@ class DistTestsFixture
 
     ~DistTestsFixture()
     {
-        sch.broadcastFlush();
         conf.reset();
         faasmConf.reset();
+        // Flush before resetting, as otherwise the planner won't have any
+        // recorded hosts
+        flushPlannerWorkers();
         resetPlanner();
     }
 
