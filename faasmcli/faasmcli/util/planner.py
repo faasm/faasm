@@ -3,4 +3,5 @@
 PLANNER_MESSAGE_TYPE = {
     "RESET": 1,
     "FLUSH_HOSTS": 2,
+    "FLUSH_EXECUTORS": 3,
 }
