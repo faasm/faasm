@@ -3,6 +3,7 @@
 #include "fixtures.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/ExecGraph.h>
 
 #include <set>
 
@@ -35,11 +36,10 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     REQUIRE(result.returnvalue() == 0);
 
     // Check exec graph
-    auto execGraph = sch.getFunctionExecGraph(result);
-    int numNodes = faabric::scheduler::countExecGraphNodes(execGraph);
+    auto execGraph = faabric::util::getFunctionExecGraph(result);
+    int numNodes = faabric::util::countExecGraphNodes(execGraph);
     REQUIRE(numNodes == mpiWorldSize);
-    std::set<std::string> hosts =
-      faabric::scheduler::getExecGraphHosts(execGraph);
+    std::set<std::string> hosts = faabric::util::getExecGraphHosts(execGraph);
     REQUIRE(hosts.size() == 2);
     std::vector<std::string> expectedHosts = { getDistTestMasterIp(),
                                                getDistTestMasterIp(),

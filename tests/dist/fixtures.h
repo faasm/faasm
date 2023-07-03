@@ -6,12 +6,12 @@
 
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
-#include <faaslet/Faaslet.h>
-#include <storage/FileLoader.h>
-
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/ExecGraph.h>
 #include <faabric/util/func.h>
 #include <faabric/util/network.h>
+#include <faaslet/Faaslet.h>
+#include <storage/FileLoader.h>
 
 namespace tests {
 
@@ -95,16 +95,16 @@ class MpiDistTestsFixture : public DistTestsFixture
 {
   public:
     void checkSchedulingFromExecGraph(
-      const faabric::scheduler::ExecGraph& execGraph,
+      const faabric::util::ExecGraph& execGraph,
       const std::vector<std::string> expectedHosts)
     {
         std::vector<std::string> hostForRank =
-          faabric::scheduler::getMpiRankHostsFromExecGraph(execGraph);
+          faabric::util::getMpiRankHostsFromExecGraph(execGraph);
         REQUIRE(expectedHosts == hostForRank);
     }
 
     void checkSchedulingFromExecGraph(
-      const faabric::scheduler::ExecGraph& execGraph,
+      const faabric::util::ExecGraph& execGraph,
       const std::vector<std::string> expectedHostsBefore,
       const std::vector<std::string> expectedHostsAfter)
     {
@@ -114,7 +114,7 @@ class MpiDistTestsFixture : public DistTestsFixture
           execGraph.rootNode.msg.mpiworldsize());
 
         auto actualHostsBeforeAndAfter =
-          faabric::scheduler::getMigratedMpiRankHostsFromExecGraph(execGraph);
+          faabric::util::getMigratedMpiRankHostsFromExecGraph(execGraph);
 
         REQUIRE(actualHostsBeforeAndAfter.first == expectedHostsBefore);
         REQUIRE(actualHostsBeforeAndAfter.second == expectedHostsAfter);

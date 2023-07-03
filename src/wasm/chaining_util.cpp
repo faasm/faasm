@@ -1,5 +1,6 @@
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/ExecGraph.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
@@ -98,7 +99,7 @@ int makeChainedCall(const std::string& functionName,
 
     sch.callFunctions(req);
     if (originalCall->recordexecgraph()) {
-        sch.logChainedFunction(*originalCall, msg);
+        faabric::util::logChainedFunction(*originalCall, msg);
     }
 
     return msg.id();

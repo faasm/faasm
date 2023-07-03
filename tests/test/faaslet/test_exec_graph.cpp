@@ -2,8 +2,8 @@
 
 #include "faasm_fixtures.h"
 
-#include <faabric/scheduler/ExecGraph.h>
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/ExecGraph.h>
 
 namespace tests {
 TEST_CASE_METHOD(
@@ -27,8 +27,8 @@ TEST_CASE_METHOD(
     faabric::Message result = sch.getFunctionResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
-    auto execGraph = sch.getFunctionExecGraph(call);
-    int numNodes = faabric::scheduler::countExecGraphNodes(execGraph);
+    auto execGraph = faabric::util::getFunctionExecGraph(call);
+    int numNodes = faabric::util::countExecGraphNodes(execGraph);
     REQUIRE(numNodes == expectedNumNodes);
     REQUIRE(execGraph.rootNode.msg.id() == call.id());
 }
@@ -54,8 +54,8 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     faabric::Message result = sch.getFunctionResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
-    auto execGraph = sch.getFunctionExecGraph(call);
-    int numNodes = faabric::scheduler::countExecGraphNodes(execGraph);
+    auto execGraph = faabric::util::getFunctionExecGraph(call);
+    int numNodes = faabric::util::countExecGraphNodes(execGraph);
     REQUIRE(numNodes == expectedNumNodes);
     REQUIRE(execGraph.rootNode.msg.id() == call.id());
 }

@@ -3,6 +3,7 @@
 #include "fixtures.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/ExecGraph.h>
 
 namespace tests {
 
@@ -48,8 +49,8 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     REQUIRE(result.returnvalue() == 0);
 
     // Get the execution graph for both requests
-    auto execGraph = sch.getFunctionExecGraph(result);
-    auto execGraphCopy = sch.getFunctionExecGraph(resultCopy);
+    auto execGraph = faabric::util::getFunctionExecGraph(result);
+    auto execGraphCopy = faabric::util::getFunctionExecGraph(resultCopy);
 
     // Builld the expectation for both requests
     std::vector<std::string> expectedHosts(worldSize, getDistTestMasterIp());
