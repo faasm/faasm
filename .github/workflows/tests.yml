@@ -212,6 +212,7 @@ jobs:
     if:
       always() &&
       !cancelled() &&
+      github.event.pull_request.draft == false &&
       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: ubuntu-latest
@@ -310,6 +311,7 @@ jobs:
     if: |
       always() &&
       !cancelled() &&
+      github.event.pull_request.draft == false &&
       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: ubuntu-latest
