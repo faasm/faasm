@@ -70,6 +70,7 @@ jobs:
   # submodule. Additionally, even if there are no changes, we also want to run
   # `clients/cpp` and `clients/python` if the WASM cache is not in place
   wasm-funcs-cache:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     outputs:
       needs-cpp-wasm: ${{ (steps.filter.outputs.cpp-changed == 'true') || (steps.wasm-cpp-cache.outputs.cache-hit != 'true') }}
@@ -415,6 +416,7 @@ jobs:
     if:
       always() &&
       !cancelled() &&
+      github.event.pull_request.draft == false &&
       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: ubuntu-latest
