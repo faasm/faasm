@@ -504,6 +504,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         wasm_vm: [wamr, wavm]
     env:
