@@ -3,6 +3,7 @@
 #include "fixtures.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/ExecGraph.h>
 
 namespace tests {
 
@@ -41,15 +42,12 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     sch.callFunctions(reqCopy);
 
     // Check both results are successful
-    faabric::Message result = sch.getFunctionResult(msg, functionCallTimeout);
-    REQUIRE(result.returnvalue() == 0);
-    faabric::Message resultCopy =
-      sch.getFunctionResult(msgCopy, functionCallTimeout);
-    REQUIRE(result.returnvalue() == 0);
+    auto result = getMpiBatchResult(msg);
+    auto resultCopy = getMpiBatchResult(msgCopy);
 
     // Get the execution graph for both requests
-    auto execGraph = sch.getFunctionExecGraph(result);
-    auto execGraphCopy = sch.getFunctionExecGraph(resultCopy);
+    auto execGraph = faabric::util::getFunctionExecGraph(result);
+    auto execGraphCopy = faabric::util::getFunctionExecGraph(resultCopy);
 
     // Builld the expectation for both requests
     std::vector<std::string> expectedHosts(worldSize, getDistTestMasterIp());

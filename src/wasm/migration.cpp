@@ -1,6 +1,7 @@
 #include <faabric/mpi/MpiWorldRegistry.h>
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/ExecGraph.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/migration.h>
 
@@ -95,7 +96,7 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
         sch.callFunctions(req, decision);
 
         if (call->recordexecgraph()) {
-            sch.logChainedFunction(*call, msg);
+            faabric::util::logChainedFunction(*call, msg);
         }
 
         auto ex =

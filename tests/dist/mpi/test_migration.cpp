@@ -3,6 +3,7 @@
 #include "fixtures.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/ExecGraph.h>
 
 #include <set>
 
@@ -44,11 +45,10 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     sch.setThisHostResources(res);
 
     // Check it's successful
-    faabric::Message result = sch.getFunctionResult(msg, functionCallTimeout);
-    REQUIRE(result.returnvalue() == 0);
+    auto result = getMpiBatchResult(msg, true);
 
     // Check that we have indeed migrated
-    auto execGraph = sch.getFunctionExecGraph(msg);
+    auto execGraph = faabric::util::getFunctionExecGraph(msg);
     std::vector<std::string> expectedHostsBefore = { getDistTestMasterIp(),
                                                      getDistTestMasterIp(),
                                                      getDistTestWorkerIp(),
@@ -91,11 +91,10 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result = sch.getFunctionResult(msg, functionCallTimeout);
-    REQUIRE(result.returnvalue() == 0);
+    auto result = getMpiBatchResult(msg, true);
 
     // Get the execution graph
-    auto execGraph = sch.getFunctionExecGraph(msg);
+    auto execGraph = faabric::util::getFunctionExecGraph(msg);
 
     // Prepare the expectation
     std::vector<std::string> expectedHostsBefore = { getDistTestMasterIp(),
