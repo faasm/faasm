@@ -94,6 +94,29 @@ class DistTestsFixture
 class MpiDistTestsFixture : public DistTestsFixture
 {
   public:
+    // Given the main MPI message (rank == 0) wait for that message and all the
+    // chained messages, and return the result for the main one
+    faabric::Message getMpiBatchResult(const faabric::Message& firstMsg,
+                                       bool skipChainedCheck = false)
+    {
+        int appId = firstMsg.appid();
+        int firstMsgId = firstMsg.id();
+        faabric::Message result =
+          sch.getFunctionResult(appId, firstMsgId, functionCallTimeout);
+        REQUIRE(result.returnvalue() == 0);
+        // Wait for all chained messages too
+        for (const int chainedId :
+             faabric::util::getChainedFunctions(firstMsg)) {
+            auto chainedResult =
+              sch.getFunctionResult(appId, chainedId, functionCallTimeout);
+            if (!skipChainedCheck) {
+                REQUIRE(chainedResult.returnvalue() == 0);
+            }
+        }
+
+        return result;
+    }
+
     void checkSchedulingFromExecGraph(
       const faabric::util::ExecGraph& execGraph,
       const std::vector<std::string> expectedHosts)

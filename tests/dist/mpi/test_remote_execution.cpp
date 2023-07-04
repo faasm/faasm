@@ -23,17 +23,16 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("mpi", "mpi_bcast", 1);
-    faabric::Message& msg = req->mutable_messages()->at(0);
-    msg.set_ismpi(true);
-    msg.set_mpiworldsize(mpiWorldSize);
-    msg.set_recordexecgraph(true);
+    req->mutable_messages(0)->set_ismpi(true);
+    req->mutable_messages(0)->set_mpiworldsize(mpiWorldSize);
+    req->mutable_messages(0)->set_recordexecgraph(true);
+    faabric::Message firstMsg = req->messages(0);
 
     // Call the functions
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result = sch.getFunctionResult(msg, functionCallTimeout);
-    REQUIRE(result.returnvalue() == 0);
+    auto result = getMpiBatchResult(firstMsg);
 
     // Check exec graph
     auto execGraph = faabric::util::getFunctionExecGraph(result);
