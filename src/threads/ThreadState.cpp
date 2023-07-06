@@ -1,3 +1,4 @@
+#include <conf/FaasmConfig.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/barrier.h>
@@ -10,8 +11,6 @@
 #include <faabric/util/macros.h>
 #include <faabric/util/snapshot.h>
 #include <faabric/util/timing.h>
-
-#include <conf/FaasmConfig.h>
 #include <threads/ThreadState.h>
 
 using namespace faabric::util;
@@ -31,7 +30,7 @@ void setCurrentOpenMPLevel(
   const std::shared_ptr<faabric::BatchExecuteRequest> req)
 {
     if (req->contextdata().empty()) {
-        SPDLOG_ERROR("Empty OpenMP context for {}", req->id());
+        SPDLOG_ERROR("Empty OpenMP context for {}", req->appid());
         throw std::runtime_error("Empty context for OpenMP request");
     }
 

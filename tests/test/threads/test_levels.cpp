@@ -1,11 +1,11 @@
-#include "utils.h"
 #include <catch2/catch.hpp>
 
-#include <faabric/proto/faabric.pb.h>
-#include <faabric/util/bytes.h>
-#include <faabric/util/func.h>
-#include <faabric/util/macros.h>
+#include "utils.h"
 
+#include <faabric/proto/faabric.pb.h>
+#include <faabric/util/batch.h>
+#include <faabric/util/bytes.h>
+#include <faabric/util/macros.h>
 #include <threads/ThreadState.h>
 
 using namespace threads;

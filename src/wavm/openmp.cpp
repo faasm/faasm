@@ -1,14 +1,10 @@
-#include <WAVM/Platform/Thread.h>
-#include <WAVM/Runtime/Intrinsics.h>
-#include <WAVM/Runtime/Runtime.h>
-
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/StateKeyValue.h>
 #include <faabric/transport/PointToPointBroker.h>
-#include <faabric/util/func.h>
+#include <faabric/util/batch.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
@@ -18,11 +14,14 @@
 #include <faabric/util/snapshot.h>
 #include <faabric/util/string_tools.h>
 #include <faabric/util/timing.h>
-
 #include <threads/ThreadState.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
+
+#include <WAVM/Platform/Thread.h>
+#include <WAVM/Runtime/Intrinsics.h>
+#include <WAVM/Runtime/Runtime.h>
 
 using namespace WAVM;
 using namespace faabric::scheduler;

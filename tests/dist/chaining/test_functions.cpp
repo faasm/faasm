@@ -3,6 +3,7 @@
 #include "fixtures.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/batch.h>
 #include <faabric/util/logging.h>
 
 namespace tests {
