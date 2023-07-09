@@ -239,7 +239,7 @@ jobs:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
       planner:
-        image: faasm.azurecr.io/planner:0.4.5
+        image: faasm.azurecr.io/planner:0.4.6
     steps:
       - uses: faasm/conan-cache-action@v1
       - name: "Ping redis"
@@ -442,7 +442,7 @@ jobs:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
       planner:
-        image: faasm.azurecr.io/planner:0.4.5
+        image: faasm.azurecr.io/planner:0.4.6
     steps:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1

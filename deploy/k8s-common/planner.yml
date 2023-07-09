@@ -11,7 +11,7 @@ metadata:
 spec:
   containers:
     - name: planner
-      image: faasm.azurecr.io/planner:0.4.5
+      image: faasm.azurecr.io/planner:0.4.6
       ports:
         - containerPort: 8081
       env:
