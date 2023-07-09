@@ -208,12 +208,10 @@ def ini_file(ctx, local=False, publicip=None):
 
     if local:
         print("\n----- Setting up local config -----\n")
-        invoke_port = "8080"
-        invoke_ip = LOCALHOST_IP
         upload_ip = LOCALHOST_IP
         upload_port = "8002"
         planner_ip = LOCALHOST_IP
-        planner_port = "8081"
+        planner_port = "8080"
 
         worker_names = list()
         worker_ips = list()
@@ -224,19 +222,7 @@ def ini_file(ctx, local=False, publicip=None):
         if publicip:
             print("\n----- Setting up bare metal k8s config -----\n")
 
-            invoke_ip = publicip
             upload_ip = publicip
-
-            invoke_port = _capture_cmd_output(
-                [
-                    "kubectl",
-                    "-n istio-system",
-                    "get",
-                    "service",
-                    "istio-ingressgateway",
-                    "-o 'jsonpath={.spec.ports[?(@.name==\"http2\")].nodePort}'",
-                ]
-            )
 
             upload_port = _capture_cmd_output(
                 [
@@ -261,27 +247,6 @@ def ini_file(ctx, local=False, publicip=None):
             )
         else:
             print("\n----- Extracting info from k8s -----\n")
-            invoke_ip = _capture_cmd_output(
-                [
-                    "kubectl",
-                    "-n faasm",
-                    "get",
-                    "service",
-                    "worker-lb",
-                    "-o 'jsonpath={.status.loadBalancer.ingress[0].ip}'",
-                ]
-            )
-
-            invoke_port = _capture_cmd_output(
-                [
-                    "kubectl",
-                    "-n faasm",
-                    "get",
-                    "service",
-                    "worker-lb",
-                    "-o 'jsonpath={.spec.ports[0].port}'",
-                ]
-            )
 
             upload_ip = _capture_cmd_output(
                 [
@@ -336,8 +301,6 @@ def ini_file(ctx, local=False, publicip=None):
         # This comment line can't be outside of the Faasm section
         fh.write("# Auto-generated at {}\n".format(datetime.now()))
 
-        fh.write("invoke_host = {}\n".format(invoke_ip))
-        fh.write("invoke_port = {}\n".format(invoke_port))
         fh.write("upload_host = {}\n".format(upload_ip))
         fh.write("upload_port = {}\n".format(upload_port))
         fh.write("planner_host = {}\n".format(planner_ip))

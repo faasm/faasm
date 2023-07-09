@@ -15,16 +15,13 @@ services:
     # a dettached cluster, we need to use the binaries within the docker image.
     # So we allow overwritting the binary path
     command: ${PLANNER_BUILD_MOUNT:-${FAASM_BUILD_MOUNT}}/bin
-    # Temporarily, use port 8081 for planner as 8080 is taken up by the worker.
-    # Eventually the planner will be the only entrypoint to invoke functions,
-    # so we will be able to take port 8080 again
     ports:
-      - "8081:8081"
+      - "8080:8080"
     volumes:
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
     environment:
       - LOG_LEVEL=info
-      - PLANNER_PORT=8081
+      - PLANNER_PORT=8080
 
   minio:
     image: faasm.azurecr.io/minio:${FAASM_VERSION}
@@ -80,7 +77,6 @@ services:
       - planner
       - upload
     expose:
-      - "8080"
       - "5000"
     privileged: true
     volumes:
@@ -105,17 +101,6 @@ services:
       - WASM_VM=${WASM_VM:-wavm}
       - SGX_AESM_ADDR=1
       - AZ_ATTESTATION_PROVIDER_URL=https://faasmattprov.eus2.attest.azure.net
-
-  # Load balancer for local cluster
-  nginx:
-    image: nginx:latest
-    volumes:
-      - ./deploy/conf/nginx-local.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - planner
-      - worker
-    ports:
-      - "8080:8080"
 
   # C/C++ functions
   cpp:
@@ -151,9 +136,8 @@ services:
       - minio
     environment:
       - UPLOAD_HOST=${UPLOAD_HOST:-upload}
-      - INVOKE_HOST=${INVOKE_HOST:-nginx}
       - PLANNER_HOST=planner
-      - PLANNER_PORT=8081
+      - PLANNER_PORT=8080
       - LOG_LEVEL=debug
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
@@ -199,7 +183,7 @@ services:
       - LD_LIBRARY_PATH=/usr/local/lib
       - LOG_LEVEL=debug
       - PLANNER_HOST=planner
-      - PLANNER_PORT=8081
+      - PLANNER_PORT=8080
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - OVERRIDE_CPU_COUNT=4

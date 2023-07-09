@@ -1,10 +1,5 @@
-import os
-from os.path import join
 from copy import copy
-from subprocess import run
-
 from invoke import task
-
 from faasmcli.util.env import (
     FAASM_SGX_MODE_DISABLED,
     FAASM_SGX_MODE_HARDWARE,
@@ -12,6 +7,9 @@ from faasmcli.util.env import (
     PROJ_ROOT,
 )
 from faasmcli.util.version import get_version
+from os import environ
+from os.path import join
+from subprocess import run
 
 
 def _get_cluster_services():
@@ -36,7 +34,7 @@ def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
     """
     # This env makes sure we mount our local setup into the containers, rather
     # than using the prebuilt binaries
-    env = copy(os.environ)
+    env = copy(environ)
     env["FAASM_BUILD_DIR"] = join(PROJ_ROOT, "dev/faasm/build")
     env["FAASM_BUILD_MOUNT"] = "/build/faasm"
     env["FAASM_LOCAL_MOUNT"] = "/usr/local/faasm"
@@ -55,7 +53,7 @@ def start(ctx, workers=2, sgx=FAASM_SGX_MODE_DISABLED):
     cmd = [
         "docker compose up -d",
         "--scale worker={}".format(workers),
-        "nginx",
+        "worker",
     ]
     cmd = " ".join(cmd)
     print(cmd)
