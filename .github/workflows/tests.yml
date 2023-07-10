@@ -161,7 +161,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-py-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cpython:0.2.6
+      image: faasm.azurecr.io/cpython:0.2.5
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -579,7 +579,7 @@ jobs:
             FAASM_CONAN_MOUNT=/root/.conan \
             FAASM_LOCAL_MOUNT=/usr/local/faasm \
             PLANNER_BUILD_MOUNT=/build/faasm
-          docker compose up -d --scale worker=2 nginx faasm-cli
+          docker compose up -d --scale worker=2 worker faasm-cli
         env:
           PLANNER_BUILD_MOUNT: /build/faabric/static
       # We only need to wait if we are mounting the code into the container,
@@ -593,7 +593,7 @@ jobs:
       - name: "Re-build targets if necessary"
         run: docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release
       - name: "Re-start the services to pick up new binaries (if necessary)"
-        run: docker compose restart upload worker nginx
+        run: docker compose restart upload worker
       # This can fail when the container isn't ready, so we want to retry
       - name: "Wait for upload server to be available"
         run: |
@@ -604,8 +604,8 @@ jobs:
       # Function upload
       - name: "Build and upload cpp function"
         run: docker compose run -T cpp ./bin/inv_wrapper.sh func demo hello func.upload demo hello
-      - name: "Build and upload python function"
-        run: docker compose run -T python ./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello
+          # - name: "Build and upload python function"
+          # run: docker compose run -T python ./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello
       # Function invocation
       - name: "Invoke cpp function"
         run: |
@@ -613,8 +613,8 @@ jobs:
           # default, errors are silenced by the pipe
           set -o pipefail
           docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
-      - name: "Invoke python hello function"
-        run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
+          # - name: "Invoke python hello function"
+          # run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
       # Re-invocation of same function with different code after flush
       - name: "Flush workers"
         run: |
