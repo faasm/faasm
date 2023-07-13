@@ -548,12 +548,15 @@ jobs:
       run:
         working-directory: ${{ github.workspace }}
     env:
+      FAASM_INI_FILE: ./faasm.ini
       PYTHON_CODEGEN: "on"
     steps:
       - name: "Checkout code and set conan cache"
         uses: faasm/conan-cache-action@v1
         with:
           build-type: release
+      - name: "Install faasmctl"
+        run: pip3 install faasmctl==0.3.5
       - name: "Fetch python's CPP submodulle"
         run: git submodule update --init -f third-party/cpp
         working-directory: ${{ github.workspace }}/clients/python
@@ -571,39 +574,31 @@ jobs:
       - name: "Populate the runtime sysroot if non-dettached"
         run: |
           [[ "${{ matrix.detached }}" == "false" ]] && ./bin/refresh_local.sh || exit 0
-      - name: "Start docker compose"
-        run: |
-          [[ "${{ matrix.detached }}" == "false" ]] && export \
-            FAASM_BUILD_MOUNT=/build/faasm \
-            FAASM_CODE_MOUNT=/usr/local/code/faasm \
-            FAASM_CONAN_MOUNT=/root/.conan \
-            FAASM_LOCAL_MOUNT=/usr/local/faasm \
-            PLANNER_BUILD_MOUNT=/build/faasm
-          docker compose up -d --scale worker=2 worker faasm-cli
-        env:
-          PLANNER_BUILD_MOUNT: /build/faabric/static
-      # We only need to wait if we are mounting the code into the container,
-      # as then the container's `venv` will be overwritten by the host's code
-      # version (without venv)
+      - name: "Start docker compose mounting source code (attached)"
+        run: faasmctl deploy.compose --mount-source .
+        if: "${{ matrix.detached }}" == "false"
+      - name: "Start docker compose without mounting source code (detached)"
+        run: faasmctl deploy.compose
+        if: "${{ matrix.detached }}" == "true"
       - name: "Wait for CLI to be ready"
-        run: |
-          [[ "${{ matrix.detached }}" == "false" ]] && ./bin/wait_for_venv.sh || exit 0
+        run: ./bin/wait_for_venv.sh
+        if: "${{ matrix.detached }}" == "false"
         env:
           FAASM_DOCKER: "on"
       - name: "Re-build targets if necessary"
-        run: docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.tools --build Release"
       - name: "Re-start the services to pick up new binaries (if necessary)"
-        run: docker compose restart upload worker
+        run: faasmctl restart -s upload -s worker
       # This can fail when the container isn't ready, so we want to retry
       - name: "Wait for upload server to be available"
         run: |
-          (echo "Attempt 1" && docker compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
-          (sleep 30s && echo "Attempt 2" && docker compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
-          (sleep 30s && echo "Attempt 3" && docker compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
-          (echo "Wait for upload failed after retries" && docker compose logs upload && exit 1)
+          (echo "Attempt 1" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Attempt 2" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Attempt 3" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Wait for upload failed after retries" && faasmctl logs -s upload && exit 1)
       # Function upload
       - name: "Build and upload cpp function"
-        run: docker compose run -T cpp ./bin/inv_wrapper.sh func demo hello func.upload demo hello
+        run: faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello"
           # - name: "Build and upload python function"
           # run: docker compose run -T python ./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello
       # Function invocation
@@ -612,27 +607,26 @@ jobs:
           # Make sure we error out if the docker compose command fails. By
           # default, errors are silenced by the pipe
           set -o pipefail
-          docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
+          faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func.invoke demo hello" | tee output_1.log
           # - name: "Invoke python hello function"
           # run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
       # Re-invocation of same function with different code after flush
       - name: "Flush workers"
         run: |
-          docker compose run -T cpp ./bin/inv_wrapper.sh func.flush
-          # Sleep for a bit after flush to give it time to propagate (flush is
-          # both asynchronous and gossip-based)
+          faasmctl flush.workers
+          # Sleep for a bit after flush to give it time to propagate
           sleep 10s
       - name: "Build echo function and upload in place of hello function"
         run: ./deploy/local/replace_hello_with_echo.sh
       - name: "Invoke same cpp function with different WASM code"
         run: |
           set -o pipefail
-          docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_2.log
+          faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func.invoke demo hello" | tee output_2.log
       - name: "Check both outputs are different"
         run: (cmp output_1.log output_2.log && exit 1 || exit 0)
       # Print logs and finish
-      - name: "Unconditional docker compose cleanup"
+      - name: "Unconditional cluster cleanup"
         run: |
-          docker compose logs
-          docker compose down
+          faasmctl logs
+          faasmctl delete
         if: always()
