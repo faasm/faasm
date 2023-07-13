@@ -556,7 +556,7 @@ jobs:
         with:
           build-type: release
       - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.3.5
+        run: pip3 install faasmctl==0.3.6
       - name: "Fetch python's CPP submodulle"
         run: git submodule update --init -f third-party/cpp
         working-directory: ${{ github.workspace }}/clients/python
@@ -580,11 +580,6 @@ jobs:
       - name: "Start docker compose without mounting source code (detached)"
         run: faasmctl deploy.compose
         if: matrix.detached == true
-      - name: "Wait for CLI to be ready"
-        run: ./bin/wait_for_venv.sh
-        if: matrix.detached == false
-        env:
-          FAASM_DOCKER: "on"
       - name: "Re-build targets if necessary"
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.tools --build Release"
       - name: "Re-start the services to pick up new binaries (if necessary)"
