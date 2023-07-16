@@ -509,6 +509,7 @@ jobs:
         wasm_vm: [wamr, wavm]
     env:
       CONAN_CACHE_MOUNT_SOURCE: ~/.conan
+      FAASM_INI_FILE: ./faasm.ini
       WASM_VM: ${{ matrix.wasm_vm }}
     steps:
       - name: "Check out code"
@@ -517,6 +518,8 @@ jobs:
           submodules: true
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
+      - name: "Install faasmctl"
+        run: pip3 install faasmctl==0.3.8
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
@@ -527,15 +530,26 @@ jobs:
         with:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
-      - name: "Build tests"
-        run: ./deploy/dist-test/build.sh
-      - name: "Get the planner logs"
+      - name: "Start a Faasm cluster to run the distributed tests"
+        run: faasmctl deploy.dist-tests --mount-source .
+      - name: "Build dist-tests and other targets"
+        run: faasmctl cli.faasm --cmd "./deploy/dist-test/build_internal.sh"
+      - name: "Re-start the services to pick up new binaries (if necessary)"
+        run: faasmctl restart -s upload -s dist-test-server
+      # This can fail when the container isn't ready, so we want to retry
+      - name: "Wait for upload server to be available"
         run: |
-          docker compose logs planner
+          (echo "Attempt 1" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Attempt 2" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Attempt 3" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Wait for upload failed after retries" && faasmctl logs -s upload && exit 1)
       - name: "Build and upload functions for tests"
         run: ./deploy/dist-test/upload.sh
       - name: "Run tests"
         run: ./deploy/dist-test/run.sh
+      - name: "Unconditional deletion of the cluster"
+        if: always()
+        run: faasmctl delete
 
   quick-start:
     if: github.event.pull_request.draft == false
@@ -556,7 +570,7 @@ jobs:
         with:
           build-type: release
       - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.3.6
+        run: pip3 install faasmctl==0.3.8
       - name: "Fetch python's CPP submodulle"
         run: git submodule update --init -f third-party/cpp
         working-directory: ${{ github.workspace }}/clients/python
