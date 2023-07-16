@@ -161,7 +161,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-py-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cpython:0.2.5
+      image: faasm.azurecr.io/cpython:0.2.6
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -512,10 +512,6 @@ jobs:
       FAASM_INI_FILE: ./faasm.ini
       WASM_VM: ${{ matrix.wasm_vm }}
     steps:
-      - name: "Check out code"
-        uses: actions/checkout@v3
-        with:
-          submodules: true
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
       - name: "Install faasmctl"
@@ -610,8 +606,8 @@ jobs:
       # Function upload
       - name: "Build and upload cpp function"
         run: faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello"
-          # - name: "Build and upload python function"
-          # run: docker compose run -T python ./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello
+      - name: "Build and upload python function"
+        run: faasmctl cli.python --cmd "./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello"
       # Function invocation
       - name: "Invoke cpp function"
         run: |
@@ -619,8 +615,8 @@ jobs:
           # default, errors are silenced by the pipe
           set -o pipefail
           faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func.invoke demo hello" | tee output_1.log
-          # - name: "Invoke python hello function"
-          # run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
+      - name: "Invoke python hello function"
+        run: faasmctl cli.python --cmd "./bin/inv_wrapper.sh func.invoke python hello"
       # Re-invocation of same function with different code after flush
       - name: "Flush workers"
         run: |
