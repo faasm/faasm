@@ -10,7 +10,8 @@ ECHO_WASM=/code/cpp/build/func/demo/echo.wasm
 HELLO_WASM=/code/cpp/build/func/demo/hello.wasm
 CP_BIN=/usr/bin/cp
 
-faasmctl cli.cpp --cmd \
-    "./bin/inv_wrapper.sh func demo echo && ${CP_BIN} ${ECHO_WASM} ${HELLO_WASM} && ./bin/inv_wrapper.sh func.upload demo hello"
+faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo echo"
+faasmctl cli.cpp --cmd "${CP_BIN} ${ECHO_WASM} ${HELLO_WASM}"
+faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func.upload demo hello"
 
 popd > /dev/null
