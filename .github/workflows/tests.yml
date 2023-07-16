@@ -526,13 +526,12 @@ jobs:
         with:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
-      - name: "Populate the runtime sysroot as we will mount the source"
-        run: |
-          ./bin/refresh_local.sh
-          docker rmi faasm.azurecr.io/cpp-sysroot:0.2.8
-          docker rmi faasm.azurecr.io/cpython:0.2.8
       - name: "Start a Faasm cluster to run the distributed tests"
         run: faasmctl deploy.dist-tests --mount-source .
+      - name: "Clean up disk space to avoid running out of it"
+        run: |
+          docker rmi faasm.azurecr.io/cpp-sysroot:0.2.8
+          docker rmi faasm.azurecr.io/cpython:0.2.6
       - name: "Build dist-tests and other targets"
         run: faasmctl cli.faasm --cmd "./deploy/dist-test/build_internal.sh"
       - name: "Re-start the services to pick up new binaries (if necessary)"
@@ -586,9 +585,6 @@ jobs:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       # Setup
-      - name: "Populate the runtime sysroot if non-dettached"
-        run: ./bin/refresh_local.sh
-        if: matrix.detached == false
       - name: "Start docker compose mounting source code (attached)"
         run: faasmctl deploy.compose --mount-source .
         if: matrix.detached == false
