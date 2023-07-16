@@ -527,7 +527,10 @@ jobs:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       - name: "Populate the runtime sysroot as we will mount the source"
-        run: ./bin/refresh_local.sh
+        run: |
+          ./bin/refresh_local.sh
+          docker rmi faasm.azurecr.io/cpp-sysroot:0.2.8
+          docker rmi faasm.azurecr.io/cpython:0.2.8
       - name: "Start a Faasm cluster to run the distributed tests"
         run: faasmctl deploy.dist-tests --mount-source .
       - name: "Build dist-tests and other targets"
