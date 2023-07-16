@@ -512,6 +512,17 @@ jobs:
       FAASM_INI_FILE: ./faasm.ini
       WASM_VM: ${{ matrix.wasm_vm }}
     steps:
+      # The distributed tests use (pull) lots of docker images, so we may
+      # run out of disk space, use this action to free space beforehand
+      - name: "Maximize build space"
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-android: 'true'
+          remove-codeql: 'true'
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v1
       - name: "Install faasmctl"
@@ -528,10 +539,6 @@ jobs:
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       - name: "Start a Faasm cluster to run the distributed tests"
         run: faasmctl deploy.dist-tests --mount-source .
-      - name: "Clean up disk space to avoid running out of it"
-        run: |
-          docker rmi faasm.azurecr.io/cpp-sysroot:0.2.8
-          docker rmi faasm.azurecr.io/cpython:0.2.6
       - name: "Build dist-tests and other targets"
         run: faasmctl cli.faasm --cmd "./deploy/dist-test/build_internal.sh"
       - name: "Re-start the services to pick up new binaries (if necessary)"
