@@ -640,6 +640,9 @@ jobs:
       # Function upload
       - name: "Build and upload cpp function"
         run: faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello"
+      - name: "Cross-compile CPython if necessary"
+        run: faasmctl cli.python --cmd "./bin/inv_wrapper.sh cpython.wasm"
+        if: matrix.detached == false
       - name: "Build and upload python function"
         run: faasmctl cli.python --cmd "./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello"
       # Function invocation
