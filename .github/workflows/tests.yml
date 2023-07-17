@@ -201,8 +201,12 @@ jobs:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
+      - name: "Check-out code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Conan cache"
-        uses: faasm/conan-cache-action@v1
+        uses: faasm/conan-cache-action@v2
       - name: "Build Conan dependencies to be shared by all runs"
         run: ./bin/inv_wrapper.sh dev.cmake --build Debug --clean
 
@@ -241,7 +245,12 @@ jobs:
       planner:
         image: faasm.azurecr.io/planner:0.4.6
     steps:
-      - uses: faasm/conan-cache-action@v1
+      - name: "Check out code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: "Conan cache"
+        uses: faasm/conan-cache-action@v2
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -342,8 +351,12 @@ jobs:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
     steps:
+      - name: "Check out code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Conan cache"
-        uses: faasm/conan-cache-action@v1
+        uses: faasm/conan-cache-action@v2
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -444,8 +457,12 @@ jobs:
       planner:
         image: faasm.azurecr.io/planner:0.4.6
     steps:
+      - name: "Check out code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Conan cache"
-        uses: faasm/conan-cache-action@v1
+        uses: faasm/conan-cache-action@v2
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -517,18 +534,20 @@ jobs:
       - name: "Maximize build space"
         uses: easimon/maximize-build-space@master
         with:
+          # Leave 20 GB for the / partition for docker images (stored under
+          # /var/lib/docker)
           root-reserve-mb: 20480
           remove-android: 'true'
           remove-codeql: 'true'
           remove-docker-images: 'true'
+          remove-dotnet: 'true'
           remove-haskell: 'true'
-          #           remove-dotnet: 'false'
-          # - name: "Conan cache"
-          # uses: faasm/conan-cache-action@v1
       - name: "Checkout code"
         uses: actions/checkout@v3
         with:
           submodules: true
+          # - name: "Conan cache"
+          # uses: faasm/conan-cache-action@v2
       - name: "Install faasmctl"
         run: pip3 install faasmctl==0.4.2
       # Cache contains architecture-specific machine code
@@ -576,10 +595,15 @@ jobs:
       FAASM_INI_FILE: ./faasm.ini
       PYTHON_CODEGEN: "on"
     steps:
-      - name: "Checkout code and set conan cache"
-        uses: faasm/conan-cache-action@v1
+      - name: "Checkout code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: "Configure cache of built conan dependencies"
+        uses: faasm/conan-cache-action@v2
         with:
           build-type: release
+        if: matrix.detached == false
       - name: "Install faasmctl"
         run: pip3 install faasmctl==0.4.2
       - name: "Fetch python's CPP submodulle"
