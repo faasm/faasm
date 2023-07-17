@@ -517,14 +517,18 @@ jobs:
       - name: "Maximize build space"
         uses: easimon/maximize-build-space@master
         with:
-          root-reserve-mb: 512
-          swap-size-mb: 1024
+          root-reserve-mb: 20480
           remove-android: 'true'
           remove-codeql: 'true'
-          remove-dotnet: 'true'
+          remove-docker-images: 'true'
           remove-haskell: 'true'
-      - name: "Conan cache"
-        uses: faasm/conan-cache-action@v1
+          #           remove-dotnet: 'false'
+          # - name: "Conan cache"
+          # uses: faasm/conan-cache-action@v1
+      - name: "Checkout code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Install faasmctl"
         run: pip3 install faasmctl==0.4.2
       # Cache contains architecture-specific machine code
