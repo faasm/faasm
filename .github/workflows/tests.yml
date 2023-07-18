@@ -534,9 +534,9 @@ jobs:
       - name: "Maximize build space"
         uses: easimon/maximize-build-space@master
         with:
-          # Leave 20 GB for the / partition for docker images (stored under
+          # Leave 25 GB for the / partition for docker images (stored under
           # /var/lib/docker)
-          root-reserve-mb: 20480
+          root-reserve-mb: 25600
           remove-android: 'true'
           remove-codeql: 'true'
           remove-docker-images: 'true'
@@ -595,6 +595,19 @@ jobs:
       FAASM_INI_FILE: ./faasm.ini
       PYTHON_CODEGEN: "on"
     steps:
+      # The distributed tests use (pull) lots of docker images, so we may
+      # run out of disk space, use this action to free space beforehand
+      - name: "Maximize build space"
+        uses: easimon/maximize-build-space@master
+        with:
+          # Leave 25 GB for the / partition for docker images (stored under
+          # /var/lib/docker)
+          root-reserve-mb: 25600
+          remove-android: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
       - name: "Checkout code"
         uses: actions/checkout@v3
         with:
