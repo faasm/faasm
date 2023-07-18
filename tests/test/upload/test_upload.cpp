@@ -280,7 +280,7 @@ TEST_CASE_METHOD(UploadTestFixture,
     http_request request = createRequest(url, wasmBytesA);
     checkPut(request, 3);
     checkS3bytes(faasmConf.s3Bucket, fileKey, wasmBytesA);
-    checkS3bytes(conf.s3Bucket, objFileKey, actualObjBytesA);
+    checkS3bytes(faasmConf.s3Bucket, objFileKey, actualObjBytesA);
     checkS3bytes(faasmConf.s3Bucket, objFileHashKey, actualHashBytesA);
 
     // Second, upload a different WASM file under the same path, and check that
