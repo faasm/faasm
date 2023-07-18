@@ -113,7 +113,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-cpp-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cpp-sysroot:0.2.8
+      image: faasm.azurecr.io/cpp-sysroot:0.2.9
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
