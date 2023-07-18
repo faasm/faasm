@@ -23,7 +23,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.9.10
+      image: faasm.azurecr.io/cli:0.9.11
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -52,7 +52,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.9.10
+      image: faasm.azurecr.io/cli:0.9.11
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -113,7 +113,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-cpp-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cpp-sysroot:0.2.7
+      image: faasm.azurecr.io/cpp-sysroot:0.2.9
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -161,7 +161,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-py-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cpython:0.2.5
+      image: faasm.azurecr.io/cpython:0.2.6
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -196,13 +196,17 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.9.10
+      image: faasm.azurecr.io/cli:0.9.11
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
+      - name: "Check-out code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Conan cache"
-        uses: faasm/conan-cache-action@v1
+        uses: faasm/conan-cache-action@v2
       - name: "Build Conan dependencies to be shared by all runs"
         run: ./bin/inv_wrapper.sh dev.cmake --build Debug --clean
 
@@ -220,18 +224,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli:0.9.10
+      image: faasm.azurecr.io/cli:0.9.11
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.9.10
+        image: faasm.azurecr.io/redis:0.9.11
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.9.10
+        image: faasm.azurecr.io/minio:0.9.11
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -239,9 +243,14 @@ jobs:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
       planner:
-        image: faasm.azurecr.io/planner:0.4.5
+        image: faasm.azurecr.io/planner:0.4.6
     steps:
-      - uses: faasm/conan-cache-action@v1
+      - name: "Check out code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: "Conan cache"
+        uses: faasm/conan-cache-action@v2
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -323,18 +332,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli:0.9.10
+      image: faasm.azurecr.io/cli:0.9.11
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.9.10
+        image: faasm.azurecr.io/redis:0.9.11
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.9.10
+        image: faasm.azurecr.io/minio:0.9.11
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -342,8 +351,12 @@ jobs:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
     steps:
+      - name: "Check out code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Conan cache"
-        uses: faasm/conan-cache-action@v1
+        uses: faasm/conan-cache-action@v2
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -423,18 +436,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli-sgx-sim:0.9.10
+      image: faasm.azurecr.io/cli-sgx-sim:0.9.11
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.9.10
+        image: faasm.azurecr.io/redis:0.9.11
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.9.10
+        image: faasm.azurecr.io/minio:0.9.11
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -442,10 +455,14 @@ jobs:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
       planner:
-        image: faasm.azurecr.io/planner:0.4.5
+        image: faasm.azurecr.io/planner:0.4.6
     steps:
+      - name: "Check out code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: "Conan cache"
-        uses: faasm/conan-cache-action@v1
+        uses: faasm/conan-cache-action@v2
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -509,14 +526,30 @@ jobs:
         wasm_vm: [wamr, wavm]
     env:
       CONAN_CACHE_MOUNT_SOURCE: ~/.conan
+      FAASM_INI_FILE: ./faasm.ini
       WASM_VM: ${{ matrix.wasm_vm }}
     steps:
-      - name: "Check out code"
+      # The distributed tests use (pull) lots of docker images, so we may
+      # run out of disk space, use this action to free space beforehand
+      - name: "Maximize build space"
+        uses: easimon/maximize-build-space@master
+        with:
+          # Leave 20 GB for the / partition for docker images (stored under
+          # /var/lib/docker)
+          root-reserve-mb: 20480
+          remove-android: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+      - name: "Checkout code"
         uses: actions/checkout@v3
         with:
           submodules: true
-      - name: "Conan cache"
-        uses: faasm/conan-cache-action@v1
+          # - name: "Conan cache"
+          # uses: faasm/conan-cache-action@v2
+      - name: "Install faasmctl"
+        run: pip3 install faasmctl==0.5.6
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
@@ -527,15 +560,26 @@ jobs:
         with:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
-      - name: "Build tests"
-        run: ./deploy/dist-test/build.sh
-      - name: "Get the planner logs"
+      - name: "Start a Faasm cluster to run the distributed tests"
+        run: faasmctl deploy.dist-tests --mount-source .
+      - name: "Build dist-tests and other targets"
+        run: faasmctl cli.faasm --cmd "./deploy/dist-test/build_internal.sh"
+      - name: "Re-start the services to pick up new binaries (if necessary)"
+        run: faasmctl restart -s upload -s dist-test-server
+      # This can fail when the container isn't ready, so we want to retry
+      - name: "Wait for upload server to be available"
         run: |
-          docker compose logs planner
+          (echo "Attempt 1" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Attempt 2" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Attempt 3" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Wait for upload failed after retries" && faasmctl logs -s upload && exit 1)
       - name: "Build and upload functions for tests"
         run: ./deploy/dist-test/upload.sh
       - name: "Run tests"
         run: ./deploy/dist-test/run.sh
+      - name: "Unconditional deletion of the cluster"
+        if: always()
+        run: faasmctl delete
 
   quick-start:
     if: github.event.pull_request.draft == false
@@ -548,12 +592,20 @@ jobs:
       run:
         working-directory: ${{ github.workspace }}
     env:
+      FAASM_INI_FILE: ./faasm.ini
       PYTHON_CODEGEN: "on"
     steps:
-      - name: "Checkout code and set conan cache"
-        uses: faasm/conan-cache-action@v1
+      - name: "Checkout code"
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: "Configure cache of built conan dependencies"
+        uses: faasm/conan-cache-action@v2
         with:
           build-type: release
+        if: matrix.detached == false
+      - name: "Install faasmctl"
+        run: pip3 install faasmctl==0.5.6
       - name: "Fetch python's CPP submodulle"
         run: git submodule update --init -f third-party/cpp
         working-directory: ${{ github.workspace }}/clients/python
@@ -568,71 +620,54 @@ jobs:
           path: ./dev/minio/data/faasm
           key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
       # Setup
-      - name: "Populate the runtime sysroot if non-dettached"
-        run: |
-          [[ "${{ matrix.detached }}" == "false" ]] && ./bin/refresh_local.sh || exit 0
-      - name: "Start docker compose"
-        run: |
-          [[ "${{ matrix.detached }}" == "false" ]] && export \
-            FAASM_BUILD_MOUNT=/build/faasm \
-            FAASM_CODE_MOUNT=/usr/local/code/faasm \
-            FAASM_CONAN_MOUNT=/root/.conan \
-            FAASM_LOCAL_MOUNT=/usr/local/faasm \
-            PLANNER_BUILD_MOUNT=/build/faasm
-          docker compose up -d --scale worker=2 nginx faasm-cli
-        env:
-          PLANNER_BUILD_MOUNT: /build/faabric/static
-      # We only need to wait if we are mounting the code into the container,
-      # as then the container's `venv` will be overwritten by the host's code
-      # version (without venv)
-      - name: "Wait for CLI to be ready"
-        run: |
-          [[ "${{ matrix.detached }}" == "false" ]] && ./bin/wait_for_venv.sh || exit 0
-        env:
-          FAASM_DOCKER: "on"
+      - name: "Start docker compose mounting source code (attached)"
+        run: faasmctl deploy.compose --mount-source .
+        if: matrix.detached == false
+      - name: "Start docker compose without mounting source code (detached)"
+        run: faasmctl deploy.compose
+        if: matrix.detached == true
       - name: "Re-build targets if necessary"
-        run: docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.tools --build Release"
       - name: "Re-start the services to pick up new binaries (if necessary)"
-        run: docker compose restart upload worker nginx
+        run: faasmctl restart -s upload -s worker
       # This can fail when the container isn't ready, so we want to retry
       - name: "Wait for upload server to be available"
         run: |
-          (echo "Attempt 1" && docker compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
-          (sleep 30s && echo "Attempt 2" && docker compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
-          (sleep 30s && echo "Attempt 3" && docker compose exec -T upload /usr/local/code/faasm/deploy/local/wait_for_upload.sh localhost 8002) || \
-          (echo "Wait for upload failed after retries" && docker compose logs upload && exit 1)
+          (echo "Attempt 1" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Attempt 2" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Attempt 3" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
+          (echo "Wait for upload failed after retries" && faasmctl logs -s upload && exit 1)
       # Function upload
       - name: "Build and upload cpp function"
-        run: docker compose run -T cpp ./bin/inv_wrapper.sh func demo hello func.upload demo hello
+        run: faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello"
       - name: "Build and upload python function"
-        run: docker compose run -T python ./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello
+        run: faasmctl cli.python --cmd "./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello"
       # Function invocation
       - name: "Invoke cpp function"
         run: |
           # Make sure we error out if the docker compose command fails. By
           # default, errors are silenced by the pipe
           set -o pipefail
-          docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_1.log
+          faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func.invoke demo hello" | tee output_1.log
       - name: "Invoke python hello function"
-        run: docker compose run -T python ./bin/inv_wrapper.sh func.invoke python hello
+        run: faasmctl cli.python --cmd "./bin/inv_wrapper.sh func.invoke python hello"
       # Re-invocation of same function with different code after flush
       - name: "Flush workers"
         run: |
-          docker compose run -T cpp ./bin/inv_wrapper.sh func.flush
-          # Sleep for a bit after flush to give it time to propagate (flush is
-          # both asynchronous and gossip-based)
+          faasmctl flush.workers
+          # Sleep for a bit after flush to give it time to propagate
           sleep 10s
       - name: "Build echo function and upload in place of hello function"
         run: ./deploy/local/replace_hello_with_echo.sh
       - name: "Invoke same cpp function with different WASM code"
         run: |
           set -o pipefail
-          docker compose run -T cpp ./bin/inv_wrapper.sh func.invoke demo hello | tee output_2.log
+          faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func.invoke demo hello" | tee output_2.log
       - name: "Check both outputs are different"
         run: (cmp output_1.log output_2.log && exit 1 || exit 0)
       # Print logs and finish
-      - name: "Unconditional docker compose cleanup"
+      - name: "Unconditional cluster cleanup"
         run: |
-          docker compose logs
-          docker compose down
+          faasmctl logs
+          faasmctl delete
         if: always()

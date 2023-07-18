@@ -1,24 +1,24 @@
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-#include <fstream>
-#include <iostream>
-#include <string>
-
 #include <conf/FaasmConfig.h>
+#include <faabric/proto/faabric.pb.h>
+#include <faabric/runner/FaabricMain.h>
+#include <faabric/scheduler/ExecutorContext.h>
+#include <faabric/scheduler/ExecutorFactory.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/batch.h>
+#include <faabric/util/config.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/timing.h>
 #include <faaslet/Faaslet.h>
 #include <runner/MicrobenchRunner.h>
 #include <storage/FileLoader.h>
 #include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
-#include <faabric/proto/faabric.pb.h>
-#include <faabric/runner/FaabricMain.h>
-#include <faabric/scheduler/ExecutorContext.h>
-#include <faabric/scheduler/ExecutorFactory.h>
-#include <faabric/scheduler/Scheduler.h>
-#include <faabric/util/config.h>
-#include <faabric/util/logging.h>
-#include <faabric/util/timing.h>
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
+#include <fstream>
+#include <iostream>
+#include <string>
 
 using namespace faabric::util;
 

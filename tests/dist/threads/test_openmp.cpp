@@ -3,6 +3,7 @@
 #include "fixtures.h"
 
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/batch.h>
 #include <faabric/util/string_tools.h>
 
 #define PI_FUNCTION "pi_faasm"

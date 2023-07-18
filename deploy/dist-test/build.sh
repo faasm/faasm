@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# TODO(faasmcli-out): remove this file
+
 set -e
 
 THIS_DIR=$(dirname $(readlink -f $0))

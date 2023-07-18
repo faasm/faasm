@@ -1,30 +1,27 @@
-#include <faaslet/Faaslet.h>
-
 #include <conf/FaasmConfig.h>
+#ifndef FAASM_SGX_DISABLED_MODE
+#include <enclave/outside/EnclaveInterface.h>
+#include <enclave/outside/system.h>
+#endif
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
+#include <faabric/util/batch.h>
+#include <faabric/util/config.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/gids.h>
+#include <faabric/util/locks.h>
+#include <faabric/util/logging.h>
+#include <faabric/util/timing.h>
+#include <faaslet/Faaslet.h>
+#include <storage/FileLoader.h>
+#include <storage/FileSystem.h>
 #include <system/CGroup.h>
 #include <system/NetworkNamespace.h>
 #include <threads/ThreadState.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
-#include <faabric/scheduler/Scheduler.h>
-#include <faabric/snapshot/SnapshotRegistry.h>
-#include <faabric/util/config.h>
-#include <faabric/util/environment.h>
-#include <faabric/util/func.h>
-#include <faabric/util/gids.h>
-#include <faabric/util/locks.h>
-#include <faabric/util/logging.h>
-#include <faabric/util/timing.h>
-
 #include <stdexcept>
-
-#ifndef FAASM_SGX_DISABLED_MODE
-#include <enclave/outside/EnclaveInterface.h>
-#include <enclave/outside/system.h>
-#endif
-#include <storage/FileLoader.h>
-#include <storage/FileSystem.h>
 
 static thread_local bool threadIsIsolated = false;
 

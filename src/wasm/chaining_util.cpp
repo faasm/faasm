@@ -1,11 +1,10 @@
+#include <conf/FaasmConfig.h>
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/ExecGraph.h>
+#include <faabric/util/batch.h>
 #include <faabric/util/bytes.h>
-#include <faabric/util/func.h>
 #include <faabric/util/logging.h>
-
-#include <conf/FaasmConfig.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>

@@ -1,5 +1,6 @@
 #include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/runner/FaabricMain.h>
+#include <faabric/util/batch.h>
 #include <faabric/util/logging.h>
 #include <faaslet/Faaslet.h>
 #include <runner/runner_utils.h>

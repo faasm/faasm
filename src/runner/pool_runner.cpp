@@ -1,9 +1,8 @@
-#include <faaslet/Faaslet.h>
-#include <storage/S3Wrapper.h>
-
 #include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/util/logging.h>
+#include <faaslet/Faaslet.h>
+#include <storage/S3Wrapper.h>
 
 int main()
 {
