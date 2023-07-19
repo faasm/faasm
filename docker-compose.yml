@@ -16,7 +16,7 @@ services:
     # So we allow overwritting the binary path
     command: ${PLANNER_BUILD_MOUNT:-${FAASM_BUILD_MOUNT}}/bin
     ports:
-      - "8080:8080"
+      - "${PLANNER_HOST_PORT}:${PLANNER_DOCKER_PORT}"
     volumes:
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
     environment:
@@ -26,7 +26,7 @@ services:
   minio:
     image: faasm.azurecr.io/minio:${FAASM_VERSION}
     ports:
-      - "9000:9000"
+      - "${MINIO_HOST_PORT}:${MINIO_DOCKER_PORT}"
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
@@ -41,7 +41,7 @@ services:
   upload:
     image: faasm.azurecr.io/upload:${FAASM_VERSION}
     ports:
-      - "8002:8002"
+      - "${UPLOAD_HOST_PORT}:${UPLOAD_DOCKER_PORT}"
     expose:
       - "5000"
     depends_on:
