@@ -53,17 +53,12 @@ jobs:
           ./bin/inv_wrapper.sh cluster.provision --name ${{ env.CLUSTER_NAME }} --vm Standard_DC4s_v3 --nodes 4 --location eastus2 --sgx ${SUFFIX_SGX}
           ./bin/inv_wrapper.sh cluster.credentials --name ${{ env.CLUSTER_NAME }}
         working-directory: ${{ github.workspace }}/experiment-base
-      - name: "Check out faasm code"
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-          path: faasm
+      - name: "Install faasmctl"
+        run: pip3 install faasmctl==0.6.1
       - name: "Deploy Faasm on k8s cluster"
-        run: ./bin/inv_wrapper.sh k8s.deploy --workers=4
-        working-directory: ${{ github.workspace }}/faasm
+        run: faasmctl deploy.k8s --workers=4
       - name: "Build, upload and run a simple CPP function"
-        run: docker compose -f docker-compose-k8s.yml run -T cpp-cli ./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello
-        working-directory: ${{ github.workspace }}/faasm
+        run:  faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello"
       - name: "Delete cluster"
         if: always()
         run: ./bin/inv_wrapper.sh cluster.delete --name ${{ env.CLUSTER_NAME }}
