@@ -18,6 +18,11 @@ VERSIONED_FILES = {
     ],
     "cpp": [".env", ".github/workflows/tests.yml"],
     "python": [".env", ".github/workflows/tests.yml"],
+    "faasmctl": [
+        "faasmcli/requirements.txt",
+        ".github/workflows/tests.yml",
+        ".github/workflows/azure.yml",
+    ],
 }
 
 VERSIONED_DIRS = [
@@ -93,82 +98,123 @@ def _create_tag(tag_name, force=False):
 
 
 @task
-def bump(ctx, ver=None, python=False, cpp=False, faabric=False):
+def bump(ctx, patch=False, minor=False, major=False):
     """
-    Increase the version (defaults to bumping a single minor version)
+    Bump the code version by: --patch, --minor, or --major
+
+    Faasm uses SemVer to tag code versions. For more information, see the
+    website: https://semver.org/
     """
-    bump_faasm_ver = (not python) and (not cpp) and (not faabric)
-    if bump_faasm_ver:
-        old_ver = get_version()
-        if ver:
-            new_ver = ver
-        else:
-            # Just bump the last minor version part
-            new_ver_parts = old_ver.split(".")
-            new_ver_minor = int(new_ver_parts[-1]) + 1
-            new_ver_parts[-1] = str(new_ver_minor)
-            new_ver = ".".join(new_ver_parts)
+    old_ver = get_version()
+    new_ver_parts = old_ver.split(".")
 
-        # Replace version in all files
-        for f in VERSIONED_FILES["faasm"]:
-            sed_cmd = "sed -i 's/{}/{}/g' {}".format(old_ver, new_ver, f)
-            run(sed_cmd, shell=True, check=True)
-
-        # Replace version in dirs (only for faasm)
-        for d in VERSIONED_DIRS:
-            sed_cmd = [
-                "find {}".format(d),
-                "-type f",
-                "-exec sed -i -e 's/{}/{}/g'".format(old_ver, new_ver),
-                "{} \\;",
-            ]
-            sed_cmd = " ".join(sed_cmd)
-            print(sed_cmd)
-
-            run(sed_cmd, shell=True, check=True)
+    if patch:
+        idx = 2
+    elif minor:
+        idx = 1
+    elif major:
+        idx = 0
     else:
-        # The python and cpp versions might be the same, so we need to be more
-        # careful when we increment each of them to make sure we only increment
-        # the version of the client we are interested in
-        if python:
-            old_ver, new_ver = get_version("python")
-            strings_to_check = [
-                r"{}\/cpython:".format(ACR_NAME),
-                "PYTHON_VERSION=",
-            ]
-            for f in VERSIONED_FILES["python"]:
-                for string in strings_to_check:
-                    sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
-                        string, old_ver, string, new_ver, f
-                    )
-                    print(sed_cmd)
-                    run(sed_cmd, shell=True, check=True)
-        if cpp:
-            old_ver, new_ver = get_version("cpp")
-            strings_to_check = [
-                r"{}\/cpp-sysroot:".format(ACR_NAME),
-                "CPP_VERSION=",
-            ]
-            for f in VERSIONED_FILES["python"]:
-                for string in strings_to_check:
-                    sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
-                        string, old_ver, string, new_ver, f
-                    )
-                    print(sed_cmd)
-                    run(sed_cmd, shell=True, check=True)
-        if faabric:
-            old_ver, new_ver = get_version("faabric")
-            strings_to_check = [
-                r"{}\/planner:".format(ACR_NAME),
-                "FAABRIC_VERSION=",
-            ]
-            for f in VERSIONED_FILES["faabric"]:
-                for string in strings_to_check:
-                    sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
-                        string, old_ver, string, new_ver, f
-                    )
-                    print(sed_cmd)
-                    run(sed_cmd, shell=True, check=True)
+        raise RuntimeError("Must set one in: --[patch,minor,major]")
+
+    # Change the corresponding idx
+    new_ver_parts[idx] = str(int(new_ver_parts[idx]) + 1)
+
+    # Zero-out the following version numbers (i.e. lower priority). This is
+    # because if we tag a new major release, we want to zero-out the minor
+    # and patch versions (e.g. 0.2.0 comes after 0.1.9)
+    for next_idx in range(idx + 1, 3):
+        new_ver_parts[next_idx] = "0"
+
+    new_ver = ".".join(new_ver_parts)
+
+    # Replace version in all files
+    for f in VERSIONED_FILES["faasm"]:
+        sed_cmd = "sed -i 's/{}/{}/g' {}".format(old_ver, new_ver, f)
+        run(sed_cmd, shell=True, check=True)
+
+    # Replace version in dirs (only for faasm)
+    for d in VERSIONED_DIRS:
+        sed_cmd = [
+            "find {}".format(d),
+            "-type f",
+            "-exec sed -i -e 's/{}/{}/g'".format(old_ver, new_ver),
+            "{} \\;",
+        ]
+        sed_cmd = " ".join(sed_cmd)
+        print(sed_cmd)
+
+        run(sed_cmd, shell=True, check=True)
+
+
+@task
+def bump_dep(ctx, faasmctl=None, python=False, cpp=False, faabric=False):
+    """
+    Bump the version of a project dep.: faasmctl, cpp, python, or faabric
+
+    Faasm has four tightly coupled dependencies. Three of them: faabric, cpp,
+    and python are tracked as submodules. Thus, "bump"-ing the version means
+    making sure that the version we track in Faasm is aligned with that in the
+    submodule. For the latest dependency, `faasmctl` we install it as a PIP
+    dependency (but it changes often) so we may want to bump to an arbitrary
+    version
+    """
+    # The python and cpp versions might be the same, so we need to be more
+    # careful when we increment each of them to make sure we only increment
+    # the version of the client we are interested in
+    if python:
+        old_ver, new_ver = get_version("python")
+        strings_to_check = [
+            r"{}\/cpython:".format(ACR_NAME),
+            "PYTHON_VERSION=",
+        ]
+        for f in VERSIONED_FILES["python"]:
+            for string in strings_to_check:
+                sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
+                    string, old_ver, string, new_ver, f
+                )
+                print(sed_cmd)
+                run(sed_cmd, shell=True, check=True)
+
+    if cpp:
+        old_ver, new_ver = get_version("cpp")
+        strings_to_check = [
+            r"{}\/cpp-sysroot:".format(ACR_NAME),
+            "CPP_VERSION=",
+        ]
+        for f in VERSIONED_FILES["python"]:
+            for string in strings_to_check:
+                sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
+                    string, old_ver, string, new_ver, f
+                )
+                print(sed_cmd)
+                run(sed_cmd, shell=True, check=True)
+
+    if faabric:
+        old_ver, new_ver = get_version("faabric")
+        strings_to_check = [
+            r"{}\/planner:".format(ACR_NAME),
+            "FAABRIC_VERSION=",
+        ]
+        for f in VERSIONED_FILES["faabric"]:
+            for string in strings_to_check:
+                sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
+                    string, old_ver, string, new_ver, f
+                )
+                print(sed_cmd)
+                run(sed_cmd, shell=True, check=True)
+
+    if faasmctl is not None:
+        new_ver = faasmctl
+        old_ver = get_version("faasmctl")
+        strings_to_check = ["faasmctl=="]
+        for f in VERSIONED_FILES["faasmctl"]:
+            for string in strings_to_check:
+                sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
+                    string, old_ver, string, new_ver, f
+                )
+                print(sed_cmd)
+                run(sed_cmd, shell=True, check=True)
 
 
 @task
