@@ -61,7 +61,7 @@ jobs:
         run:  faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello"
         env:
           FAASM_INI_FILE: ./faasm.ini
-      - name: "Delete cluster"
+      - name: "Always delete AKS cluster"
         if: always()
         run: ./bin/inv_wrapper.sh cluster.delete --name ${{ env.CLUSTER_NAME }}
         working-directory: ${{ github.workspace }}/experiment-base
