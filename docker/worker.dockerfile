@@ -5,6 +5,8 @@ FROM faasm.azurecr.io/base${FAASM_SGX_PARENT_SUFFIX}:${FAASM_VERSION}
 # Build the worker binary
 ARG FAASM_SGX_MODE
 RUN cd /usr/local/code/faasm \
+    # FIXME: temporarily re-build the worker from the latest commit in the tag
+    && git checkout v${FAASM_VERSION} && git pull origin v${FAASM_VERSION \
     && ./bin/create_venv.sh \
     && source venv/bin/activate \
     && inv -r faasmcli/faasmcli dev.cmake --build Release --sgx ${FAASM_SGX_MODE} \
