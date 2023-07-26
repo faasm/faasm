@@ -23,13 +23,13 @@ using namespace faabric::mpi;
         ctx->module->doThrowException(e);                                      \
     }
 
-#define CALL_MPI_WORLD_CATCH_EXCEPTION_NO_RETURN(call)                           \
+#define CALL_MPI_WORLD_CATCH_EXCEPTION_NO_RETURN(call)                         \
     try {                                                                      \
-        call;                                                         \
+        call;                                                                  \
     } catch (std::exception & e) {                                             \
-        ctx = nullptr; \
-        auto __module = wasm::getExecutingWAMRModule(); \
-        __module->doThrowException(e); \
+        ctx = nullptr;                                                         \
+        auto __module = wasm::getExecutingWAMRModule();                        \
+        __module->doThrowException(e);                                         \
     }
 
 namespace wasm {
@@ -459,9 +459,8 @@ static int32_t MPI_Cart_shift_wrapper(wasm_exec_env_t execEnv,
                   (uintptr_t)sourceRank,
                   (uintptr_t)destRank);
 
-    CALL_MPI_WORLD_CATCH_EXCEPTION_NO_RETURN(
-      ctx->world.shiftCartesianCoords(
-        ctx->rank, direction, disp, sourceRank, destRank))
+    CALL_MPI_WORLD_CATCH_EXCEPTION_NO_RETURN(ctx->world.shiftCartesianCoords(
+      ctx->rank, direction, disp, sourceRank, destRank))
 
     return MPI_SUCCESS;
 }
@@ -708,8 +707,7 @@ static int32_t MPI_Isend_wrapper(wasm_exec_env_t execEnv,
     int requestId;
     CALL_MPI_WORLD_CATCH_EXCEPTION(
       requestId,
-      ctx->world.isend(
-        ctx->rank, destRank, (uint8_t*)buffer, hostDtype, count))
+      ctx->world.isend(ctx->rank, destRank, (uint8_t*)buffer, hostDtype, count))
 
     ctx->writeFaasmRequestId(requestPtrPtr, requestId);
 
@@ -769,9 +767,8 @@ static int32_t MPI_Recv_wrapper(wasm_exec_env_t execEnv,
 
     ctx->module->validateNativePointer(buffer, count * hostDtype->size);
 
-    CALL_MPI_WORLD_CATCH_EXCEPTION_NO_RETURN(
-      ctx->world.recv(
-        sourceRank, ctx->rank, (uint8_t*)buffer, hostDtype, count, status))
+    CALL_MPI_WORLD_CATCH_EXCEPTION_NO_RETURN(ctx->world.recv(
+      sourceRank, ctx->rank, (uint8_t*)buffer, hostDtype, count, status))
 
     return MPI_SUCCESS;
 }
@@ -874,13 +871,12 @@ static int32_t MPI_Scan_wrapper(wasm_exec_env_t execEnv,
         ctx->module->validateNativePointer(sendBuf, count * hostDtype->size);
     }
 
-    CALL_MPI_WORLD_CATCH_EXCEPTION_NO_RETURN(
-      ctx->world.scan(ctx->rank,
-                      (uint8_t*)sendBuf,
-                      (uint8_t*)recvBuf,
-                      hostDtype,
-                      count,
-                      hostOp))
+    CALL_MPI_WORLD_CATCH_EXCEPTION_NO_RETURN(ctx->world.scan(ctx->rank,
+                                                             (uint8_t*)sendBuf,
+                                                             (uint8_t*)recvBuf,
+                                                             hostDtype,
+                                                             count,
+                                                             hostOp))
 
     return MPI_SUCCESS;
 }

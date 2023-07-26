@@ -242,8 +242,6 @@ jobs:
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
-      planner:
-        image: faasm.azurecr.io/planner:0.5.0
     steps:
       - name: "Check out code"
         uses: actions/checkout@v3
@@ -507,7 +505,9 @@ jobs:
           key: ${{ env.CPU_MODEL }}-machine-code-${{ secrets.CACHE_VERSION }}
       # Code build (Debug required for tests)
       - name: "Build dev tools"
-        run: ./bin/inv_wrapper.sh dev.tools --build Debug --sgx Simulation --clean
+        run: |
+          ./bin/inv_wrapper.sh dev.cmake --build Debug --sgx Simulation --clean
+          ./bin/inv_wrapper.sh dev.cc codegen_func dev.cc codegen_shared_obj dev.cc tests
       # Environment set-up
       - name: "Run codegen for the tests"
         run: ./bin/inv_wrapper.sh codegen.tests
