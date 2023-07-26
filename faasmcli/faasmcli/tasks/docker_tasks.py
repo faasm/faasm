@@ -52,6 +52,50 @@ def purge(context):
         run(cmd, check=True)
 
 
+@task
+def purge_acr(context):
+    """
+    Purge docker images from the Azure Container Registry
+    """
+    faasm_ver = get_version()
+    repo_name = "faasm"
+
+    for ctr in CONTAINER_NAME2FILE_MAP:
+        # Get the pushed tags for a given container
+        az_cmd = "az acr repository show-tags -n {} --repository {} -o table".format(
+            repo_name, ctr
+        )
+        tag_list = (
+            run(az_cmd, shell=True, capture_output=True)
+            .stdout.decode("utf-8")
+            .split("\n")[2:-1]
+        )
+
+        # Don't purge images that are not tagged with the latest Faasm version
+        # These are images that are not re-built often, and unlikely to be
+        # bloating the ACR
+        if faasm_ver not in tag_list:
+            continue
+
+        tag_list.remove(faasm_ver)
+        for tag in tag_list:
+            print("Removing {}:{}".format(ctr, tag))
+            # Sometimes deleting an image deletes images with the same hash
+            # (but different tags), so we make sure the image exists before we
+            # delete it
+            az_cmd = "az acr repository show --name {} --image {}:{}".format(
+                repo_name, ctr, tag
+            )
+            out = run(az_cmd, shell=True, capture_output=True)
+            if out.returncode != 0:
+                print("Skipping as already deleted...")
+
+            az_cmd = "az acr repository delete -n {} --image {}:{} -y".format(
+                repo_name, ctr, tag
+            )
+            run(az_cmd, shell=True, check=True)
+
+
 def _check_valid_containers(containers):
     for container_name in containers:
         if container_name not in CONTAINER_NAME2FILE_MAP:
