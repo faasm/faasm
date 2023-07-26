@@ -102,6 +102,13 @@ inv docker.build-all --push --nocache
 > a member of the `faasm` resource group, you only need to run:
 > `az acr login -n faasm`
 
+In order to remove stale image tags from Azure (to cut storage costs) you may
+run:
+
+```bash
+inv docker.purge-acr
+```
+
 # Github config
 
 If this is your first time releasing, you'll need to
