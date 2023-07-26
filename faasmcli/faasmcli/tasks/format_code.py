@@ -1,13 +1,17 @@
 from invoke import task
 from faasmcli.util.env import PROJ_ROOT
+from os.path import join
 from subprocess import run
 
 
 @task(default=True)
-def format(ctx, check=False):
+def format(ctx, cwd=None, check=False):
     """
     Format Python and C++ code
     """
+    if not cwd:
+        cwd = PROJ_ROOT
+
     # ---- Python formatting ----
 
     files_to_check = (
@@ -15,7 +19,7 @@ def format(ctx, check=False):
             'git ls-files -- "*.py"',
             shell=True,
             check=True,
-            cwd=PROJ_ROOT,
+            cwd=cwd,
             capture_output=True,
         )
         .stdout.decode("utf-8")
@@ -27,14 +31,14 @@ def format(ctx, check=False):
         " ".join(files_to_check),
     ]
     black_cmd = " ".join(black_cmd)
-    run(black_cmd, shell=True, check=True, cwd=PROJ_ROOT)
+    run(black_cmd, shell=True, check=True, cwd=cwd)
 
     flake8_cmd = [
         "python3 -m flake8",
         " ".join(files_to_check),
     ]
     flake8_cmd = " ".join(flake8_cmd)
-    run(flake8_cmd, shell=True, check=True, cwd=PROJ_ROOT)
+    run(flake8_cmd, shell=True, check=True, cwd=cwd)
 
     # ---- C/C++ formatting ----
 
@@ -43,7 +47,7 @@ def format(ctx, check=False):
             'git ls-files -- "*.h" "*.cpp" "*.c"',
             shell=True,
             check=True,
-            cwd=PROJ_ROOT,
+            cwd=cwd,
             capture_output=True,
         )
         .stdout.decode("utf-8")
@@ -56,7 +60,7 @@ def format(ctx, check=False):
         " ".join(files_to_check),
     ]
     clang_cmd = " ".join(clang_cmd)
-    run(clang_cmd, shell=True, check=True, cwd=PROJ_ROOT)
+    run(clang_cmd, shell=True, check=True, cwd=cwd)
 
     # ---- Append newlines to C/C++ files if not there ----
 
@@ -65,7 +69,7 @@ def format(ctx, check=False):
         # just one character backwards unless you open the file as a byte
         # stream, which then makes it very involved to compare against the
         # newline character
-        with open(f, "a+") as fh:
+        with open(join(cwd, f), "a+") as fh:
             fh.seek(0)
             read = fh.read()
             if read[-1] != "\n":
