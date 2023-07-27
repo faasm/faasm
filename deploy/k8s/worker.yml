@@ -32,7 +32,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm.azurecr.io/worker:0.10.1
+        - image: faasm.azurecr.io/worker:0.10.2
           name: faasm-worker
           ports:
             - containerPort: 8080
