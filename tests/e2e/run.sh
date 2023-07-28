@@ -5,6 +5,15 @@ export E2E_TESTS_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]:-${(%):-%x}}" )" >/de
 pushd ${E2E_TESTS_ROOT} >> /dev/null
 source ./env.sh
 
+echo "printing env and exitting"
+env
+if [ "${MOUNT_FAASM_SOURCE}" == "on" ]; then
+    echo "would mount but just not yet at: ${FAASM_SOURCE}"
+else
+    echo "not mounting: ${MOUNT_FAASM_SOURCE}"
+fi
+exit 0
+
 # Install faasmctl
 pip3 install faasmctl==${FAASMCTL_VERSION}
 
