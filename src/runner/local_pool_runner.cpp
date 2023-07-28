@@ -1,4 +1,5 @@
 #include <faabric/endpoint/FaabricEndpoint.h>
+#include <faabric/planner/PlannerClient.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/util/batch.h>
 #include <faabric/util/logging.h>
@@ -24,12 +25,13 @@ int doRunner(int argc, char* argv[])
     }
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+    auto& plannerCli = faabric::planner::getPlannerClient();
     sch.callFunctions(req);
 
     usleep(1000 * 500);
 
     for (const auto& m : req->messages()) {
-        faabric::Message result = sch.getFunctionResult(m, 20000 * 100);
+        faabric::Message result = plannerCli.getMessageResult(m, 20000 * 100);
         if (result.returnvalue() != 0) {
             SPDLOG_ERROR("Message ({}) returned error code: {}",
                          m.id(),

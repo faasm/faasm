@@ -181,7 +181,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
     sch.callFunctions(invokeReqA);
 
     // Check the result
-    faabric::Message resultA = sch.getFunctionResult(invokeMsgA, 1000);
+    faabric::Message resultA = plannerCli.getMessageResult(invokeMsgA, 1000);
     REQUIRE(resultA.returnvalue() == 0);
     REQUIRE(resultA.outputdata() == expectedOutputA);
 
@@ -205,7 +205,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
     sch.callFunctions(invokeReqB);
 
     // Check the output has changed to the second function
-    faabric::Message resultB = sch.getFunctionResult(invokeMsgB, 1000);
+    faabric::Message resultB = plannerCli.getMessageResult(invokeMsgB, 1000);
     REQUIRE(resultB.returnvalue() == 0);
     REQUIRE(resultB.outputdata() == inputB);
 

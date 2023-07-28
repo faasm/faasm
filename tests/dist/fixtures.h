@@ -6,6 +6,7 @@
 
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
+#include <faabric/planner/PlannerClient.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/ExecGraph.h>
 #include <faabric/util/func.h>
@@ -21,13 +22,14 @@ class DistTestsFixture
     DistTestsFixture()
       : redis(faabric::redis::Redis::getQueue())
       , sch(faabric::scheduler::getScheduler())
+      , plannerCli(faabric::planner::getPlannerClient())
       , conf(faabric::util::getSystemConfig())
       , faasmConf(conf::getFaasmConfig())
     {
         redis.flushAll();
 
         // Planner reset
-        sch.getPlannerClient()->ping();
+        plannerCli.ping();
         resetPlanner();
 
         // Clean up the scheduler
@@ -82,6 +84,7 @@ class DistTestsFixture
   protected:
     faabric::redis::Redis& redis;
     faabric::scheduler::Scheduler& sch;
+    faabric::planner::PlannerClient& plannerCli;
     faabric::util::SystemConfig& conf;
     conf::FaasmConfig& faasmConf;
 
@@ -102,13 +105,13 @@ class MpiDistTestsFixture : public DistTestsFixture
         int appId = firstMsg.appid();
         int firstMsgId = firstMsg.id();
         faabric::Message result =
-          sch.getFunctionResult(appId, firstMsgId, functionCallTimeout);
+          plannerCli.getMessageResult(appId, firstMsgId, functionCallTimeout);
         REQUIRE(result.returnvalue() == 0);
         // Wait for all chained messages too
         for (const int chainedId :
              faabric::util::getChainedFunctions(firstMsg)) {
             auto chainedResult =
-              sch.getFunctionResult(appId, chainedId, functionCallTimeout);
+              plannerCli.getMessageResult(appId, chainedId, functionCallTimeout);
             if (!skipChainedCheck) {
                 REQUIRE(chainedResult.returnvalue() == 0);
             }

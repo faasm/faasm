@@ -3,6 +3,7 @@
 #include "faasm_fixtures.h"
 #include "utils.h"
 
+#include <faabric/planner/PlannerClient.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/environment.h>
@@ -32,10 +33,11 @@ class StateFuncTestFixture
         m.startRunner();
 
         faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+        auto& plannerCli = faabric::planner::getPlannerClient();
         sch.callFunctions(req);
 
         // Check result
-        faabric::Message result = sch.getFunctionResult(call, 1000);
+        faabric::Message result = plannerCli.getMessageResult(call, 1000);
         REQUIRE(result.returnvalue() == 0);
 
         REQUIRE(result.outputdata() == expectedOutput);
