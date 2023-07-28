@@ -1,6 +1,8 @@
 #include <faabric/mpi/MpiWorldRegistry.h>
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
+#include <faabric/snapshot/SnapshotClient.h>
+#include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/ExecGraph.h>
 #include <faabric/util/batch.h>
 #include <wasm/WasmExecutionContext.h>
@@ -65,7 +67,7 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
         std::string snapKey = "migration_" + std::to_string(msg.id());
         auto& reg = faabric::snapshot::getSnapshotRegistry();
         reg.registerSnapshot(snapKey, snap);
-        sch.getSnapshotClient(hostToMigrateTo)->pushSnapshot(snapKey, snap);
+        faabric::snapshot::getSnapshotClient(hostToMigrateTo)->pushSnapshot(snapKey, snap);
         msg.set_snapshotkey(snapKey);
 
         // Propagate the app ID and set the _same_ message ID
