@@ -34,6 +34,8 @@ jobs:
         wasm_vm: [wamr, wavm, sgx]
     env:
       CLUSTER_NAME_BASE: gha-cluster
+      FAASM_INI_FILE: ./faasm.ini
+      FAASM_VERSION: 0.10.2
       WASM_VM: ${{ matrix.wasm_vm }}
     steps:
       - name: "Check out the experiment-base code"
@@ -59,8 +61,6 @@ jobs:
         run: faasmctl deploy.k8s --workers=4
       - name: "Build, upload and run a simple CPP function"
         run:  faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello"
-        env:
-          FAASM_INI_FILE: ./faasm.ini
       - name: "Always delete AKS cluster"
         if: always()
         run: ./bin/inv_wrapper.sh cluster.delete --name ${{ env.CLUSTER_NAME }}
