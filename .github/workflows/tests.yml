@@ -618,11 +618,7 @@ jobs:
           build-type: release
         if: matrix.detached == false
       - name: "Install faasmctl"
-<<<<<<< HEAD
-        run: pip3 install faasmctl==0.9.1
-=======
         run: pip3 install faasmctl==0.10.0
->>>>>>> 29e9ed21 (deps: bump faasmctl)
       - name: "Fetch python's CPP submodulle"
         run: git submodule update --init -f third-party/cpp
         working-directory: ${{ github.workspace }}/clients/python
