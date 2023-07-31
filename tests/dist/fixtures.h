@@ -110,8 +110,8 @@ class MpiDistTestsFixture : public DistTestsFixture
         // Wait for all chained messages too
         for (const int chainedId :
              faabric::util::getChainedFunctions(firstMsg)) {
-            auto chainedResult =
-              plannerCli.getMessageResult(appId, chainedId, functionCallTimeout);
+            auto chainedResult = plannerCli.getMessageResult(
+              appId, chainedId, functionCallTimeout);
             if (!skipChainedCheck) {
                 REQUIRE(chainedResult.returnvalue() == 0);
             }

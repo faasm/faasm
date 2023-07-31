@@ -48,7 +48,8 @@ TEST_CASE_METHOD(DistTestsFixture,
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result = plannerCli.getMessageResult(msg, functionCallTimeout);
+    faabric::Message result =
+      plannerCli.getMessageResult(msg, functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Check one executor used on this host (always the case for threads)

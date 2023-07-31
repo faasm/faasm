@@ -54,7 +54,8 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     faabric::Message result = plannerCli.getMessageResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
     for (const int msgId : faabric::util::getChainedFunctions(call)) {
-        auto chainedResult = plannerCli.getMessageResult(call.appid(), msgId, 1000);
+        auto chainedResult =
+          plannerCli.getMessageResult(call.appid(), msgId, 1000);
         REQUIRE(chainedResult.returnvalue() == 0);
     }
 

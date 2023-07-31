@@ -65,7 +65,8 @@ TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result = plannerCli.getMessageResult(msg, functionCallTimeout);
+    faabric::Message result =
+      plannerCli.getMessageResult(msg, functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Check executors on this host
