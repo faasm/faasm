@@ -41,7 +41,7 @@ TEST_CASE_METHOD(DistTestsFixture,
     // Check it's successful
     for (int i = 0; i < 3; i++) {
         faabric::Message result =
-          sch.getFunctionResult(appId, msgIds.at(i), functionCallTimeout);
+          plannerCli.getMessageResult(appId, msgIds.at(i), functionCallTimeout);
         REQUIRE(result.returnvalue() == 0);
         REQUIRE(result.outputdata() == fmt::format("foobar {}", i));
         REQUIRE(result.executedhost() == workerIp);
@@ -65,7 +65,8 @@ TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
     sch.callFunctions(req);
 
     // Check it's successful
-    faabric::Message result = sch.getFunctionResult(msg, functionCallTimeout);
+    faabric::Message result =
+      plannerCli.getMessageResult(msg, functionCallTimeout);
     REQUIRE(result.returnvalue() == 0);
 
     // Check executors on this host

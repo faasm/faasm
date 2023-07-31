@@ -3,6 +3,7 @@
 #include "utils.h"
 
 #include <conf/FaasmConfig.h>
+#include <faabric/planner/PlannerClient.h>
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/util/gids.h>
@@ -19,6 +20,7 @@ std::vector<faabric::Message> waitForBatchResults(bool isThreads,
                                                   bool requireSuccess)
 {
     auto& sch = faabric::scheduler::getScheduler();
+    auto& plannerCli = faabric::planner::getPlannerClient();
 
     std::vector<faabric::Message> resultMsgs;
 
@@ -34,7 +36,7 @@ std::vector<faabric::Message> waitForBatchResults(bool isThreads,
             resultMsgs.push_back(result);
         } else {
             faabric::Message result =
-              sch.getFunctionResult(appId, msgId, 20000);
+              plannerCli.getMessageResult(appId, msgId, 20000);
             if (requireSuccess) {
                 REQUIRE(result.returnvalue() == 0);
             }

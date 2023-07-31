@@ -23,7 +23,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.10.2
+      image: faasm.azurecr.io/cli:0.10.3
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -52,7 +52,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.10.2
+      image: faasm.azurecr.io/cli:0.10.3
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -196,7 +196,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.10.2
+      image: faasm.azurecr.io/cli:0.10.3
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -224,18 +224,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli:0.10.2
+      image: faasm.azurecr.io/cli:0.10.3
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.10.2
+        image: faasm.azurecr.io/redis:0.10.3
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.10.2
+        image: faasm.azurecr.io/minio:0.10.3
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -330,18 +330,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli:0.10.2
+      image: faasm.azurecr.io/cli:0.10.3
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.10.2
+        image: faasm.azurecr.io/redis:0.10.3
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.10.2
+        image: faasm.azurecr.io/minio:0.10.3
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -434,18 +434,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli-sgx-sim:0.10.2
+      image: faasm.azurecr.io/cli-sgx-sim:0.10.3
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.10.2
+        image: faasm.azurecr.io/redis:0.10.3
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.10.2
+        image: faasm.azurecr.io/minio:0.10.3
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -453,7 +453,7 @@ jobs:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
       planner:
-        image: faasm.azurecr.io/planner:0.6.0
+        image: faasm.azurecr.io/planner:0.6.1
     steps:
       - name: "Check out code"
         uses: actions/checkout@v3
@@ -527,7 +527,7 @@ jobs:
     env:
       CONAN_CACHE_MOUNT_SOURCE: ~/.conan
       FAASM_INI_FILE: ./faasm.ini
-      FAASM_VERSION: 0.10.2
+      FAASM_VERSION: 0.10.3
       WASM_VM: ${{ matrix.wasm_vm }}
     steps:
       # The distributed tests use (pull) lots of docker images, so we may
@@ -548,7 +548,7 @@ jobs:
         with:
           submodules: true
       - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.9.1
+        run: pip3 install faasmctl==0.10.0
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
@@ -592,7 +592,7 @@ jobs:
         working-directory: ${{ github.workspace }}
     env:
       FAASM_INI_FILE: ./faasm.ini
-      FAASM_VERSION: 0.10.2
+      FAASM_VERSION: 0.10.3
       PYTHON_CODEGEN: "on"
     steps:
       # The distributed tests use (pull) lots of docker images, so we may
@@ -618,7 +618,7 @@ jobs:
           build-type: release
         if: matrix.detached == false
       - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.9.1
+        run: pip3 install faasmctl==0.10.0
       - name: "Fetch python's CPP submodulle"
         run: git submodule update --init -f third-party/cpp
         working-directory: ${{ github.workspace }}/clients/python

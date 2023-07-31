@@ -24,7 +24,7 @@ TEST_CASE_METHOD(
     SECTION("Recording off (default)") { expectedNumNodes = 1; }
 
     sch.callFunctions(req);
-    faabric::Message result = sch.getFunctionResult(call, 5000);
+    faabric::Message result = plannerCli.getMessageResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
     auto execGraph = faabric::util::getFunctionExecGraph(call);
@@ -51,10 +51,11 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     SECTION("Recording off (default)") { expectedNumNodes = 1; }
 
     sch.callFunctions(req);
-    faabric::Message result = sch.getFunctionResult(call, 5000);
+    faabric::Message result = plannerCli.getMessageResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
     for (const int msgId : faabric::util::getChainedFunctions(call)) {
-        auto chainedResult = sch.getFunctionResult(call.appid(), msgId, 1000);
+        auto chainedResult =
+          plannerCli.getMessageResult(call.appid(), msgId, 1000);
         REQUIRE(chainedResult.returnvalue() == 0);
     }
 

@@ -44,7 +44,7 @@ class MPIFuncTestFixture
                 continue;
             }
 
-            faabric::Message result = sch.getFunctionResult(msg, 1);
+            faabric::Message result = plannerCli.getMessageResult(msg, 1);
 
             if (result.returnvalue() != 0) {
                 FAIL(fmt::format("Message ID {} failed", messageId));

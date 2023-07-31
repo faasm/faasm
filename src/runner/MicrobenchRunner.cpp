@@ -1,4 +1,5 @@
 #include <conf/FaasmConfig.h>
+#include <faabric/planner/PlannerClient.h>
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecutorContext.h>
@@ -83,13 +84,14 @@ int MicrobenchRunner::doRun(std::ofstream& outFs,
 
     // Create faaslet
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
+    auto& plannerCli = faabric::planner::getPlannerClient();
 
     // Preflight if necessary
     if (PREFLIGHT_CALLS) {
         auto preflightReq = createBatchRequest(user, function, inputData);
         auto preflightMsg = preflightReq->messages(0);
         sch.callFunctions(preflightReq);
-        sch.getFunctionResult(preflightMsg, 10000);
+        plannerCli.getMessageResult(preflightMsg, 10000);
     }
 
     // Main loop
@@ -102,7 +104,7 @@ int MicrobenchRunner::doRun(std::ofstream& outFs,
         // Execute
         TimePoint execStart = startTimer();
         sch.callFunctions(req);
-        faabric::Message res = sch.getFunctionResult(msg, 10000);
+        faabric::Message res = plannerCli.getMessageResult(msg, 10000);
         long execNanos = getTimeDiffNanos(execStart);
         float execMicros = float(execNanos) / 1000;
 

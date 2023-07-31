@@ -1,4 +1,5 @@
 #include <conf/FaasmConfig.h>
+#include <faabric/planner/PlannerClient.h>
 #include <faabric/redis/Redis.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/scheduler/ExecutorFactory.h>
@@ -84,8 +85,9 @@ int doRunner(int argc, char* argv[])
     sch.callFunctions(req);
 
     // Await the result
+    auto& plannerCli = faabric::planner::getPlannerClient();
     const faabric::Message& result =
-      sch.getFunctionResult(msg, conf.globalMessageTimeout);
+      plannerCli.getMessageResult(msg, conf.globalMessageTimeout);
     if (result.returnvalue() != 0) {
         SPDLOG_ERROR("Execution failed: {}", result.outputdata());
         throw std::runtime_error("Executing function failed");
