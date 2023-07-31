@@ -31,6 +31,12 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     // Call the functions
     sch.callFunctions(req);
 
+    // Sleep for a bit to make sure we schedule all MPI ranks before we run
+    // the second request. Note that the function mpi/mpi_long_alltoall sleeps
+    // for five seconds during its execution, so we can safely sleep for one
+    // second here and still ensure concurrent execution
+    SLEEP_MS(1000);
+
     // Set up the second message
     std::shared_ptr<faabric::BatchExecuteRequest> reqCopy =
       faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
