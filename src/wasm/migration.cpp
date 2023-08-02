@@ -96,7 +96,8 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
                     hostToMigrateTo);
 
         // Build decision and send
-        faabric::batch_scheduler::SchedulingDecision decision(msg.appid(), msg.groupid());
+        faabric::batch_scheduler::SchedulingDecision decision(msg.appid(),
+                                                              msg.groupid());
         decision.addMessage(hostToMigrateTo, msg);
         sch.callFunctions(req, decision);
 
