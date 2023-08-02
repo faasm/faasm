@@ -15,9 +15,7 @@ An example function using shared files can be found
 You can use the CLI to upload and download shared files:
 
 ```bash
-inv files.upload <local_path> <shared_path>
-
-inv files.download <shared_path> <local_path>
+faasmctl upload.file <local_path> <shared_path>
 ```
 
 For example:
@@ -26,9 +24,9 @@ For example:
 # Create some data
 echo "This is content" > /tmp/bar.txt
 
-inv files.upload /tmp/bar.txt foo/bar.txt
+faasmctl upload.file /tmp/bar.txt foo/bar.txt
 
 # Function can access and modify file at faasm://foo/bar.txt
 
-inv files.download foo/bar.txt /tmp/bar.txt
+faasmctl download.file foo/bar.txt /tmp/bar.txt
 ```

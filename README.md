@@ -28,23 +28,27 @@ more details on the code and architecture.
 
 ## Quick start
 
-Update submodules:
+Update submodules and activate the virtual environment:
 
 ```bash
 git submodule update --init --recursive
+source ./bin/workon.sh
 ```
 
 Start a Faasm cluster locally using `docker compose`:
 
 ```bash
-docker compose up -d --scale worker=2 nginx
+faasmctl deploy.compose
+
+# Set the env. var with Faasm's INI file to avoid having to repeat it
+export FAASM_INI_FILE=./faasm.ini
 ```
 
 To compile, upload and invoke a C++ function using this local cluster you can
 use the [faasm/cpp](https://github.com/faasm/cpp) container:
 
 ```bash
-docker compose run --rm cpp /bin/bash
+faasmctl cli.cpp
 
 # Compile the demo function
 inv func demo hello

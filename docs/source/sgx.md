@@ -12,7 +12,7 @@ To configure SGX, we must build the code with the desired SGX flavour: disabled
 First, access an SGX-enabled docker-based CLI:
 
 ```bash
-./bin/cli.sh faasm-sgx
+WASM_VM=sgx-sim faasmctl cli.faasm
 ```
 
 ```bash
@@ -32,14 +32,14 @@ environment variable to "sgx".
 
 ```bash
 # Start development cluster, and log into the cpp container
-./bin/cli.sh cpp
+faasmctl cli.cpp
 
 # Compile the demo function
 inv func demo hello
 
 # Exit the cpp container, and log into the CLI one
 exit
-./bin/cli.sh faasm
+faasmctl cli.faasm
 
 # Set SGX as our execution mode of choice, and operate as usual
 export WASM_VM="sgx"
@@ -54,7 +54,7 @@ inv run demo hello
 To run a development cluster with SGX run:
 
 ```bash
-inv cluster.start --sgx Simulation|Hardware
+WASM_VM=sgx(-sim) faasmctl deploy.compose --mount-source
 ```
 
 To run SGX in an Azure kubernetes cluster, see the relevant repositories:

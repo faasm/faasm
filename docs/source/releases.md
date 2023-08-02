@@ -12,8 +12,7 @@ view](https://github.com/faasm/faasm/compare).
 Version can be updated with:
 
 ```
-# Minor
-inv git.bump
+inv git.bump [--patch,minor,major]
 
 # Custom
 inv git.bump --ver=1.2.3
