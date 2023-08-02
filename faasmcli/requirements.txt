@@ -1,7 +1,7 @@
 black==22.3.0
 breathe==4.32.0
 configparser==5.0.2
-cryptography==41.0.2
+cryptography==41.0.3
 docker==5.0.0
 faasmctl==0.10.0
 flake8==3.9.2
