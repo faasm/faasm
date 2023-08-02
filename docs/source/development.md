@@ -26,13 +26,18 @@ need to update the project submodules (may take a while):
 git submodule update --init --recursive
 ```
 
-To tie together the projects in the local dev environment, we mount
-`dev/faasm-local` into `/usr/local/faasm` in the various containers, which you
-can initialise with:
+Then, you may start a development cluster mounting the checked-out code into
+each service container, and sharing a system and runtime root filesystem.
 
 ```bash
-./bin/refresh_local.sh
+faasmctl deploy.compose --mount-source . [--workers=0]
+
+# Exporrt the path to the INI file, to avoid `faasmctl` asking for it again
+export FAASM_INI_FILE=./faasm.ini
 ```
+
+pass the `--workers=0` flag to avoid starting any workers (unnecessary for
+day-to-day develeopment).
 
 ## Use
 
@@ -40,9 +45,7 @@ Once you've set up the repo, you should first run the Faasm CLI to make sure
 things work:
 
 ```bash
-./bin/cli.sh faasm
-
-# Wait for 30s while it sets up the Python environment in the background
+faasmctl cli.faasm
 
 # Check the python environment is up (should list commands)
 inv -l
@@ -58,10 +61,10 @@ CLI container):
 
 ```bash
 # C++ functions
-./bin/cli.sh cpp
+faasmctl cli.cpp
 
 # Python functions
-./bin/cli.sh python
+faasmctl cli.python
 ```
 
 ## Tests
@@ -99,7 +102,7 @@ inv tests [--test-dir <directory_name>] # e.g. faaslet
 You can use custom containers that inherit from the existing CLI images if you
 want to add text editors etc.
 
-Before running the `./bin/cli.sh` script, you need to set one or more of the
+Before running the `faasmctl` script, you need to set one or more of the
 following environment variables:
 
 ```bash
@@ -132,6 +135,11 @@ tests "[mpi]"
 # Run a specific test
 tests "Test some feature"
 ```
+
+> We add a wrapper script around the base `tests` command (see `inv tests`) to
+> make sure all the correct env. variables for the tests are set. Using the
+> underlying `tests` command should only be necessary in special cases (e.g.
+> starting GDB).
 
 ## Code style
 
@@ -184,15 +192,11 @@ sudo ./bin/cgroup.sh
 To start the local development cluster, you can run:
 
 ```bash
-inv cluster.start
+faasmctl deploy.compose [--num-workers=<num_workers>]
 ```
 
-To run external applications and benchmarks against this cluster, you may also
-need to set up your config file to point at this cluster:
-
-```bash
-inv k8s.ini-file --local
-```
+for more details on the `deploy.compose` command, check [faasmctl's docs](
+https://github.com/faasm/faasmctl/tree/main/docs/deploy.md#docker-compose).
 
 ### Making changes in your local cluster
 
@@ -200,8 +204,7 @@ Assuming you've changed something related to the `pool_runner` target (which is
 executed by the `worker` container), you can pick up the changes with:
 
 ```bash
-# Start the Faasm CLI
-./bin/cli.sh faasm
+faasmctl cli.faasm
 
 # Rebuild the pool_runner target
 inv dev.cc pool_runner
@@ -210,9 +213,9 @@ inv dev.cc pool_runner
 From a different terminal, restart the worker and check the logs:
 
 ```bash
-inv cluster.restart-worker
+faasmctl restart -s worker
 
-docker compose logs -f
+faasmctl logs -s worker -f
 ```
 
 ### Running distributed tests locally
@@ -224,29 +227,21 @@ First of all, you need to make sure everything else is shut down to avoid
 interfering with the tests:
 
 ```bash
-docker compose down
+faasmctl delete
+faasmctl deploy.dist-tests --mount-source .
 ```
 
 Make sure your local setup is built, along with the distributed tests:
 
 ```bash
-# Enter CLI container
-./bin/cli.sh faasm
+faasmctl cli.faasm --cmd "./deploy/dist-test/build_internal.sh
 
-# Build local environment
-inv dev.tools
-
-# Build dist tests
-inv dev.cc dist_tests dev.cc dist_test_server
+faasmctl restart -s upload -s dist-test-server
 ```
 
-Outside the container, start the distributed tests server, then upload all the
-functions:
+Outside the container upload all the functions and run the tests:
 
 ```bash
-# Start server
-./deploy/dist-test/dev_server.sh
-
 # Upload everything
 ./deploy/dist-test/upload.sh
 
@@ -267,166 +262,5 @@ dist_tests
 If changing the server, you need to restart from outside the container:
 
 ```bash
-./deploy/dist-test/dev_server.sh restart
-```
-
-## Building outside of the container
-
-**This is not the recommended approach to developing Faasm**, so it's not
-scripted.
-
-However, it can be useful for profiling.
-
-You can work out what's required by looking at the following Dockerfiles:
-
-- [`faasm/faabric-base`](https://github.com/faasm/faabric/blob/main/docker/faabric-base.dockerfile)
-- [`faasm/cpp-root`](https://github.com/faasm/faabric/blob/main/docker/cpp-root.dockerfile)
-
-The following notes were correct at the time of writing but aren't necessarily
-kept up to date, so YMMV:
-
-### LLVM and Clang
-
-LLVM and Clang can be installed using the script from the LLVM website (we use
-13 _and_ 10 at the time of writing):
-
-```bash
-wget https://apt.llvm.org/llvm.sh
-chmod +x llvm.sh
-sudo ./llvm.sh 13
-sudo ./llvm.sh 10
-```
-
-You then need to make sure all the tooling and latest C++ stdlib is installed:
-
-```bash
-sudo apt install -y g++-11 libc++-dev libc++abi-13-dev clang-tools-13 clang-format-13 clang-tidy-13
-```
-
-On Ubuntu 18.04 you need to add a specific apt repo to install g++-11:
-
-```bash
-sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-sudo apt install -y g++-11
-```
-
-### Conan
-
-Follow the Conan [installation docs](https://conan.io/downloads.html).
-
-If you've also been building using the containerised setup, it's safest to also
-nuke your conan cache:
-
-```bash
-rm -rf ~/.conan
-```
-
-### CMake
-
-You can check what version of CMake you already have. If it's above the minimum
-required for Faasm you don't need to change it.
-
-If you need to update it's best to install from source as per [the
-instructions](https://cmake.org/install/).
-
-### Python environment
-
-You will then need to set up the Faasm Python environment:
-
-```bash
-./bin/create_venv.sh
-
-source bin/workon.sh
-
-inv -l
-```
-
-### Local dev files
-
-You can pull the latest development files using:
-
-```bash
-./bin/refresh_local.sh
-```
-
-### Tidy-up
-
-If you've been running the containerised development environment too, it's
-highly likely that the permissions will be messed up and cause cryptic error
-messages. To be safe, reset the permissions on everything:
-
-```bash
-sudo sh -c 'chown -R ${SUDO_USER}:${SUDO_USER} .'
-```
-
-### Building
-
-Then you can try building one of the executables:
-
-```bash
-# Check environment is correct and build directories look sane
-env | grep FAASM
-
-# Run cmake and build
-inv dev.cmake
-inv dev.cc func_runner
-
-# Check which binary is on the path
-which func_runner
-```
-
-### Minio and Redis
-
-Before running one of the executables, you must make sure that the `minio`
-container is running, and reachable from outside the container.
-
-```
-# Stop anything that may be running in the background
-docker compose down
-
-docker compose up -d redis-state redis-queue minio
-
-docker compose ps
-```
-
-To tell Faasm outside the container to use the containerised Minio, set the
-following:
-
-```bash
-export S3_HOST=localhost
-```
-
-You also need Redis available locally:
-
-```bash
-sudo apt install redis-server redis-cli -y
-```
-
-### Compile and run a function
-
-Compile a function with the CPP CLI:
-
-```bash
-./bin/cli.sh cpp
-
-inv func demo hello
-```
-
-Then back in the Faasm root:
-
-```bash
-inv dev.tools
-inv codegen demo hello
-inv run demo hello
-```
-
-### Running against a dev cluster
-
-To run your out-of-container build in a dev cluster, you need to specify the
-location of the built files, which is handled by the environment variables set
-in `bin/workon.sh`.
-
-```bash
-source bin/workon.sh
-./deploy/local/dev_cluster.sh
+faasmctl restart -s dist-test-server
 ```

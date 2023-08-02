@@ -6,7 +6,7 @@ the setup in the [development docs](development.md).
 ## Containers
 
 Faasm runs a few different containers as defined in
-[docker-compose.yml](../docker-compose.yml). The most important are:
+[docker-compose.yml](../../docker-compose.yml). The most important are:
 
 - `cpp` - used to compile and upload C/C++ functions (see the [`cpp`
   repo](https://github.com/faasm/cpp)).
@@ -28,31 +28,54 @@ functions, CPython, Python C-extensions). This, along with other local
 development artifacts, is stored in the `dev` dir at the root of your local
 checkout.
 
-## Commandline interface
+## Python Virtual Environment
 
-All Faasm projects use [Invoke](https://www.pyinvoke.org/), which means you can
-do the following:
+All Faasm functionality is accessible through Python tasks with [Invoke](
+https://www.pyinvoke.org/). In order to install all the dependencies, make sure
+you always have an active python virtual enviornment:
+
+```bash
+source ./bin/workon.sh
+```
+
+then, you can do the following:
 
 ```bash
 # List all commands
 inv -l
 
 # List all commands in the k8s namespace
-inv -l k8s
+inv -l wast
 
 # Show help for a given command
-inv -h k8s.ini-file
+inv -h wast.decompile
 
 # Chain commands
-inv flush invoke demo hello
+inv wast run
 ```
+
+## Faasmctl
+
+Faasm uses [`faasmctl`](https://github.com/faasm/faasmctl) to interact with a
+running Faasm cluster.
+
+`faasmctl` is installed automatically in the virtual environment.
+In order to use it, you need to set an environment variable pointing to the
+cluster's INI file:
+
+```bash
+export FAASM_INI_FILE=./faasm.ini
+```
+
+for more information on `faasmctl`, or details of its inner-workings, check
+the [corresponding docs](https://github.com/faasm/faasmctl/tree/main/docs).
 
 ## Local cluster
 
 To start a local deployment, you can run:
 
 ```
-docker compose up
+faasmctl deploy.compose
 ```
 
 ## Writing and deploying functions
@@ -67,10 +90,11 @@ See the language-specific docs:
 Faasm does a lot of caching, so if you want to update a function, you must flush
 the system before invoking it again. This is done using the `flush` command.
 Each language-specific container has its own way of flushing (e.g. `inv
-func.flush` in the `cpp` container), but you can also do it from the Faasm CLI.
+func.flush` in the `cpp` container), but you can also do it from outside all
+containers with `faasmctl`:
 
 ```bash
-inv flush
+faasmctl flush.all
 ```
 
 The process for updating and invoking an updated function is:

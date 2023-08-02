@@ -3,8 +3,8 @@
 Faasm runs on a K8s cluster.
 
 Faasm's K8s configuration can be found in the [k8s](../deploy/k8s) directory,
-and the relevant parts of the Faasm CLI can be found in the [k8s
-tasks](../tasks/k8s.py).
+and the relevant parts of the deployment in the corresponding `faasmctl`
+[script](https://github.com/faasm/faasmctl/blob/main/faasmctl/util/k8s.py).
 
 Faasm assumes a K8s cluster is set up with
 [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) available
@@ -18,7 +18,7 @@ page.
 To deploy Faasm to your k8s cluster, you must specify the number of workers:
 
 ```bash
-inv k8s.deploy --workers=4
+faasmctl deploy.k8s --workers=4
 ```
 
 As a rule of thumb, the number of workers should not exceed the number of nodes
@@ -35,65 +35,21 @@ If you want to scale up or down the number of workers, you can use [standard
 
 ## Faasm config file
 
-Once everything has started up, Faasm should also generate a config file,
+Once everything has started up, `faasmctl` should also generate a config file,
 `faasm.ini` at root of this project. This contains the relevant endpoints for
 accessing the Faasm deployment.
 
-If you need to regenerate this, you can run:
+It is very important that you save the path to this INI file in an env.
+variable:
 
 ```bash
-inv k8s.ini-file
+export FAASM_INI_FILE=./faasm.ini
 ```
-
-*If you are running on a bare metal cluster (i.e. not as part of a managed k8s
-service like AKS), you'll need to run the following instead:*
-
-```bash
-inv k8s.ini-file --publicip <ip of one of your hosts>
-```
-
-This is because Faasm normally assumes different public IPs for the upload and
-invocation services, which are created as k8s `LoadBalancer`s in a cloud
-provider. The command above instead uses the underlying `NodePort`s from those
-`LoadBalancers`, by hitting one of the underlying hosts directly.
-
-Unfortunately it's often not possible to query this public IP from within
-`kubectl` itself, so you have to tell Faasm what it is explicitly.
-
-Also make sure that all the ports mentioned in the Faasm config file are
-accessible via your hosts' firewall rules.
 
 ## Uploading and invoking functions
 
 Once you have configured your `faasm.ini` file, you can use the Faasm, CPP,
-Python CLIs via the [`docker-compose-k8s.yml`](../docker-compose-k8s.yml) file
-in this repo as normal, for example:
-
-```bash
-# Start the cpp container (make sure you've stopped all other Faasm containers)
-docker compose -f docker-compose-k8s.yml up -d --no-recreate cpp-cli
-docker compose -f docker-compose-k8s.yml exec cpp-cli /bin/bash
-
-# Compile and upload a function
-inv func demo hello
-inv func.upload demo hello
-
-# Invoke the function
-inv func.invoke demo hello
-```
-
-For Python:
-
-```bash
-# Start the python container
-docker compose -f docker-compose-k8s.yml up -d --no-recreate python-cli
-docker compose -f docker-compose-k8s.yml exec python-cli /bin/bash
-
-inv func.uploadpy python hello
-
-# Invoke the function
-inv func.invoke demo hello
-```
+Python CLIs as [usual](./api.md).
 
 # Troubleshooting
 
