@@ -10,7 +10,6 @@
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
 #include <faabric/util/memory.h>
-#include <faabric/util/scheduling.h>
 #include <faabric/util/snapshot.h>
 #include <faabric/util/string_tools.h>
 #include <faabric/util/timing.h>

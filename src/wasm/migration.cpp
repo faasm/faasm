@@ -1,3 +1,4 @@
+#include <faabric/batch-scheduler/SchedulingDecision.h>
 #include <faabric/mpi/MpiWorldRegistry.h>
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
@@ -95,7 +96,8 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
                     hostToMigrateTo);
 
         // Build decision and send
-        faabric::util::SchedulingDecision decision(msg.appid(), msg.groupid());
+        faabric::batch_scheduler::SchedulingDecision decision(msg.appid(),
+                                                              msg.groupid());
         decision.addMessage(hostToMigrateTo, msg);
         sch.callFunctions(req, decision);
 
