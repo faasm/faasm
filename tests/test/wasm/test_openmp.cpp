@@ -24,7 +24,12 @@ class OpenMPTestFixture
   , public ConfFixture
 {
   public:
-    OpenMPTestFixture() { conf.overrideCpuCount = 30; }
+    OpenMPTestFixture()
+    {
+        faabric::HostResources res;
+        res.set_slots(30);
+        sch.setThisHostResources(res);
+    }
 
     ~OpenMPTestFixture() {}
 
@@ -104,6 +109,10 @@ TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test OpenMP single section",
                  "[wasm][openmp]")
 {
+    faabric::HostResources res;
+    res.set_slots(200);
+    sch.setThisHostResources(res);
+
     doOmpTestLocal("simple_single");
 }
 
@@ -128,6 +137,10 @@ TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test getting and setting number of OpenMP threads",
                  "[wasm][openmp]")
 {
+    faabric::HostResources res;
+    res.set_slots(200);
+    sch.setThisHostResources(res);
+
     doOmpTestLocal("setting_num_threads");
 }
 
@@ -159,6 +172,10 @@ TEST_CASE_METHOD(OpenMPTestFixture,
 
 TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP atomic", "[wasm][openmp]")
 {
+    faabric::HostResources res;
+    res.set_slots(200);
+    sch.setThisHostResources(res);
+
     doOmpTestLocal("simple_atomic");
 }
 
@@ -175,12 +192,11 @@ TEST_CASE_METHOD(OpenMPTestFixture,
                  "[wasm][openmp][.]")
 {
     // Overload the local resources
-    int nSlots = 15;
     int nOmpThreads = 60;
 
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     faabric::HostResources res;
-    res.set_slots(nSlots);
+    res.set_slots(200);
     sch.setThisHostResources(res);
 
     // Overload the number of cores

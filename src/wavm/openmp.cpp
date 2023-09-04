@@ -437,7 +437,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         parentCall->user(), parentCall->function(), nextLevel->numThreads);
     req->set_type(faabric::BatchExecuteRequest::THREADS);
     req->set_subtype(ThreadRequestType::OPENMP);
-    faabric::util::updateBatchExecAppId(req, parentCall->appid());
+    // TODO(thread-opt): we don't relate the calling message with the callee.
+    // This means that OpenMP messages could be sub-optimally scheduled
+    // faabric::util::updateBatchExecAppId(req, parentCall->appid());
 
     // In the local tests, we always set the single-host flag to avoid
     // having to synchronise snapshots
