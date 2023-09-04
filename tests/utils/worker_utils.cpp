@@ -68,7 +68,37 @@ std::vector<faabric::Message> executeWithPool(
     auto& plannerCli = faabric::planner::getPlannerClient();
     plannerCli.callFunctions(req);
 
-    usleep(1000 * 500);
+    // In the case of an MPI request, we want to wait for all the MPI messages,
+    // not only the one with rank 0
+    if (req->messages(0).ismpi()) {
+        int maxRetries = 5;
+        int numRetries = 0;
+        int expectedWorldSize = req->messages(0).mpiworldsize();
+        auto decision = plannerCli.getSchedulingDecision(req);
+        while (decision.messageIds.size() != expectedWorldSize) {
+            if (numRetries >= maxRetries) {
+                SPDLOG_ERROR(
+                  "Timed-out waiting for MPI messages to be scheduled ({}/{})",
+                  decision.messageIds.size(),
+                  expectedWorldSize);
+                throw std::runtime_error("Timed-out waiting for MPI messges");
+            }
+
+            SPDLOG_DEBUG("Waiting for MPI messages to be scheduled ({}/{}, app: {})",
+                         decision.messageIds.size(),
+                         expectedWorldSize,
+                         req->appid());
+            SLEEP_MS(1000);
+
+            numRetries += 1;
+            decision = plannerCli.getSchedulingDecision(req);
+        }
+
+        // Finally, add the message IDs to the waiting set
+        for (const auto& mid : decision.messageIds) {
+            reqMsgIds.insert(mid);
+        }
+    }
 
     // Wait for all functions to complete
     auto resultMsgs = waitForBatchResults(

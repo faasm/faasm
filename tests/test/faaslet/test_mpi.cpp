@@ -38,11 +38,8 @@ class MPIFuncTestFixture
         // Execute it
         executeWithPool(req, 10000).at(0);
 
-        // Wait for results
-        waitForMpiMessages(req, worldSize);
-
         // Return the first message's result for post-processing
-        return plannerCli.getMessageResult(req->messages(0), 500);;
+        return plannerCli.getMessageResult(req->messages(0), 500);
     }
 
     conf::FaasmConfig& faasmConf;
