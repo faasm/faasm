@@ -32,9 +32,8 @@ class StateFuncTestFixture
         faabric::runner::FaabricMain m(fac);
         m.startRunner();
 
-        faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
         auto& plannerCli = faabric::planner::getPlannerClient();
-        sch.callFunctions(req);
+        plannerCli.callFunctions(req);
 
         // Check result
         faabric::Message result = plannerCli.getMessageResult(call, 1000);

@@ -35,7 +35,7 @@ TEST_CASE_METHOD(DistTestsFixture,
     }
 
     // Call the functions
-    std::vector<std::string> actualHosts = sch.callFunctions(req).hosts;
+    std::vector<std::string> actualHosts = plannerCli.callFunctions(req).hosts;
     REQUIRE(actualHosts == expectedHosts);
 
     // Check it's successful
@@ -62,7 +62,7 @@ TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
     faabric::Message& msg = req->mutable_messages()->at(0);
 
     // Call the functions
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
 
     // Check it's successful
     faabric::Message result =
@@ -71,10 +71,5 @@ TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
 
     // Check executors on this host
     REQUIRE(sch.getFunctionExecutorCount(msg) == 2);
-
-    // Check other host is registered
-    std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
-    REQUIRE(sch.getFunctionRegisteredHosts(msg.user(), msg.function()) ==
-            expectedRegisteredHosts);
 }
 }

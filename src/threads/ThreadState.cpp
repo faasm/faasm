@@ -47,8 +47,7 @@ void setCurrentOpenMPLevel(
 std::shared_ptr<Level> getCurrentOpenMPLevel()
 {
     if (currentLevel == nullptr) {
-        int nThreads =
-          faabric::scheduler::getScheduler().getThisHostResources().slots();
+        int nThreads = faabric::util::getUsableCores();
         SPDLOG_DEBUG("Creating default OpenMP level with {} threads", nThreads);
         currentLevel = std::make_shared<Level>(nThreads);
     }

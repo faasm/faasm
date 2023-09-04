@@ -17,29 +17,26 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
     auto& sch = faabric::scheduler::getScheduler();
 
     // Detect if there is a pending migration for the current app
-    auto pendingMigrations = sch.getPendingAppMigrations(call->appid());
-    bool appMustMigrate = pendingMigrations != nullptr;
+    auto migration = sch.checkForMigrationOpportunities(*call);
+    bool appMustMigrate = migration != nullptr;
 
     // Detect if this particular function needs to be migrated or not
     bool funcMustMigrate = false;
     std::string hostToMigrateTo = "otherHost";
     if (appMustMigrate) {
-        for (int i = 0; i < pendingMigrations->migrations_size(); i++) {
-            auto m = pendingMigrations->mutable_migrations()->at(i);
-            if (m.msg().id() == call->id()) {
-                funcMustMigrate = true;
-                hostToMigrateTo = m.dsthost();
-                break;
-            }
-        }
+        funcMustMigrate = migration->srchost() != migration->dsthost();
+        hostToMigrateTo = migration->dsthost();
     }
 
     // Regardless if we have to individually migrate or not, we need to prepare
     // for the app migration
     if (appMustMigrate && call->ismpi()) {
+        // A migration yields a new distribution, hence a new PTP group
+        call->set_groupid(migration->groupid());
+
         auto& mpiWorld =
           faabric::mpi::getMpiWorldRegistry().getWorld(call->mpiworldid());
-        mpiWorld.prepareMigration(call->mpirank(), pendingMigrations);
+        mpiWorld.prepareMigration(call->mpirank());
     }
 
     // Do actual migration
@@ -52,6 +49,8 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
         std::shared_ptr<faabric::BatchExecuteRequest> req =
           faabric::util::batchExecFactory(call->user(), call->function(), 1);
         req->set_type(faabric::BatchExecuteRequest::MIGRATION);
+        faabric::util::updateBatchExecAppId(req, migration->appid());
+        faabric::util::updateBatchExecGroupId(req, migration->groupid());
 
         faabric::Message& msg = req->mutable_messages()->at(0);
         msg.set_inputdata(inputData.data(), inputData.size());
@@ -73,8 +72,6 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
         msg.set_snapshotkey(snapKey);
 
         // Propagate the app ID and set the _same_ message ID
-        msg.set_appid(call->appid());
-        msg.set_groupid(call->groupid());
         msg.set_groupidx(call->groupidx());
 
         // If message is MPI, propagate the necessary MPI bits
@@ -95,11 +92,8 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
                     call->id(),
                     hostToMigrateTo);
 
-        // Build decision and send
-        faabric::batch_scheduler::SchedulingDecision decision(msg.appid(),
-                                                              msg.groupid());
-        decision.addMessage(hostToMigrateTo, msg);
-        sch.callFunctions(req, decision);
+        faabric::scheduler::getFunctionCallClient(hostToMigrateTo)
+          ->executeFunctions(req);
 
         if (call->recordexecgraph()) {
             faabric::util::logChainedFunction(*call, msg);
@@ -108,6 +102,12 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
         auto ex =
           faabric::util::FunctionMigratedException("Migrating MPI rank");
         getExecutingModule()->doThrowException(ex);
+    }
+
+    // Hit the post-migration hook if not migrated (but someone has)
+    if (appMustMigrate) {
+        faabric::transport::getPointToPointBroker().postMigrationHook(
+          call->groupid(), call->groupidx());
     }
 }
 }

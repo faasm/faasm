@@ -23,7 +23,7 @@ TEST_CASE_METHOD(
 
     SECTION("Recording off (default)") { expectedNumNodes = 1; }
 
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
     faabric::Message result = plannerCli.getMessageResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
 
@@ -50,7 +50,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
 
     SECTION("Recording off (default)") { expectedNumNodes = 1; }
 
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
     faabric::Message result = plannerCli.getMessageResult(call, 5000);
     REQUIRE(result.returnvalue() == 0);
     for (const int msgId : faabric::util::getChainedFunctions(call)) {

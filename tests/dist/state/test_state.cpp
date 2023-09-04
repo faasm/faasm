@@ -28,7 +28,7 @@ TEST_CASE_METHOD(DistTestsFixture,
     msg.set_inputdata(std::to_string(nWorkers));
 
     // Call the functions
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
 
     // Check it's successful
     faabric::Message result =

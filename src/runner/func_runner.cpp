@@ -82,10 +82,10 @@ int doRunner(int argc, char* argv[])
 
     // Submit the invocation
     PROF_START(FunctionExec)
-    sch.callFunctions(req);
+    auto& plannerCli = faabric::planner::getPlannerClient();
+    plannerCli.callFunctions(req);
 
     // Await the result
-    auto& plannerCli = faabric::planner::getPlannerClient();
     const faabric::Message& result =
       plannerCli.getMessageResult(msg, conf.globalMessageTimeout);
     if (result.returnvalue() != 0) {

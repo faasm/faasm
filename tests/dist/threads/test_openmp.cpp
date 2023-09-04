@@ -41,11 +41,8 @@ TEST_CASE_METHOD(DistTestsFixture,
       faabric::util::batchExecFactory("omp", function, 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
 
-    // Check other host is not registered initially
-    REQUIRE(sch.getFunctionRegisteredHosts(msg.user(), msg.function()).empty());
-
     // Invoke the function
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
 
     // Check it's successful
     faabric::Message result =
@@ -54,11 +51,6 @@ TEST_CASE_METHOD(DistTestsFixture,
 
     // Check one executor used on this host (always the case for threads)
     REQUIRE(sch.getFunctionExecutorCount(msg) == 1);
-
-    // Check other host is registered
-    std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
-    REQUIRE(sch.getFunctionRegisteredHosts(msg.user(), msg.function()) ==
-            expectedRegisteredHosts);
 
     // Check specific results
     if (function == PI_FUNCTION) {

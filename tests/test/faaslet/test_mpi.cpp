@@ -29,29 +29,20 @@ class MPIFuncTestFixture
 
     faabric::Message checkMpiFunc(const char* funcName)
     {
-        // Note: we don't `set_mpiworldsize` here, so all tests run with the
-        // default MPI world size (5). Some tests will fail if we change this.
-        faabric::Message msg = faabric::util::messageFactory("mpi", funcName);
+        // Prepare request
+        int worldSize = 5;
         auto req = faabric::util::batchExecFactory("mpi", funcName, 1);
-        faabric::Message result = executeWithPool(req, 10000).at(0);
+        req->mutable_messages(0)->set_ismpi(true);
+        req->mutable_messages(0)->set_mpiworldsize(worldSize);
 
-        // Check all other functions were successful
-        auto& sch = faabric::scheduler::getScheduler();
-        for (auto m : sch.getRecordedMessagesAll()) {
-            uint32_t messageId = msg.id();
-            if (messageId == msg.id()) {
-                // Already checked the main message ID
-                continue;
-            }
+        // Execute it
+        executeWithPool(req, 10000).at(0);
 
-            faabric::Message result = plannerCli.getMessageResult(msg, 1);
+        // Wait for results
+        waitForMpiMessages(req, worldSize);
 
-            if (result.returnvalue() != 0) {
-                FAIL(fmt::format("Message ID {} failed", messageId));
-            }
-        }
-
-        return result;
+        // Return the first message's result for post-processing
+        return plannerCli.getMessageResult(req->messages(0), 500);;
     }
 
     conf::FaasmConfig& faasmConf;

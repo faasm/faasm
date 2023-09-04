@@ -29,7 +29,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     msg.set_recordexecgraph(true);
 
     // Call the functions
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
 
     // Sleep for a bit to make sure we schedule all MPI ranks before we run
     // the second request. Note that the function mpi/mpi_long_alltoall sleeps
@@ -46,7 +46,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     msgCopy.set_recordexecgraph(true);
 
     // Call the functions for a second time
-    sch.callFunctions(reqCopy);
+    plannerCli.callFunctions(reqCopy);
 
     // Check both results are successful
     auto result = getMpiBatchResult(msg);

@@ -30,7 +30,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     faabric::Message firstMsg = req->messages(0);
 
     // Call the functions
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
 
     // Check it's successful
     auto result = getMpiBatchResult(firstMsg);

@@ -24,9 +24,8 @@ int doRunner(int argc, char* argv[])
         msg.set_cmdline(vm["cmdline"].as<std::string>());
     }
 
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     auto& plannerCli = faabric::planner::getPlannerClient();
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
 
     usleep(1000 * 500);
 

@@ -40,7 +40,6 @@ int makeChainedCall(const std::string& functionName,
                     const char* pyFuncName,
                     const std::vector<uint8_t>& inputData)
 {
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     faabric::Message* originalCall =
       &faabric::scheduler::ExecutorContext::get()->getMsg();
 
@@ -49,18 +48,19 @@ int makeChainedCall(const std::string& functionName,
     assert(!user.empty());
     assert(!functionName.empty());
 
+    // Spawn a child batch exec (parent-child expressed by having the same app
+    // id)
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(originalCall->user(), functionName, 1);
+    faabric::util::updateBatchExecAppId(req, originalCall->appid());
 
+    // Propagate chaining-specific fields
     faabric::Message& msg = req->mutable_messages()->at(0);
     msg.set_inputdata(inputData.data(), inputData.size());
     msg.set_funcptr(wasmFuncPtr);
 
     // Propagate the command line if needed
     msg.set_cmdline(originalCall->cmdline());
-
-    // Propagate the app ID
-    msg.set_appid(originalCall->appid());
 
     // Python properties
     msg.set_pythonuser(originalCall->pythonuser());
@@ -96,7 +96,8 @@ int makeChainedCall(const std::string& functionName,
       ->getExecutor()
       ->addChainedMessage(req->messages(0));
 
-    sch.callFunctions(req);
+    auto& plannerCli = faabric::planner::getPlannerClient();
+    plannerCli.callFunctions(req);
     if (originalCall->recordexecgraph()) {
         faabric::util::logChainedFunction(*originalCall, msg);
     }
