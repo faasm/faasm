@@ -36,25 +36,25 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     // Call the functions
     plannerCli.callFunctions(req);
 
-    // Sleep for a bit to let the scheduler schedule the MPI calls, and then
-    // update the local slots so that a migration opportunity appears. We
+    // Wait until all messages are in flight
+    waitForMpiMessagesInFlight(req);
+
+    // Update the total slots so that a migration opportunity appears. We
     // either migrate the first two ranks from the main to the worker, or
     // the other way around
-    SLEEP_MS(200);
-    bool migrateMainRank = false;
     std::vector<std::string> expectedHostsAfter;
 
-    /*
     SECTION("Migrate main rank")
     {
-        migrateMainRank = true;
-        setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
+        setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize, 2);
+        expectedHostsAfter = { getDistTestWorkerIp(),
+                               getDistTestWorkerIp(),
+                               getDistTestWorkerIp(),
+                               getDistTestWorkerIp() };
     }
-    */
 
     SECTION("Do not migrate main rank")
     {
-        migrateMainRank = false;
         setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
         expectedHostsAfter = { getDistTestMasterIp(),
                                getDistTestMasterIp(),
@@ -63,7 +63,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     }
 
     // Check it's successful
-    auto result = getMpiBatchResult(msg, true);
+    auto result = getMpiBatchResult(msg);
 
     // Check that we have indeed migrated
     auto execGraph = faabric::util::getFunctionExecGraph(msg);
@@ -75,55 +75,68 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
       execGraph, expectedHostsBefore, expectedHostsAfter);
 }
 
-/*
 TEST_CASE_METHOD(MpiDistTestsFixture,
-                 "Test forcing an MPI migration through a topology hint",
+                 "Test migrating two concurrent MPI applications",
                  "[mpi]")
 {
-    // Set enough slots locally to run all functions, but UNDERFULL topology
-    // hint will overwrite force a sub-optimal scheduling
-    int mpiWorldSize = 4;
-    faabric::HostResources res;
-    res.set_slots(mpiWorldSize);
-    sch.setThisHostResources(res);
-
-    // Set up the message (important to set the topologyhint)
-    std::shared_ptr<faabric::BatchExecuteRequest> req =
-      faabric::util::batchExecFactory("mpi", "migrate", 1);
-    faabric::Message& msg = req->mutable_messages()->at(0);
-    msg.set_ismpi(true);
-    msg.set_mpiworldsize(mpiWorldSize);
-    msg.set_recordexecgraph(true);
-    msg.set_topologyhint("UNDERFULL");
-
-    // Set a low migration check period to detect the mgiration right away
-    int migrationCheckPeriod = 1;
-    msg.set_migrationcheckperiod(migrationCheckPeriod);
-
-    // Try to migrate at 50% of execution
-    int checkAt = 5;
+    int worldSize = 4;
     int numLoops = 10000;
-    msg.set_cmdline(fmt::format("{} {}", checkAt, numLoops));
+    int checkAt = 5;
 
-    // Call the functions
-    sch.callFunctions(req);
+    // Set up both requests
+    std::shared_ptr<faabric::BatchExecuteRequest> reqA =
+      faabric::util::batchExecFactory("mpi", "migrate", 1);
+    reqA->mutable_messages(0)->set_ismpi(true);
+    reqA->mutable_messages(0)->set_mpiworldsize(worldSize);
+    reqA->mutable_messages(0)->set_recordexecgraph(true);
+    reqA->mutable_messages(0)->set_cmdline(
+      fmt::format("{} {}", checkAt, numLoops));
+
+    std::shared_ptr<faabric::BatchExecuteRequest> reqB =
+      faabric::util::batchExecFactory("mpi", "migrate", 1);
+    reqB->mutable_messages(0)->set_ismpi(true);
+    reqB->mutable_messages(0)->set_mpiworldsize(worldSize);
+    reqB->mutable_messages(0)->set_recordexecgraph(true);
+    reqB->mutable_messages(0)->set_cmdline(
+      fmt::format("{} {}", checkAt, numLoops));
+
+    // Allocate resources so that both applications are scheduled in the
+    // same way: two ranks locally, and two remotely
+    setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
+    plannerCli.callFunctions(reqA);
+    waitForMpiMessagesInFlight(reqA);
+
+    setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
+    plannerCli.callFunctions(reqB);
+    waitForMpiMessagesInFlight(reqB);
+
+    // Update the total slots so that two migration opportunities appear. Note
+    // that when the first app is migrated (from worker to main) it will free
+    // two slots in the worker that will be used by the second app to migrate
+    // from main to worker
+    setLocalRemoteSlots(
+      3 * worldSize, 2 * worldSize, 3 * worldSize, 2 * worldSize - 2);
+
+    std::vector<std::string> expectedHostsAfterA(worldSize,
+                                                 getDistTestWorkerIp());
+    std::vector<std::string> expectedHostsAfterB(worldSize,
+                                                 getDistTestMasterIp());
 
     // Check it's successful
-    auto result = getMpiBatchResult(msg, true);
+    getMpiBatchResult(reqA->messages(0));
+    getMpiBatchResult(reqB->messages(0));
 
-    // Get the execution graph
-    auto execGraph = faabric::util::getFunctionExecGraph(msg);
-
-    // Prepare the expectation
+    // Check that we have indeed migrated
+    auto execGraphA = faabric::util::getFunctionExecGraph(reqA->messages(0));
+    auto execGraphB = faabric::util::getFunctionExecGraph(reqB->messages(0));
     std::vector<std::string> expectedHostsBefore = { getDistTestMasterIp(),
                                                      getDistTestMasterIp(),
                                                      getDistTestWorkerIp(),
                                                      getDistTestWorkerIp() };
-    std::vector<std::string> expectedHostsAfter(4, getDistTestMasterIp());
 
-    // Check expectation against actual execution graph
     checkSchedulingFromExecGraph(
-      execGraph, expectedHostsBefore, expectedHostsAfter);
+      execGraphA, expectedHostsBefore, expectedHostsAfterA);
+    checkSchedulingFromExecGraph(
+      execGraphB, expectedHostsBefore, expectedHostsAfterB);
 }
-*/
 }
