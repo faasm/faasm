@@ -7,6 +7,7 @@
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>
+#include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>

@@ -48,9 +48,6 @@ MicrobenchRunner::createBatchRequest(const std::string& user,
 
     msg.set_inputdata(inputData);
 
-    // Force local to avoid any scheduling logic
-    msg.set_topologyhint("FORCE_LOCAL");
-
     return req;
 }
 

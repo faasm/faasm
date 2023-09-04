@@ -1,6 +1,7 @@
 #include <faabric/batch-scheduler/SchedulingDecision.h>
 #include <faabric/mpi/MpiWorldRegistry.h>
 #include <faabric/scheduler/ExecutorContext.h>
+#include <faabric/scheduler/FunctionCallClient.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotClient.h>
 #include <faabric/snapshot/SnapshotRegistry.h>

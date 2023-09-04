@@ -84,10 +84,11 @@ std::vector<faabric::Message> executeWithPool(
                 throw std::runtime_error("Timed-out waiting for MPI messges");
             }
 
-            SPDLOG_DEBUG("Waiting for MPI messages to be scheduled ({}/{}, app: {})",
-                         decision.messageIds.size(),
-                         expectedWorldSize,
-                         req->appid());
+            SPDLOG_DEBUG(
+              "Waiting for MPI messages to be scheduled ({}/{}, app: {})",
+              decision.messageIds.size(),
+              expectedWorldSize,
+              req->appid());
             SLEEP_MS(1000);
 
             numRetries += 1;

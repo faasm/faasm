@@ -5,6 +5,7 @@
 #include <faabric/state/StateKeyValue.h>
 #include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/batch.h>
+#include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
