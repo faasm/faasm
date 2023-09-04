@@ -11,9 +11,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 {
     SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-    SECTION("WAVM") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
-    // TODO: make this default executeFunction in utils
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("demo", "exception", 1);
     faabric::Message& msg = req->mutable_messages()->at(0);

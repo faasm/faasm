@@ -56,8 +56,8 @@ TEST_CASE_METHOD(PythonFuncTestFixture, "Test python listdir", "[python]")
     call.set_inputdata(wasmDir);
 
     // Execute the function
-    executeWithPool(req);
-    std::string actualOutput = call.outputdata();
+    auto results = executeWithPool(req);
+    std::string actualOutput = results.at(0).outputdata();
 
     // Split the output into a list
     std::vector<std::string> wasmList;

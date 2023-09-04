@@ -13,6 +13,7 @@
 #include <faabric/util/logging.h>
 #include <faabric/util/memory.h>
 #include <faabric/util/snapshot.h>
+#include <faabric/util/testing.h>
 #include <faabric/util/timing.h>
 #include <threads/ThreadState.h>
 #include <wasm/WasmExecutionContext.h>
@@ -514,16 +515,20 @@ int WasmModule::awaitPthreadCall(faabric::Message* msg, int pthreadPtr)
         std::shared_ptr<faabric::BatchExecuteRequest> req =
           faabric::util::batchExecFactory(
             msg->user(), msg->function(), nPthreadCalls);
+        faabric::util::updateBatchExecAppId(req, msg->appid());
 
         req->set_type(faabric::BatchExecuteRequest::THREADS);
         req->set_subtype(wasm::ThreadRequestType::PTHREAD);
 
+        // In the local tests, we always set the single-host flag to avoid
+        // having to synchronise snapshots
+        if (faabric::util::isTestMode()) {
+            req->set_singlehost(true);
+        }
+
         for (int i = 0; i < nPthreadCalls; i++) {
             threads::PthreadCall p = queuedPthreadCalls.at(i);
             faabric::Message& m = req->mutable_messages()->at(i);
-
-            // Propagate app ID
-            m.set_appid(msg->appid());
 
             // Function pointer and args
             // NOTE - with a pthread interface we only ever pass the
