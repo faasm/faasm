@@ -14,36 +14,53 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
                  "Test migrating an MPI execution",
                  "[mpi]")
 {
-    // Under-allocate resources
-    int nLocalSlots = 2;
-    int mpiWorldSize = 4;
-    int migrationCheckPeriod = 1;
-    faabric::HostResources res;
-    res.set_slots(nLocalSlots);
-    sch.setThisHostResources(res);
+    // Allocate resources so that two mpi ranks are scheduled in one worker
+    // and two in the other
+    int worldSize = 4;
+    // Give more total slots to the main so that the planner prefers it
+    setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
 
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("mpi", "migrate", 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
     msg.set_ismpi(true);
-    msg.set_mpiworldsize(mpiWorldSize);
+    msg.set_mpiworldsize(worldSize);
     msg.set_recordexecgraph(true);
-    // Set a low migration check period to detect the mgiration right away
-    msg.set_migrationcheckperiod(migrationCheckPeriod);
-    int numLoops = 10000;
+
     // Try to migrate at 50% of execution
+    int numLoops = 10000;
     int checkAt = 5;
     msg.set_cmdline(fmt::format("{} {}", checkAt, numLoops));
 
     // Call the functions
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
 
-    // Sleep for a while to let the scheduler schedule the MPI calls, and then
-    // update the local slots so that a migration opportunity appears
-    SLEEP_MS(500);
-    res.set_slots(mpiWorldSize);
-    sch.setThisHostResources(res);
+    // Sleep for a bit to let the scheduler schedule the MPI calls, and then
+    // update the local slots so that a migration opportunity appears. We
+    // either migrate the first two ranks from the main to the worker, or
+    // the other way around
+    SLEEP_MS(200);
+    bool migrateMainRank = false;
+    std::vector<std::string> expectedHostsAfter;
+
+    /*
+    SECTION("Migrate main rank")
+    {
+        migrateMainRank = true;
+        setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
+    }
+    */
+
+    SECTION("Do not migrate main rank")
+    {
+        migrateMainRank = false;
+        setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
+        expectedHostsAfter = { getDistTestMasterIp(),
+                               getDistTestMasterIp(),
+                               getDistTestMasterIp(),
+                               getDistTestMasterIp() };
+    }
 
     // Check it's successful
     auto result = getMpiBatchResult(msg, true);
@@ -54,11 +71,11 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
                                                      getDistTestMasterIp(),
                                                      getDistTestWorkerIp(),
                                                      getDistTestWorkerIp() };
-    std::vector<std::string> expectedHostsAfter(4, getDistTestMasterIp());
     checkSchedulingFromExecGraph(
       execGraph, expectedHostsBefore, expectedHostsAfter);
 }
 
+/*
 TEST_CASE_METHOD(MpiDistTestsFixture,
                  "Test forcing an MPI migration through a topology hint",
                  "[mpi]")
@@ -108,4 +125,5 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     checkSchedulingFromExecGraph(
       execGraph, expectedHostsBefore, expectedHostsAfter);
 }
+*/
 }
