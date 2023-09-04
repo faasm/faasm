@@ -46,6 +46,10 @@ TEST_ENV = {
     ),
 }
 
+# If executing in CI, give us some extra CPU cores to run the tests
+if IS_CI:
+    TEST_ENV["OVERRIDE_CPU_COUNT"] = "10"
+
 ENV_VAR_ALLOWLIST = ["HOST_TYPE", "LLVM_PROFILE_FILE"]
 
 
