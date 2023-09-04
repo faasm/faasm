@@ -641,10 +641,8 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // threads. If this is in single host mode, we can ignore it, as there won't
     // be any snapshotting at all, otherwise we add it to the snapshot.
 
-    // TODO(remote-threads): for the time being, all threads execution is
-    // always single host
-    bool isCurrentBatch = true; // currentBatch == 1;
-    bool isSingleHost = true;
+    bool isCurrentBatch = currentBatch == 1;
+    bool isSingleHost = ExecutorContext::get()->getBatchRequest()->singlehost();
 
     // Here we can ignore if we're in the current batch, and it's in single host
     // mode.
