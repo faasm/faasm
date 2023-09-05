@@ -12,59 +12,46 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
                  "Test running two MPI applications at the same time",
                  "[mpi]")
 {
-    // Set up this host's resources
-    int nLocalSlots = 5;
     int worldSize = 4;
-    faabric::HostResources res;
-    res.set_usedslots(0);
-    res.set_slots(nLocalSlots);
-    sch.setThisHostResources(res);
 
-    // Set up the message
-    std::shared_ptr<faabric::BatchExecuteRequest> req =
+    // Prepare both requests
+    std::shared_ptr<faabric::BatchExecuteRequest> reqA =
       faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
-    faabric::Message& msg = req->mutable_messages()->at(0);
-    msg.set_ismpi(true);
-    msg.set_mpiworldsize(worldSize);
-    msg.set_recordexecgraph(true);
-
-    // Call the functions
-    plannerCli.callFunctions(req);
-
-    // Sleep for a bit to make sure we schedule all MPI ranks before we run
-    // the second request. Note that the function mpi/mpi_long_alltoall sleeps
-    // for five seconds during its execution, so we can safely sleep for one
-    // second here and still ensure concurrent execution
-    SLEEP_MS(1000);
-
-    // Set up the second message
-    std::shared_ptr<faabric::BatchExecuteRequest> reqCopy =
+    reqA->mutable_messages(0)->set_ismpi(true);
+    reqA->mutable_messages(0)->set_mpiworldsize(worldSize);
+    reqA->mutable_messages(0)->set_recordexecgraph(true);
+    std::shared_ptr<faabric::BatchExecuteRequest> reqB =
       faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
-    faabric::Message& msgCopy = reqCopy->mutable_messages()->at(0);
-    msgCopy.set_ismpi(true);
-    msgCopy.set_mpiworldsize(worldSize);
-    msgCopy.set_recordexecgraph(true);
+    reqB->mutable_messages(0)->set_ismpi(true);
+    reqB->mutable_messages(0)->set_mpiworldsize(worldSize);
+    reqB->mutable_messages(0)->set_recordexecgraph(true);
 
-    // Call the functions for a second time
-    plannerCli.callFunctions(reqCopy);
+    // Allocate resources so that both applications are scheduled in the
+    // same way: two ranks locally and two remotely
+    setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
+    plannerCli.callFunctions(reqA);
+    waitForMpiMessagesInFlight(reqA);
+
+    setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
+    plannerCli.callFunctions(reqB);
+    waitForMpiMessagesInFlight(reqB);
 
     // Check both results are successful
-    auto result = getMpiBatchResult(msg);
-    auto resultCopy = getMpiBatchResult(msgCopy);
+    auto resultA = getMpiBatchResult(reqA->messages(0));
+    auto resultB = getMpiBatchResult(reqB->messages(0));
 
     // Get the execution graph for both requests
-    auto execGraph = faabric::util::getFunctionExecGraph(result);
-    auto execGraphCopy = faabric::util::getFunctionExecGraph(resultCopy);
+    auto execGraphA = faabric::util::getFunctionExecGraph(resultA);
+    auto execGraphB = faabric::util::getFunctionExecGraph(resultB);
 
     // Builld the expectation for both requests
-    std::vector<std::string> expectedHosts(worldSize, getDistTestMasterIp());
-    std::vector<std::string> expectedHostsCopy = { getDistTestMasterIp(),
-                                                   getDistTestWorkerIp(),
-                                                   getDistTestWorkerIp(),
-                                                   getDistTestWorkerIp() };
+    std::vector<std::string> expectedHosts = { getDistTestMasterIp(),
+                                               getDistTestMasterIp(),
+                                               getDistTestWorkerIp(),
+                                               getDistTestWorkerIp() };
 
     // Check the expecation against the actual execution graphs
-    checkSchedulingFromExecGraph(execGraph, expectedHosts);
-    checkSchedulingFromExecGraph(execGraphCopy, expectedHostsCopy);
+    checkSchedulingFromExecGraph(execGraphA, expectedHosts);
+    checkSchedulingFromExecGraph(execGraphB, expectedHosts);
 }
 }
