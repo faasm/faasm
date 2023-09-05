@@ -41,7 +41,6 @@ std::vector<faabric::Message> executeWithPool(
   int timeoutMs,
   bool requireSuccess)
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
     faasmConf.chainedCallTimeout = 10000;
 
