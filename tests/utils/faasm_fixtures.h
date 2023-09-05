@@ -4,6 +4,8 @@
 
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
+#include <faabric/runner/FaabricMain.h>
+#include <faaslet/Faaslet.h>
 #include <storage/FileLoader.h>
 #include <storage/S3Wrapper.h>
 #include <storage/SharedFiles.h>
@@ -104,8 +106,22 @@ class FunctionExecTestFixture
   , public IRModuleCacheTestFixture
 {
   public:
-    FunctionExecTestFixture() {}
-    ~FunctionExecTestFixture() {}
+    FunctionExecTestFixture()
+      : fac(std::make_shared<faaslet::FaasletFactory>())
+      , m(fac)
+    {
+        m.startRunner();
+    }
+
+    ~FunctionExecTestFixture()
+    {
+        m.shutdown();
+    }
+
+
+  protected:
+    std::shared_ptr<faaslet::FaasletFactory> fac;
+    faabric::runner::FaabricMain m;
 };
 
 /**

@@ -43,13 +43,7 @@ std::vector<faabric::Message> executeWithPool(
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
-    conf.boundTimeout = 1000;
     faasmConf.chainedCallTimeout = 10000;
-
-    // Start up system
-    auto fac = std::make_shared<faaslet::FaasletFactory>();
-    faabric::runner::FaabricMain m(fac);
-    m.startRunner();
 
     // Execute forcing local
     bool isThreads = req->type() == faabric::BatchExecuteRequest::THREADS;
@@ -104,8 +98,6 @@ std::vector<faabric::Message> executeWithPool(
     // Wait for all functions to complete
     auto resultMsgs = waitForBatchResults(
       isThreads, appId, reqMsgIds, timeoutMs, requireSuccess);
-
-    m.shutdown();
 
     return resultMsgs;
 }

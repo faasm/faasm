@@ -12,11 +12,7 @@
 
 namespace tests {
 
-class MPIFuncTestFixture
-  : public MpiBaseTestFixture
-  , public WAVMModuleCacheTestFixture
-  , public IRModuleCacheTestFixture
-  , public ExecutorContextFixture
+class MPIFuncTestFixture : public MultiRuntimeFunctionExecTestFixture
 {
   public:
     MPIFuncTestFixture()
