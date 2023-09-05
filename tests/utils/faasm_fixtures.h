@@ -113,11 +113,7 @@ class FunctionExecTestFixture
         m.startRunner();
     }
 
-    ~FunctionExecTestFixture()
-    {
-        m.shutdown();
-    }
-
+    ~FunctionExecTestFixture() { m.shutdown(); }
 
   protected:
     std::shared_ptr<faaslet::FaasletFactory> fac;
