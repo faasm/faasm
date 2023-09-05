@@ -9,8 +9,6 @@ namespace tests {
 
 TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
 {
-    conf.overrideCpuCount = 6;
-
     // TODO(wamr-omp)
     if (faasmConf.wasmVm == "wamr") {
         return;
@@ -19,9 +17,8 @@ TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
     // Set this host up to ensure the main thread and one child thread execute
     // on this host, but one executes remotely
     int nLocalSlots = 2;
-    faabric::HostResources res;
-    res.set_slots(nLocalSlots);
-    sch.setThisHostResources(res);
+    int nThreads = 3;
+    setLocalRemoteSlots(nLocalSlots + 1, nThreads - nLocalSlots, 0, 0);
 
     std::string user = "demo";
     std::string function = "threads_memory";
@@ -30,9 +27,6 @@ TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(user, function, 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
-
-    // Check other host is not registered initially
-    // REQUIRE(sch.getFunctionRegisteredHosts(user, function).empty());
 
     // Invoke the function
     plannerCli.callFunctions(req);
@@ -43,12 +37,5 @@ TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
 
     // Check one executor used on this host (always the case for threads)
     REQUIRE(sch.getFunctionExecutorCount(msg) == 1);
-
-    // Check other host is registered
-    /*
-    std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
-    REQUIRE(sch.getFunctionRegisteredHosts(user, function) ==
-            expectedRegisteredHosts);
-    */
 }
 }
