@@ -51,15 +51,38 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     SECTION("Recording off (default)") { expectedNumNodes = 1; }
 
     plannerCli.callFunctions(req);
-    faabric::Message result = plannerCli.getMessageResult(call, 5000);
-    REQUIRE(result.returnvalue() == 0);
-    for (const int msgId : faabric::util::getChainedFunctions(call)) {
-        auto chainedResult =
-          plannerCli.getMessageResult(call.appid(), msgId, 1000);
-        REQUIRE(chainedResult.returnvalue() == 0);
+
+    // Irrespective of whether we keep track of the execution in the exec.
+    // graph, wait for all MPI messages
+    int maxRetries = 10;
+    int numRetries = 0;
+    int expectedWorldSize = req->messages(0).mpiworldsize();
+    auto decision = plannerCli.getSchedulingDecision(req);
+    while (decision.messageIds.size() != expectedWorldSize) {
+        if (numRetries >= maxRetries) {
+            SPDLOG_ERROR(
+              "Timed-out waiting for MPI messages to be scheduled ({}/{})",
+              decision.messageIds.size(),
+              expectedWorldSize);
+            throw std::runtime_error("Timed-out waiting for MPI messges");
+        }
+
+        SPDLOG_DEBUG("Waiting for MPI messages to be scheduled ({}/{})",
+                     decision.messageIds.size(),
+                     expectedWorldSize);
+        SLEEP_MS(500);
+
+        numRetries += 1;
+        decision = plannerCli.getSchedulingDecision(req);
     }
 
-    auto execGraph = faabric::util::getFunctionExecGraph(result);
+    auto firstResult = plannerCli.getMessageResult(call, 5000);
+    for (const auto& mid : decision.messageIds) {
+        auto result = plannerCli.getMessageResult(call.appid(), mid, 1000);
+        REQUIRE(result.returnvalue() == 0);
+    }
+
+    auto execGraph = faabric::util::getFunctionExecGraph(firstResult);
     int numNodes = faabric::util::countExecGraphNodes(execGraph);
     REQUIRE(numNodes == expectedNumNodes);
     REQUIRE(execGraph.rootNode.msg.id() == call.id());
