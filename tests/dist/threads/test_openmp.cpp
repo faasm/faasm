@@ -13,6 +13,8 @@ TEST_CASE_METHOD(DistTestsFixture,
                  "Test OpenMP across hosts",
                  "[threads][openmp]")
 {
+    conf.overrideCpuCount = 6;
+
     // TODO(wamr-omp)
     if (faasmConf.wasmVm == "wamr") {
         return;
