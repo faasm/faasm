@@ -48,9 +48,6 @@ MicrobenchRunner::createBatchRequest(const std::string& user,
 
     msg.set_inputdata(inputData);
 
-    // Force local to avoid any scheduling logic
-    msg.set_topologyhint("FORCE_LOCAL");
-
     return req;
 }
 
@@ -82,15 +79,13 @@ int MicrobenchRunner::doRun(std::ofstream& outFs,
         return 1;
     }
 
-    // Create faaslet
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     auto& plannerCli = faabric::planner::getPlannerClient();
 
     // Preflight if necessary
     if (PREFLIGHT_CALLS) {
         auto preflightReq = createBatchRequest(user, function, inputData);
         auto preflightMsg = preflightReq->messages(0);
-        sch.callFunctions(preflightReq);
+        plannerCli.callFunctions(preflightReq);
         plannerCli.getMessageResult(preflightMsg, 10000);
     }
 
@@ -103,7 +98,7 @@ int MicrobenchRunner::doRun(std::ofstream& outFs,
 
         // Execute
         TimePoint execStart = startTimer();
-        sch.callFunctions(req);
+        plannerCli.callFunctions(req);
         faabric::Message res = plannerCli.getMessageResult(msg, 10000);
         long execNanos = getTimeDiffNanos(execStart);
         float execMicros = float(execNanos) / 1000;

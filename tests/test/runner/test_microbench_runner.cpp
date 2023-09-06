@@ -14,7 +14,6 @@
 #include <faabric/util/files.h>
 
 using namespace faabric::util;
-using namespace runner;
 
 namespace tests {
 
@@ -59,7 +58,8 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     std::string outFile = "/tmp/microbench_out.csv";
 
-    MicrobenchRunner::execute(specFile, outFile);
+    // Differentiate with faabric's runner namespace
+    ::runner::MicrobenchRunner::execute(specFile, outFile);
 
     std::string result = faabric::util::readFileToString(outFile);
     std::vector<std::string> lines;

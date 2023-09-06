@@ -178,10 +178,10 @@ TEST_CASE_METHOD(FlushingTestFixture,
     auto invokeMsgA = invokeReqA->messages(0);
     faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     faabric::scheduler::setExecutorFactory(fac);
-    sch.callFunctions(invokeReqA);
+    plannerCli.callFunctions(invokeReqA);
 
     // Check the result
-    faabric::Message resultA = plannerCli.getMessageResult(invokeMsgA, 1000);
+    faabric::Message resultA = plannerCli.getMessageResult(invokeMsgA, 5000);
     REQUIRE(resultA.returnvalue() == 0);
     REQUIRE(resultA.outputdata() == expectedOutputA);
 
@@ -202,7 +202,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
 
     // Invoke for the second time
     invokeReqB->mutable_messages(0)->set_inputdata(inputB);
-    sch.callFunctions(invokeReqB);
+    plannerCli.callFunctions(invokeReqB);
 
     // Check the output has changed to the second function
     faabric::Message resultB = plannerCli.getMessageResult(invokeMsgB, 1000);

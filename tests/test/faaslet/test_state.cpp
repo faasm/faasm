@@ -26,21 +26,10 @@ class StateFuncTestFixture
     {
         // Set up the function call
         auto req = faabric::util::batchExecFactory("demo", funcName, 1);
-        auto call = req->messages(0);
+        auto res = executeWithPool(req);
 
-        auto fac = std::make_shared<faaslet::FaasletFactory>();
-        faabric::runner::FaabricMain m(fac);
-        m.startRunner();
-
-        faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-        auto& plannerCli = faabric::planner::getPlannerClient();
-        sch.callFunctions(req);
-
-        // Check result
-        faabric::Message result = plannerCli.getMessageResult(call, 1000);
-        REQUIRE(result.returnvalue() == 0);
-
-        REQUIRE(result.outputdata() == expectedOutput);
+        REQUIRE(res.size() == 1);
+        REQUIRE(res.at(0).outputdata() == expectedOutput);
 
         const std::shared_ptr<faabric::state::StateKeyValue>& kv =
           faabric::state::getGlobalState().getKV("demo", keyName, 0);
@@ -48,8 +37,6 @@ class StateFuncTestFixture
         std::vector<uint8_t> actual(kv->size(), 0);
         kv->get(actual.data());
         REQUIRE(actual == expectedState);
-
-        m.shutdown();
     }
 };
 

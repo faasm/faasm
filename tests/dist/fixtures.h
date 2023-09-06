@@ -99,25 +99,55 @@ class MpiDistTestsFixture : public DistTestsFixture
   public:
     // Given the main MPI message (rank == 0) wait for that message and all the
     // chained messages, and return the result for the main one
-    faabric::Message getMpiBatchResult(const faabric::Message& firstMsg,
-                                       bool skipChainedCheck = false)
+    faabric::Message getMpiBatchResult(const faabric::Message& firstMsg)
     {
         int appId = firstMsg.appid();
         int firstMsgId = firstMsg.id();
         faabric::Message result =
           plannerCli.getMessageResult(appId, firstMsgId, functionCallTimeout);
-        REQUIRE(result.returnvalue() == 0);
+        if (result.returnvalue() != MIGRATED_FUNCTION_RETURN_VALUE) {
+            REQUIRE(result.returnvalue() == 0);
+        }
+
         // Wait for all chained messages too
         for (const int chainedId :
              faabric::util::getChainedFunctions(firstMsg)) {
             auto chainedResult = plannerCli.getMessageResult(
               appId, chainedId, functionCallTimeout);
-            if (!skipChainedCheck) {
-                REQUIRE(chainedResult.returnvalue() == 0);
+            if (result.returnvalue() != MIGRATED_FUNCTION_RETURN_VALUE) {
+                REQUIRE(result.returnvalue() == 0);
             }
         }
 
         return result;
+    }
+
+    // Wait until `mpiworldsize` messages are in-flight for a given request.
+    // This makes sure that the first module has been instantaited, it has
+    // chained the remaining ranks, and the planner has scheduled them
+    void waitForMpiMessagesInFlight(std::shared_ptr<BatchExecuteRequest> req)
+    {
+        int maxRetries = 20;
+        int numRetries = 0;
+        int expectedWorldSize = req->messages(0).mpiworldsize();
+        auto decision = plannerCli.getSchedulingDecision(req);
+        while (decision.messageIds.size() != expectedWorldSize) {
+            if (numRetries >= maxRetries) {
+                SPDLOG_ERROR(
+                  "Timed-out waiting for MPI messages to be scheduled ({}/{})",
+                  decision.messageIds.size(),
+                  expectedWorldSize);
+                throw std::runtime_error("Timed-out waiting for MPI messges");
+            }
+
+            SPDLOG_DEBUG("Waiting for MPI messages to be scheduled ({}/{})",
+                         decision.messageIds.size(),
+                         expectedWorldSize);
+            SLEEP_MS(500);
+
+            numRetries += 1;
+            decision = plannerCli.getSchedulingDecision(req);
+        }
     }
 
     void checkSchedulingFromExecGraph(

@@ -19,9 +19,8 @@ TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
     // Set this host up to ensure the main thread and one child thread execute
     // on this host, but one executes remotely
     int nLocalSlots = 2;
-    faabric::HostResources res;
-    res.set_slots(nLocalSlots);
-    sch.setThisHostResources(res);
+    int nThreads = 3;
+    setLocalRemoteSlots(nLocalSlots + 1, nThreads - nLocalSlots, 0, 0);
 
     std::string user = "demo";
     std::string function = "threads_memory";
@@ -31,11 +30,8 @@ TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
       faabric::util::batchExecFactory(user, function, 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
 
-    // Check other host is not registered initially
-    REQUIRE(sch.getFunctionRegisteredHosts(user, function).empty());
-
     // Invoke the function
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
 
     // Check it's successful
     faabric::Message result = plannerCli.getMessageResult(msg, 10000);
@@ -43,10 +39,5 @@ TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
 
     // Check one executor used on this host (always the case for threads)
     REQUIRE(sch.getFunctionExecutorCount(msg) == 1);
-
-    // Check other host is registered
-    std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
-    REQUIRE(sch.getFunctionRegisteredHosts(user, function) ==
-            expectedRegisteredHosts);
 }
 }

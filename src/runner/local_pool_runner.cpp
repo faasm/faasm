@@ -15,7 +15,6 @@ int doRunner(int argc, char* argv[])
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(user, function, 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
-    msg.set_topologyhint("FORCE_LOCAL");
 
     if (vm.count("input-data")) {
         msg.set_inputdata(vm["input-data"].as<std::string>());
@@ -24,9 +23,8 @@ int doRunner(int argc, char* argv[])
         msg.set_cmdline(vm["cmdline"].as<std::string>());
     }
 
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     auto& plannerCli = faabric::planner::getPlannerClient();
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
 
     usleep(1000 * 500);
 

@@ -10,7 +10,12 @@ TEST_CASE_METHOD(DistTestsFixture, "Test available hosts", "[scheduler]")
     auto& sch = faabric::scheduler::getScheduler();
     sch.addHostToGlobalSet();
 
-    std::set<std::string> actual = sch.getAvailableHosts();
+    // Check the available hosts
+    auto availableHosts = plannerCli.getAvailableHosts();
+    std::set<std::string> actual;
+    for (auto& host : availableHosts) {
+        actual.insert(host.ip());
+    }
 
     std::set<std::string> expected = { getDistTestMasterIp(),
                                        getDistTestWorkerIp() };

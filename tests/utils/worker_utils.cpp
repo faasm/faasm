@@ -6,6 +6,7 @@
 #include <faabric/planner/PlannerClient.h>
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/runner/FaabricMain.h>
+#include <faabric/util/batch.h>
 #include <faabric/util/gids.h>
 #include <faaslet/Faaslet.h>
 
@@ -19,29 +20,17 @@ std::vector<faabric::Message> waitForBatchResults(bool isThreads,
                                                   int timeoutMs,
                                                   bool requireSuccess)
 {
-    auto& sch = faabric::scheduler::getScheduler();
     auto& plannerCli = faabric::planner::getPlannerClient();
 
     std::vector<faabric::Message> resultMsgs;
 
     for (const auto& msgId : msgIds) {
-        if (isThreads) {
-            int returnValue = sch.awaitThreadResult(msgId);
-            if (requireSuccess) {
-                REQUIRE(returnValue == 0);
-            }
-            faabric::Message result;
-            result.set_id(msgId);
-            result.set_returnvalue(returnValue);
-            resultMsgs.push_back(result);
-        } else {
-            faabric::Message result =
-              plannerCli.getMessageResult(appId, msgId, 20000);
-            if (requireSuccess) {
-                REQUIRE(result.returnvalue() == 0);
-            }
-            resultMsgs.push_back(result);
+        faabric::Message result =
+          plannerCli.getMessageResult(appId, msgId, 20000);
+        if (requireSuccess) {
+            REQUIRE(result.returnvalue() == 0);
         }
+        resultMsgs.push_back(result);
     }
 
     return resultMsgs;
@@ -52,20 +41,10 @@ std::vector<faabric::Message> executeWithPool(
   int timeoutMs,
   bool requireSuccess)
 {
-    faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
-    conf.boundTimeout = 1000;
     faasmConf.chainedCallTimeout = 10000;
 
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-
-    // Start up system
-    auto fac = std::make_shared<faaslet::FaasletFactory>();
-    faabric::runner::FaabricMain m(fac);
-    m.startRunner();
-
     // Execute forcing local
-    req->mutable_messages()->at(0).set_topologyhint("FORCE_LOCAL");
     bool isThreads = req->type() == faabric::BatchExecuteRequest::THREADS;
 
     // In the tests, the planner server runs in the same process than the
@@ -79,15 +58,45 @@ std::vector<faabric::Message> executeWithPool(
         reqMsgIds.insert(msg.id());
     }
 
-    sch.callFunctions(req);
+    auto& plannerCli = faabric::planner::getPlannerClient();
+    plannerCli.callFunctions(req);
 
-    usleep(1000 * 500);
+    // In the case of an MPI request, we want to wait for all the MPI messages,
+    // not only the one with rank 0
+    if (req->messages(0).ismpi()) {
+        int maxRetries = 5;
+        int numRetries = 0;
+        int expectedWorldSize = req->messages(0).mpiworldsize();
+        auto decision = plannerCli.getSchedulingDecision(req);
+        while (decision.messageIds.size() != expectedWorldSize) {
+            if (numRetries >= maxRetries) {
+                SPDLOG_ERROR(
+                  "Timed-out waiting for MPI messages to be scheduled ({}/{})",
+                  decision.messageIds.size(),
+                  expectedWorldSize);
+                throw std::runtime_error("Timed-out waiting for MPI messges");
+            }
+
+            SPDLOG_DEBUG(
+              "Waiting for MPI messages to be scheduled ({}/{}, app: {})",
+              decision.messageIds.size(),
+              expectedWorldSize,
+              req->appid());
+            SLEEP_MS(1000);
+
+            numRetries += 1;
+            decision = plannerCli.getSchedulingDecision(req);
+        }
+
+        // Finally, add the message IDs to the waiting set
+        for (const auto& mid : decision.messageIds) {
+            reqMsgIds.insert(mid);
+        }
+    }
 
     // Wait for all functions to complete
     auto resultMsgs = waitForBatchResults(
       isThreads, appId, reqMsgIds, timeoutMs, requireSuccess);
-
-    m.shutdown();
 
     return resultMsgs;
 }
@@ -101,8 +110,8 @@ void executeWithPoolMultipleTimes(
         // expects message ids to be unique (and executing the same request
         // multiple times breaks this assumption)
         int appId = faabric::util::generateGid();
+        faabric::util::updateBatchExecAppId(req, appId);
         for (auto& msg : *req->mutable_messages()) {
-            msg.set_appid(appId);
             msg.set_id(faabric::util::generateGid());
         }
 

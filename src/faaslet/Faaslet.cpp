@@ -44,10 +44,9 @@ void preloadPythonRuntime()
     msg.set_ispython(true);
     msg.set_pythonuser("python");
     msg.set_pythonfunction("noop");
-    msg.set_topologyhint("FORCE_LOCAL");
 
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    sch.callFunctions(req);
+    auto& plannerCli = faabric::planner::getPlannerClient();
+    plannerCli.callFunctions(req);
 }
 
 Faaslet::Faaslet(faabric::Message& msg)

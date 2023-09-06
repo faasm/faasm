@@ -23,16 +23,26 @@ TEST_CASE_METHOD(DistTestsFixture,
     // Set this host up to have fewer slots than the number of threads, noting
     // that we take up one local slot with the main thread
     int nLocalSlots = 3;
-    faabric::HostResources res;
-    res.set_slots(nLocalSlots);
-    sch.setThisHostResources(res);
+    int nThreads = 6;
+    conf.boundTimeout = 5000;
+    conf.overrideCpuCount = nThreads;
+    setLocalRemoteSlots(nLocalSlots + 1, nThreads - nLocalSlots, 0, 0);
 
     std::string function;
     SECTION("Not using shared memory") { function = "hellomp"; }
 
     SECTION("Using shared memory") { function = "omp_checks"; }
 
-    SECTION("Repeated reduce") { function = "repeated_reduce"; }
+    // TODO(thread-opt): we decrease the number of reduce operations, as remote
+    // threads are much less performant now. Undo when optimisations are put
+    // in place
+    SECTION("Repeated reduce")
+    {
+        nLocalSlots = 6;
+        nThreads = 10;
+        setLocalRemoteSlots(nLocalSlots + 1, nThreads - nLocalSlots, 0, 0);
+        function = "repeated_reduce";
+    }
 
     SECTION("Pi estimation") { function = PI_FUNCTION; }
 
@@ -41,11 +51,8 @@ TEST_CASE_METHOD(DistTestsFixture,
       faabric::util::batchExecFactory("omp", function, 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
 
-    // Check other host is not registered initially
-    REQUIRE(sch.getFunctionRegisteredHosts(msg.user(), msg.function()).empty());
-
     // Invoke the function
-    sch.callFunctions(req);
+    plannerCli.callFunctions(req);
 
     // Check it's successful
     faabric::Message result =
@@ -54,11 +61,6 @@ TEST_CASE_METHOD(DistTestsFixture,
 
     // Check one executor used on this host (always the case for threads)
     REQUIRE(sch.getFunctionExecutorCount(msg) == 1);
-
-    // Check other host is registered
-    std::set<std::string> expectedRegisteredHosts = { getDistTestWorkerIp() };
-    REQUIRE(sch.getFunctionRegisteredHosts(msg.user(), msg.function()) ==
-            expectedRegisteredHosts);
 
     // Check specific results
     if (function == PI_FUNCTION) {

@@ -5,6 +5,7 @@
 #include <faabric/state/StateKeyValue.h>
 #include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/batch.h>
+#include <faabric/util/func.h>
 #include <faabric/util/gids.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
@@ -12,6 +13,7 @@
 #include <faabric/util/memory.h>
 #include <faabric/util/snapshot.h>
 #include <faabric/util/string_tools.h>
+#include <faabric/util/testing.h>
 #include <faabric/util/timing.h>
 #include <threads/ThreadState.h>
 #include <wasm/WasmExecutionContext.h>
@@ -435,6 +437,15 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
         parentCall->user(), parentCall->function(), nextLevel->numThreads);
     req->set_type(faabric::BatchExecuteRequest::THREADS);
     req->set_subtype(ThreadRequestType::OPENMP);
+    // TODO(thread-opt): we don't relate the calling message with the callee.
+    // This means that OpenMP messages could be sub-optimally scheduled
+    // faabric::util::updateBatchExecAppId(req, parentCall->appid());
+
+    // In the local tests, we always set the single-host flag to avoid
+    // having to synchronise snapshots
+    if (faabric::util::isTestMode()) {
+        req->set_singlehost(true);
+    }
 
     // Add remote context
     std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
@@ -443,9 +454,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     // Configure the mesages
     for (int i = 0; i < req->messages_size(); i++) {
         faabric::Message& m = req->mutable_messages()->at(i);
-
-        // Propagte app id
-        m.set_appid(parentCall->appid());
 
         // Function pointer
         m.set_funcptr(microtaskPtr);
