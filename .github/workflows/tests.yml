@@ -455,6 +455,16 @@ jobs:
       planner:
         image: faasm.azurecr.io/planner:0.7.0
     steps:
+      # The SGX tests build a lot of dependencies and code, so we need to make
+      # more disk space
+      - name: "Maximize build space"
+        uses: easimon/maximize-build-space@master
+        with:
+          remove-android: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
       - name: "Check out code"
         uses: actions/checkout@v3
         with:
