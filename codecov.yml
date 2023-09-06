@@ -8,6 +8,11 @@ ignore:
 # coverage
 coverage:
   status:
+    # Project coverage indicates project-wide code coverage
     project:
+      default:
+        threshold: 1%
+    # Patch coverage indicates code coverage of the lines added in this PR
+    patch:
       default:
         threshold: 1%
