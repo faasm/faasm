@@ -45,10 +45,11 @@ TEST_CASE_METHOD(DistTestsFixture,
 
 TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
 {
-    // Set up this host's resources so that the parent function and one child
-    // are in one host, and the other two child functions in another host
-    int nLocalSlots = 2;
-    setLocalRemoteSlots(nLocalSlots * 2, nLocalSlots, nLocalSlots * 2 - 2, 0);
+    // The chain function will spawn three other functions, and one of the
+    // three functions will spawn yet a fourth one. We schedule three functions
+    // locally, and two remotely
+    int nLocalSlots = 3;
+    setLocalRemoteSlots(2 * nLocalSlots, nLocalSlots, nLocalSlots, 0);
 
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -57,6 +58,8 @@ TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
     msg.set_recordexecgraph(true);
 
     // Call the functions
+    // PROBLEM: it may happen that the chained function finishes before the
+    // next one has been chained
     plannerCli.callFunctions(req);
 
     // Check it's successful
@@ -65,22 +68,37 @@ TEST_CASE_METHOD(DistTestsFixture, "Test chaining across hosts", "[scheduler]")
     REQUIRE(result.returnvalue() == 0);
 
     std::vector<std::string> expectedChainedHosts = { getDistTestMasterIp(),
-                                                      getDistTestWorkerIp(),
+                                                      getDistTestMasterIp(),
                                                       getDistTestWorkerIp() };
 
     // Wait for all chained messages too
     std::vector<std::string> actualChainedHosts;
-    for (const int chainedId : faabric::util::getChainedFunctions(msg)) {
+    auto chainedIds = faabric::util::getChainedFunctions(msg);
+    std::vector<int> nestedChainedIds;
+    for (int chainedId : chainedIds) {
         auto chainedResult = plannerCli.getMessageResult(
           msg.appid(), chainedId, functionCallTimeout);
         REQUIRE(chainedResult.returnvalue() == 0);
         actualChainedHosts.push_back(chainedResult.executedhost());
+
+        // See if the chained function did any nested chains
+        for (int nestedChainedId :
+             faabric::util::getChainedFunctions(chainedResult)) {
+            nestedChainedIds.push_back(nestedChainedId);
+        }
+    }
+
+    // Wait for all nested chained messages
+    for (const int nestedChainedId : nestedChainedIds) {
+        auto nestedResult = plannerCli.getMessageResult(
+          msg.appid(), nestedChainedId, functionCallTimeout);
+        REQUIRE(nestedResult.returnvalue() == 0);
     }
 
     // Check chained allocation
     REQUIRE(actualChainedHosts == expectedChainedHosts);
 
     // Check executors on this host
-    REQUIRE(sch.getFunctionExecutorCount(msg) == 2);
+    REQUIRE(sch.getFunctionExecutorCount(msg) == 3);
 }
 }
