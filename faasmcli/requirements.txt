@@ -10,7 +10,6 @@ hiredis==2.0.0
 invoke>=2.0.0
 myst-parser==0.17.2
 Jinja2==3.0.3
-matplotlib==3.3.4
 networkx==2.5.1
 numpy==1.22.0
 packaging>=21.3
