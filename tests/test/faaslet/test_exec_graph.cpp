@@ -26,13 +26,26 @@ static std::vector<int> waitForChainedCalls(
             throw std::runtime_error("Timed-out waiting for MPI messges");
         }
 
-        SPDLOG_DEBUG("Waiting for chained messages to be scheduled ({}/{})",
-                     decision.messageIds.size(),
-                     expectedNumMsg);
+        SPDLOG_DEBUG(
+          "Waiting for chained messages to be scheduled ({}/{}, app: {})",
+          decision.messageIds.size(),
+          expectedNumMsg,
+          req->appid());
         SLEEP_MS(1000);
 
         numRetries += 1;
         decision = plannerCli.getSchedulingDecision(req);
+
+        // If the decision has no app ID, it means that the app has
+        // already finished
+        if (decision.appId == 0) {
+            auto berStatus = plannerCli.getBatchResults(req);
+            std::vector<int> messageIds;
+            for (const auto& msg : berStatus->messageresults()) {
+                messageIds.push_back(msg.id());
+            }
+            return messageIds;
+        }
     }
 
     return decision.messageIds;

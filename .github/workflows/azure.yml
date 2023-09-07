@@ -56,7 +56,7 @@ jobs:
           ./bin/inv_wrapper.sh cluster.credentials --name ${{ env.CLUSTER_NAME }}
         working-directory: ${{ github.workspace }}/experiment-base
       - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.13.1
+        run: pip3 install faasmctl==0.13.3
       - name: "Deploy Faasm on k8s cluster"
         run: faasmctl deploy.k8s --workers=4
       - name: "Build, upload and run a simple CPP function"
