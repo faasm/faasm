@@ -86,6 +86,15 @@ std::vector<faabric::Message> executeWithPool(
 
             numRetries += 1;
             decision = plannerCli.getSchedulingDecision(req);
+
+            // If the decision has no app ID, it means that the app has
+            // already finished, so we don't even have to wait for the messages
+            if (decision.appId == 0) {
+                auto berStatus = plannerCli.getBatchResults(req);
+                return std::vector<faabric::Message>(
+                  berStatus->mutable_messageresults()->begin(),
+                  berStatus->mutable_messageresults()->end());
+            }
         }
 
         // Finally, add the message IDs to the waiting set
