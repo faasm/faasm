@@ -595,8 +595,6 @@ jobs:
       FAASM_VERSION: 0.12.0
       PYTHON_CODEGEN: "on"
     steps:
-      - name: "Print docker compose version"
-        run: docker compose version
       # The distributed tests use (pull) lots of docker images, so we may
       # run out of disk space, use this action to free space beforehand
       - name: "Maximize build space"
