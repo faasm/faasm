@@ -452,8 +452,6 @@ jobs:
         env:
           MINIO_ROOT_USER: minio
           MINIO_ROOT_PASSWORD: minio123
-      planner:
-        image: faasm.azurecr.io/planner:0.8.0
     steps:
       - name: "Check out code"
         uses: actions/checkout@v3
