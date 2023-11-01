@@ -24,7 +24,7 @@ jobs:
         image: [redis, minio, base]
     steps:
       - name: "Get the code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "Get tag version"
         run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
       - name: "Set up QEMU"
@@ -54,7 +54,7 @@ jobs:
         image: [cli, upload, worker]
     steps:
       - name: "Get the code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "Get tag version"
         run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
       - name: "Set up QEMU"
@@ -86,7 +86,7 @@ jobs:
         sgx-mode: [[-sgx, Hardware], [-sgx-sim, Simulation]]
     steps:
       - name: "Get the code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "Get tag version"
         run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
       - name: "Set up QEMU"
@@ -119,7 +119,7 @@ jobs:
         sgx-mode: [[-sgx, Hardware], [-sgx-sim, Simulation]]
     steps:
       - name: "Get the code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "Get tag version"
         run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v*}" >> $GITHUB_ENV
       - name: "Work out the right docker tag"

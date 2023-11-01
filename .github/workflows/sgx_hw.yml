@@ -18,7 +18,7 @@ jobs:
       FAASM_VERSION: 0.12.0
     steps:
       - name: "Check out the experiment-base code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: faasm/experiment-base
       - name: "Create a unique VM name"

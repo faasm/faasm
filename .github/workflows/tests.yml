@@ -29,18 +29,18 @@ jobs:
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
           fetch-depth: 0
         # We need to set the safe git directory as formatting relies on git-ls
         # See actions/checkout#766
-      - name: "Set the GH workspace as a safe git directory"
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git config --global --add safe.directory "$GITHUB_WORKSPACE/faabric"
-          git config --global --add safe.directory "$GITHUB_WORKSPACE/cpp"
-          git config --global --add safe.directory "$GITHUB_WORKSPACE/python"
+        #       - name: "Set the GH workspace as a safe git directory"
+        #         run: |
+        #           git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        #           git config --global --add safe.directory "$GITHUB_WORKSPACE/faabric"
+        #           git config --global --add safe.directory "$GITHUB_WORKSPACE/cpp"
+        #           git config --global --add safe.directory "$GITHUB_WORKSPACE/python"
       # Formatting checks
       - name: "Code formatting check"
         run: ./bin/inv_wrapper.sh format-code --check
@@ -58,7 +58,7 @@ jobs:
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: "Build docs"
@@ -76,7 +76,7 @@ jobs:
       needs-cpp-wasm: ${{ (steps.filter.outputs.cpp-changed == 'true') || (steps.wasm-cpp-cache.outputs.cache-hit != 'true') }}
       needs-py-wasm: ${{ (steps.filter.outputs.py-changed == 'true') || (steps.wasm-py-cache.outputs.cache-hit != 'true') }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: true
     # Check if any of the submodules have been modified
@@ -119,7 +119,7 @@ jobs:
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: "Build C++ functions"
@@ -167,7 +167,7 @@ jobs:
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: "Build CPython function"
@@ -202,7 +202,7 @@ jobs:
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Check-out code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: "Conan cache"
@@ -244,7 +244,7 @@ jobs:
           MINIO_ROOT_PASSWORD: minio123
     steps:
       - name: "Check out code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: "Conan cache"
@@ -350,7 +350,7 @@ jobs:
           MINIO_ROOT_PASSWORD: minio123
     steps:
       - name: "Check out code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: "Conan cache"
@@ -454,7 +454,7 @@ jobs:
           MINIO_ROOT_PASSWORD: minio123
     steps:
       - name: "Check out code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: "Conan cache"
@@ -542,7 +542,7 @@ jobs:
           remove-dotnet: 'true'
           remove-haskell: 'true'
       - name: "Checkout code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: "Install faasmctl"
@@ -592,7 +592,21 @@ jobs:
       FAASM_INI_FILE: ./faasm.ini
       FAASM_VERSION: 0.12.0
       PYTHON_CODEGEN: "on"
+      XDG_CACHE_HOME: /home/runner
     steps:
+      - name: "Print docker-compose version"
+        run: docker compose version
+      - name: "Remove docker compose"
+        run: |
+          sudo apt remove docker-compose
+          DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+          mkdir -p $DOCKER_CONFIG/cli-plugins
+          curl -SL https://github.com/docker/compose/releases/download/v2.22.0/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+          chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+      - name: "Print docker-compose version again"
+        run: docker compose version
+      - name: "Print env. variables"
+        run: env
       # The distributed tests use (pull) lots of docker images, so we may
       # run out of disk space, use this action to free space beforehand
       - name: "Maximize build space"
@@ -607,7 +621,7 @@ jobs:
           remove-dotnet: 'true'
           remove-haskell: 'true'
       - name: "Checkout code"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: "Configure cache of built conan dependencies"
