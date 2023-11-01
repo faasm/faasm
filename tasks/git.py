@@ -1,11 +1,11 @@
-from faasmcli.util.env import PROJ_ROOT
-from faasmcli.util.config import get_faasm_config
-from faasmcli.util.version import get_version
 from faasmtools.docker import ACR_NAME
 from github import Github
 from invoke import task
+from os import environ
 from os.path import join
 from subprocess import run, PIPE, STDOUT
+from tasks.util.env import PROJ_ROOT
+from tasks.util.version import get_version
 
 REPO_NAME = "faasm/faasm"
 
@@ -62,14 +62,7 @@ def _get_release():
 
 
 def _get_github_instance():
-    conf = get_faasm_config()
-
-    if not conf.has_section("Github") or not conf.has_option(
-        "Github", "access_token"
-    ):
-        print("Must set up Github config with access token")
-
-    token = conf["Github"]["access_token"]
+    token = environ["GITHUB_TOKEN"]
     g = Github(token)
     return g
 

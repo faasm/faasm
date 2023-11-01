@@ -1,6 +1,5 @@
 from invoke import task
-
-from faasmcli.util.disassemble import (
+from tasks.util.disassemble import (
     disassemble_function,
     replace_symbols_in_file,
 )

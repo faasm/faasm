@@ -2,7 +2,7 @@ from invoke import task
 from os import environ, listdir
 from os.path import join
 from subprocess import run
-from faasmcli.util.env import (
+from tasks.util.env import (
     FAASM_BUILD_DIR,
     PROJ_ROOT,
 )

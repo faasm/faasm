@@ -1,5 +1,5 @@
-from faasmcli.util.env import PROJ_ROOT
 from os.path import join
+from tasks.util.env import PROJ_ROOT
 
 
 def get_version(project="faasm"):

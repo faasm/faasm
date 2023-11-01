@@ -1,14 +1,14 @@
-from faasmcli.util.env import (
-    PROJ_ROOT,
-    FAASM_BUILD_DIR,
-    FAASM_INSTALL_DIR,
-    FAASM_SGX_MODE_DISABLED,
-)
 from faasmtools.build import FAASM_RUNTIME_ENV_DICT, get_dict_as_cmake_vars
 from invoke import task
 from os import makedirs
 from os.path import exists, join
 from subprocess import run
+from tasks.util.env import (
+    PROJ_ROOT,
+    FAASM_BUILD_DIR,
+    FAASM_INSTALL_DIR,
+    FAASM_SGX_MODE_DISABLED,
+)
 
 DEV_TARGETS = [
     "codegen_func",

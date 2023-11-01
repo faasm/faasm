@@ -1,15 +1,14 @@
 from copy import copy
-from os.path import join, exists
 from os import environ
-import shutil
+from os.path import join, exists
+from shutil import which
 from subprocess import run
-
-from faasmcli.util.env import FAASM_BUILD_DIR
+from tasks.util.env import FAASM_BUILD_DIR
 
 
 def find_command(bin_name):
     # First check on the path
-    bin_path = shutil.which(bin_name)
+    bin_path = which(bin_name)
     if bin_path:
         print("Found {} in PATH".format(bin_name))
         return bin_path

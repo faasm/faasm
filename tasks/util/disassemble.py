@@ -1,9 +1,7 @@
 from os.path import join, exists
-
 from subprocess import run
-
-from faasmcli.util.env import WASM_DIR
-from faasmcli.util.shell import run_command
+from tasks.util.env import WASM_DIR
+from tasks.util.shell import run_command
 
 
 def disassemble_function(user, func):

@@ -27,13 +27,9 @@ if [ ! -d ${VENV_PATH} ]; then
 fi
 
 pip_cmd install -U pip setuptools wheel
-pip_cmd install -r faasmcli/requirements.txt
+pip_cmd install -r requirements.txt
 
 pushd clients/cpp >> /dev/null
-pip_cmd install -e .
-popd >> /dev/null
-
-pushd faasmcli >> /dev/null
 pip_cmd install -e .
 popd >> /dev/null
 

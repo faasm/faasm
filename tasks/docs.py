@@ -1,15 +1,12 @@
+from invoke import task
 from os import makedirs
 from os.path import join, exists
 from shutil import rmtree
 from subprocess import run
-
-from faasmcli.util.env import DOCS_ROOT
-
-from invoke import task
-
-SPHINX_OUT_DIR = join(DOCS_ROOT, "sphinx")
+from tasks.util.env import DOCS_ROOT
 
 GENERATED_DIRS = ["apidoc", "sphinx", "doxygen"]
+SPHINX_OUT_DIR = join(DOCS_ROOT, "sphinx")
 
 
 @task(default=True)

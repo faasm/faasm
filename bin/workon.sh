@@ -39,10 +39,6 @@ fi
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 source ${VENV_PATH}/bin/activate
 
-# Aliases for invoke
-alias inv="inv -r faasmcli/faasmcli"
-alias invoke="invoke -r faasmcli/faasmcli"
-
 # ----------------------------
 # Invoke tab-completion
 # (http://docs.pyinvoke.org/en/stable/invoke.html#shell-tab-completion)
