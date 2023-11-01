@@ -596,13 +596,9 @@ jobs:
     steps:
       - name: "Print docker-compose version"
         run: docker compose version
-      - name: "Remove docker compose"
-        run: |
-          sudo apt remove docker-compose
-          DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-          mkdir -p $DOCKER_CONFIG/cli-plugins
-          curl -SL https://github.com/docker/compose/releases/download/v2.22.0/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
-          chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+      - uses: csegarragonz/set-compose-version-action@main
+        with:
+          compose-version: "2.22.0"
       - name: "Print docker-compose version again"
         run: docker compose version
       - name: "Print env. variables"
