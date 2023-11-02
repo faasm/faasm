@@ -15,4 +15,4 @@ fi
 
 MAX_NET_NAMESPACES=$1;
 
-python3 faasmcli/faasmcli/tasks/network.py ${MAX_NET_NAMESPACES}
+python3 tasks/network.py ${MAX_NET_NAMESPACES}
