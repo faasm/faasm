@@ -41,7 +41,7 @@ def get_version(project="faasm"):
         return old_ver, new_ver
 
     if project == "faasmctl":
-        reqs_file = join(PROJ_ROOT, "faasmcli", "requirements.txt")
+        reqs_file = join(PROJ_ROOT, "requirements.txt")
         old_ver = read_version_from_file_path(reqs_file, "faasmctl")
         return old_ver
 

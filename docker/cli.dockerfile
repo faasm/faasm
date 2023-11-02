@@ -27,7 +27,7 @@ RUN ./bin/create_venv.sh
 # Build some useful targets
 ARG FAASM_SGX_MODE
 RUN source venv/bin/activate && \
-        inv -r faasmcli/faasmcli dev.tools \
+        inv dev.tools \
         --build Release \
         --sgx ${FAASM_SGX_MODE}
 

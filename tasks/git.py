@@ -19,7 +19,7 @@ VERSIONED_FILES = {
     "cpp": [".env", ".github/workflows/tests.yml"],
     "python": [".env", ".github/workflows/tests.yml"],
     "faasmctl": [
-        "faasmcli/requirements.txt",
+        "requirements.txt",
         ".github/workflows/tests.yml",
         ".github/workflows/azure.yml",
     ],

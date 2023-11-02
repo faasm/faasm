@@ -37,7 +37,7 @@ RUN mkdir -p /usr/local/faasm/runtime_root/etc \
 RUN cd /usr/local/code/faasm \
     && ./bin/create_venv.sh \
     && source venv/bin/activate \
-    && inv -r faasmcli/faasmcli dev.tools \
+    && inv dev.tools \
         --clean \
         --build Release \
         --sgx Disabled
