@@ -1,12 +1,10 @@
-from subprocess import run
-
 from invoke import task
 from copy import copy
 from os import environ
 from os.path import join
-
-from faasmcli.util.codegen import find_codegen_func, find_codegen_shared_lib
-from faasmcli.util.env import (
+from subprocess import run
+from tasks.util.codegen import find_codegen_func, find_codegen_shared_lib
+from tasks.util.env import (
     FAASM_RUNTIME_ROOT,
     PY_RUNTIME_ROOT,
     PYTHON_FUNC,

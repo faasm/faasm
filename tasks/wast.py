@@ -1,9 +1,8 @@
+from invoke import task
 from os import remove
 from os.path import exists, join
 from subprocess import run
-
-from invoke import task
-from faasmcli.util.env import WASM_DIR
+from tasks.util.env import WASM_DIR
 
 
 @task

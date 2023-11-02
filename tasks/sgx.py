@@ -1,6 +1,6 @@
 from invoke import task
-from faasmcli.util.shell import find_command
 from subprocess import run
+from tasks.util.shell import find_command
 
 
 @task

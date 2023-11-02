@@ -82,7 +82,7 @@ RUN git clone -b DCAP_${DCAP_VERSION} \
 ARG FAASM_SGX_MODE
 RUN cd /usr/local/code/faasm \
     && source venv/bin/activate \
-    && inv -r faasmcli/faasmcli dev.tools \
+    && inv dev.tools \
         --clean \
         --build Release \
         --sgx ${FAASM_SGX_MODE}

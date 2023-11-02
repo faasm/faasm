@@ -1,4 +1,4 @@
-from faasmcli.util.shell import find_command
+from tasks.util.shell import find_command
 
 
 def find_codegen_shared_lib():

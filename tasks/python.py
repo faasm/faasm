@@ -1,8 +1,8 @@
-from faasmcli.util.env import FAASM_RUNTIME_ROOT
-from faasmcli.util.files import glob_remove
 from invoke import task
 from os.path import join, exists
 from shutil import rmtree
+from tasks.util.env import FAASM_RUNTIME_ROOT
+from tasks.util.files import glob_remove
 
 
 def _clear_pyc_files(dir_path):

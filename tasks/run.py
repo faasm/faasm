@@ -1,6 +1,6 @@
-from faasmcli.util.shell import run_command
 from invoke import task
 from os import getenv
+from tasks.util.shell import run_command
 
 
 def do_run_command(cmd_name, user, function, data, cmdline):

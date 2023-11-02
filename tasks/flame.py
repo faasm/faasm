@@ -1,11 +1,9 @@
-from os.path import join, exists
-
 from invoke import task
+from os.path import join, exists
 from subprocess import run
-
-from faasmcli.util.env import PROJ_ROOT
-from faasmcli.util.shell import find_command
-from faasmcli.util.disassemble import replace_symbols_in_file
+from tasks.util.env import PROJ_ROOT
+from tasks.util.shell import find_command
+from tasks.util.disassemble import replace_symbols_in_file
 
 WORK_DIR = join(PROJ_ROOT, "dev")
 FLAME_GRAPH_DIR = join(WORK_DIR, "FlameGraph")

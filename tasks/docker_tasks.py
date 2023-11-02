@@ -1,18 +1,18 @@
 from copy import copy
 from docker import from_env as from_docker_env
-from faasmcli.util.env import (
-    FAASM_SGX_MODE_DISABLED,
-    FAASM_SGX_MODE_HARDWARE,
-    FAASM_SGX_MODE_SIM,
-    PROJ_ROOT,
-)
-from faasmcli.util.version import get_version
 from faasmtools.docker import ACR_NAME
 from invoke import task
 from os import environ
 from os.path import join
 from packaging import version
 from subprocess import run, PIPE
+from tasks.util.env import (
+    FAASM_SGX_MODE_DISABLED,
+    FAASM_SGX_MODE_HARDWARE,
+    FAASM_SGX_MODE_SIM,
+    PROJ_ROOT,
+)
+from tasks.util.version import get_version
 
 SGX_HW_CONTAINER_SUFFIX = "-sgx"
 SGX_SIMULATION_CONTAINER_SUFFIX = "-sgx-sim"

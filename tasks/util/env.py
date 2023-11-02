@@ -10,7 +10,7 @@ def _get_dir(variable, default):
 
 
 HOME_DIR = expanduser("~")
-PROJ_ROOT = dirname(dirname(dirname(dirname(realpath(__file__)))))
+PROJ_ROOT = dirname(dirname(dirname(realpath(__file__))))
 DOCS_ROOT = join(PROJ_ROOT, "docs")
 
 PYTHON_USER = "python"
