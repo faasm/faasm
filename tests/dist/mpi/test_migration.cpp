@@ -180,27 +180,45 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     reqB->mutable_messages(0)->set_cmdline(
       fmt::format("{} {}", checkAt, numLoops));
 
-    // Allocate resources so that both applications are scheduled in the
-    // same way: two ranks locally, and two remotely
-    setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
+    // Allocate enough resources to run both applications in just one host.
+    // We will still migrate both to improve locality
+    setLocalRemoteSlots(2 * worldSize, 2 * worldSize, 0, 0);
+
+    std::vector<std::string> expectedHostsBeforeA = { getDistTestMasterIp(),
+                                                      getDistTestMasterIp(),
+                                                      getDistTestMasterIp(),
+                                                      getDistTestWorkerIp() };
+
+    std::vector<std::string> expectedHostsBeforeB = { getDistTestMasterIp(),
+                                                      getDistTestWorkerIp(),
+                                                      getDistTestWorkerIp(),
+                                                      getDistTestWorkerIp() };
+    assert(expectedHostsBeforeA.size() == expectedHostsBeforeB.size());
+    assert(expectedHostsBeforeA.size() == worldSize);
+
+    // Preload scheduling decisions so that both applications are scheduled
+    // in the same way:
+    auto preloadDecA = std::make_shared<batch_scheduler::SchedulingDecision>(
+      reqA->appid(), reqA->groupid());
+    auto preloadDecB = std::make_shared<batch_scheduler::SchedulingDecision>(
+      reqB->appid(), reqB->groupid());
+    for (int i = 0; i < worldSize; i++) {
+        preloadDecA->addMessage(expectedHostsBeforeA.at(i), 0, 0, i);
+        preloadDecB->addMessage(expectedHostsBeforeB.at(i), 0, 0, i);
+    }
+    plannerCli.preloadSchedulingDecision(preloadDecA);
+    plannerCli.preloadSchedulingDecision(preloadDecB);
+
     plannerCli.callFunctions(reqA);
     waitForMpiMessagesInFlight(reqA);
 
-    setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
     plannerCli.callFunctions(reqB);
     waitForMpiMessagesInFlight(reqB);
 
-    // Update the total slots so that two migration opportunities appear. Note
-    // that when the first app is migrated (from worker to main) it will free
-    // two slots in the worker that will be used by the second app to migrate
-    // from main to worker
-    setLocalRemoteSlots(
-      3 * worldSize, 2 * worldSize, 3 * worldSize, 2 * worldSize - 2);
-
     std::vector<std::string> expectedHostsAfterA(worldSize,
-                                                 getDistTestWorkerIp());
-    std::vector<std::string> expectedHostsAfterB(worldSize,
                                                  getDistTestMasterIp());
+    std::vector<std::string> expectedHostsAfterB(worldSize,
+                                                 getDistTestWorkerIp());
 
     // Check it's successful
     getMpiBatchResult(reqA->messages(0));
@@ -209,14 +227,10 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     // Check that we have indeed migrated
     auto execGraphA = faabric::util::getFunctionExecGraph(reqA->messages(0));
     auto execGraphB = faabric::util::getFunctionExecGraph(reqB->messages(0));
-    std::vector<std::string> expectedHostsBefore = { getDistTestMasterIp(),
-                                                     getDistTestMasterIp(),
-                                                     getDistTestWorkerIp(),
-                                                     getDistTestWorkerIp() };
 
     checkSchedulingFromExecGraph(
-      execGraphA, expectedHostsBefore, expectedHostsAfterA);
+      execGraphA, expectedHostsBeforeA, expectedHostsAfterA);
     checkSchedulingFromExecGraph(
-      execGraphB, expectedHostsBefore, expectedHostsAfterB);
+      execGraphB, expectedHostsBeforeB, expectedHostsAfterB);
 }
 }
