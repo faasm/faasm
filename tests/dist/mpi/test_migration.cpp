@@ -76,6 +76,86 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
 }
 
 TEST_CASE_METHOD(MpiDistTestsFixture,
+                 "Test triggering an MPI migration with a preloaded decision",
+                 "[mpi]")
+{
+    // Allocate resources so that two mpi ranks are scheduled in one worker
+    // and two in the other
+    int worldSize = 4;
+    // Give enough slots for the application to run in any of the two hosts
+    setLocalRemoteSlots(2 * worldSize, worldSize, worldSize, 0);
+
+    // Set up the message
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory("mpi", "migrate", 1);
+    faabric::Message& msg = req->mutable_messages()->at(0);
+    msg.set_ismpi(true);
+    msg.set_mpiworldsize(worldSize);
+    msg.set_recordexecgraph(true);
+
+    // Try to migrate at 50% of execution
+    int numLoops = 10000;
+    int checkAt = 5;
+    msg.set_cmdline(fmt::format("{} {}", checkAt, numLoops));
+
+    // Before calling the function, pre-load a scheduling decision
+    auto preloadDec = std::make_shared<batch_scheduler::SchedulingDecision>(
+      req->appid(), req->groupid());
+
+    std::vector<std::string> hostsBefore;
+    std::vector<std::string> hostsAfter;
+
+    SECTION("Do not migrate main rank")
+    {
+        hostsBefore = { getDistTestMasterIp(),
+                        getDistTestMasterIp(),
+                        getDistTestWorkerIp(),
+                        getDistTestWorkerIp() };
+        hostsAfter = { getDistTestMasterIp(),
+                       getDistTestMasterIp(),
+                       getDistTestMasterIp(),
+                       getDistTestMasterIp() };
+    }
+
+    SECTION("Migrate main rank")
+    {
+        hostsBefore = { getDistTestMasterIp(),
+                        getDistTestWorkerIp(),
+                        getDistTestWorkerIp(),
+                        getDistTestWorkerIp() };
+        hostsAfter = { getDistTestWorkerIp(),
+                       getDistTestWorkerIp(),
+                       getDistTestWorkerIp(),
+                       getDistTestWorkerIp() };
+    }
+
+    assert(hostsBefore.size() == worldSize);
+    assert(hostsAfter.size() == worldSize);
+
+    // In a preloaded scheduling decision we only care about the host we
+    // execute at, and the group index
+    for (int i = 0; i < hostsBefore.size(); i++) {
+        preloadDec->addMessage(hostsBefore.at(i), 0, 0, i);
+    }
+
+    // Preload decision
+    plannerCli.preloadSchedulingDecision(preloadDec);
+
+    // Call the functions
+    plannerCli.callFunctions(req);
+
+    // Wait until all messages are in flight
+    waitForMpiMessagesInFlight(req);
+
+    // Check it's successful
+    auto result = getMpiBatchResult(msg);
+
+    // Check that we have indeed migrated
+    auto execGraph = faabric::util::getFunctionExecGraph(msg);
+    checkSchedulingFromExecGraph(execGraph, hostsBefore, hostsAfter);
+}
+
+TEST_CASE_METHOD(MpiDistTestsFixture,
                  "Test migrating two concurrent MPI applications",
                  "[mpi]")
 {
