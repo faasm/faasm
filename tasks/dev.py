@@ -15,6 +15,7 @@ DEV_TARGETS = [
     "codegen_shared_obj",
     "func_runner",
     "func_sym",
+    "is_app_migratable",
     "local_pool_runner",
     "planner_server",
     "pool_runner",
