@@ -39,9 +39,6 @@ Start a Faasm cluster locally using `docker compose`:
 
 ```bash
 faasmctl deploy.compose
-
-# Set the env. var with Faasm's INI file to avoid having to repeat it
-export FAASM_INI_FILE=./faasm.ini
 ```
 
 To compile, upload and invoke a C++ function using this local cluster you can

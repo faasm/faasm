@@ -72,7 +72,8 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
           ->pushSnapshot(snapKey, snap);
         msg.set_snapshotkey(snapKey);
 
-        // Propagate the app ID and set the _same_ message ID
+        // Propagate the group IDx and set the _same_ message ID
+        msg.set_id(call->id());
         msg.set_groupidx(call->groupidx());
 
         // If message is MPI, propagate the necessary MPI bits
