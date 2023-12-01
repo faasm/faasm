@@ -14,20 +14,18 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
 {
     int worldSize = 4;
 
-    // Prepare both requests
-    std::shared_ptr<faabric::BatchExecuteRequest> reqA =
-      faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
-    reqA->mutable_messages(0)->set_ismpi(true);
-    reqA->mutable_messages(0)->set_mpiworldsize(worldSize);
-    std::shared_ptr<faabric::BatchExecuteRequest> reqB =
-      faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
-    reqB->mutable_messages(0)->set_ismpi(true);
-    reqB->mutable_messages(0)->set_mpiworldsize(worldSize);
-
     // Set enough resources to fit both applications
     setLocalRemoteSlots(worldSize, worldSize, 0, 0);
-    std::vector<std::string> expectedHostsA(4, 0);
-    std::vector<std::string> expectedHostsB(4, 0);
+    std::vector<std::string> expectedHostsA(4, "");
+    std::vector<std::string> expectedHostsB(4, "");
+
+    // Prepare both requests
+    auto reqA = faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
+    reqA->mutable_messages(0)->set_ismpi(true);
+    reqA->mutable_messages(0)->set_mpiworldsize(worldSize);
+    auto reqB = faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
+    reqB->mutable_messages(0)->set_ismpi(true);
+    reqB->mutable_messages(0)->set_mpiworldsize(worldSize);
 
     SECTION("Same distribution")
     {
@@ -56,7 +54,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
                            getDistTestMasterIp(),
                            getDistTestMasterIp(),
                            getDistTestWorkerIp() };
-        expectedHostsA = { getDistTestMasterIp(),
+        expectedHostsB = { getDistTestMasterIp(),
                            getDistTestWorkerIp(),
                            getDistTestWorkerIp(),
                            getDistTestWorkerIp() };
