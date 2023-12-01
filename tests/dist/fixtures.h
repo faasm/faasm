@@ -104,9 +104,20 @@ class MpiDistTestsFixture : public DistTestsFixture
         // First, poll untill all messages are ready
         int pollSleepSecs = 2;
         auto batchResults = plannerCli.getBatchResults(req);
+        int maxRetries = 20;
+        int numRetries = 0;
         while (batchResults->messageresults_size() != expectedWorldSize) {
+            if (numRetries >= maxRetries) {
+                SPDLOG_ERROR(
+                  "Timed-out waiting for MPI messages results ({}/{})",
+                  batchResults->messageresults_size(),
+                  expectedWorldSize);
+                throw std::runtime_error("Timed-out waiting for MPI messges");
+            }
+
             SLEEP_MS(pollSleepSecs * 1000);
             batchResults = plannerCli.getBatchResults(req);
+            numRetries += 1;
         }
 
         for (const auto& msg : batchResults->messageresults()) {
