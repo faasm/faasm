@@ -97,35 +97,31 @@ class DistTestsFixture
 class MpiDistTestsFixture : public DistTestsFixture
 {
   public:
-    // Given the main MPI message (rank == 0) wait for that message and all the
-    // chained messages, and return the result for the main one
-    faabric::Message getMpiBatchResult(const faabric::Message& firstMsg)
+    void checkMpiBatchResults(std::shared_ptr<faabric::BatchExecuteRequest> req,
+                              const std::vector<std::string>& expectedHosts)
     {
-        int appId = firstMsg.appid();
-        int firstMsgId = firstMsg.id();
-        faabric::Message result =
-          plannerCli.getMessageResult(appId, firstMsgId, functionCallTimeout);
-        if (result.returnvalue() != MIGRATED_FUNCTION_RETURN_VALUE) {
-            REQUIRE(result.returnvalue() == 0);
+        int expectedWorldSize = req->messages(0).mpiworldsize();
+
+        // First, poll untill all messages are ready
+        int pollSleepSecs = 2;
+        auto batchResults = plannerCli.getBatchResults(req);
+        while (batchResults->messageresults_size() != expectedWorldSize) {
+            SLEEP_MS(pollSleepSecs * 1000);
+            batchResults = plannerCli.getBatchResults(req);
         }
 
-        // Wait for all chained messages too
-        for (const int chainedId :
-             faabric::util::getChainedFunctions(firstMsg)) {
-            auto chainedResult = plannerCli.getMessageResult(
-              appId, chainedId, functionCallTimeout);
-            if (result.returnvalue() != MIGRATED_FUNCTION_RETURN_VALUE) {
-                REQUIRE(result.returnvalue() == 0);
-            }
+        for (const auto& msg : batchResults->messageresults()) {
+            REQUIRE(msg.returnvalue() == 0);
+            REQUIRE(expectedHosts.at(msg.mpirank()) == msg.executedhost());
         }
-
-        return result;
     }
 
-    // Wait until `mpiworldsize` messages are in-flight for a given request.
-    // This makes sure that the first module has been instantaited, it has
+    // Wait until `mpiworldsize` messages are in-flight for a given request
+    // and return the intial allocation. This method can be used to
+    // make sure that the first module has been instantaited, it has
     // chained the remaining ranks, and the planner has scheduled them
-    void waitForMpiMessagesInFlight(std::shared_ptr<BatchExecuteRequest> req)
+    std::vector<std::string> waitForMpiMessagesInFlight(
+      std::shared_ptr<BatchExecuteRequest> req)
     {
         int maxRetries = 20;
         int numRetries = 0;
@@ -148,32 +144,8 @@ class MpiDistTestsFixture : public DistTestsFixture
             numRetries += 1;
             decision = plannerCli.getSchedulingDecision(req);
         }
-    }
 
-    void checkSchedulingFromExecGraph(
-      const faabric::util::ExecGraph& execGraph,
-      const std::vector<std::string> expectedHosts)
-    {
-        std::vector<std::string> hostForRank =
-          faabric::util::getMpiRankHostsFromExecGraph(execGraph);
-        REQUIRE(expectedHosts == hostForRank);
-    }
-
-    void checkSchedulingFromExecGraph(
-      const faabric::util::ExecGraph& execGraph,
-      const std::vector<std::string> expectedHostsBefore,
-      const std::vector<std::string> expectedHostsAfter)
-    {
-        std::vector<std::string> actualHostsBefore(
-          execGraph.rootNode.msg.mpiworldsize());
-        std::vector<std::string> actualHostsAfter(
-          execGraph.rootNode.msg.mpiworldsize());
-
-        auto actualHostsBeforeAndAfter =
-          faabric::util::getMigratedMpiRankHostsFromExecGraph(execGraph);
-
-        REQUIRE(actualHostsBeforeAndAfter.first == expectedHostsBefore);
-        REQUIRE(actualHostsBeforeAndAfter.second == expectedHostsAfter);
+        return decision.hosts;
     }
 };
 

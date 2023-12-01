@@ -19,39 +19,70 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
       faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
     reqA->mutable_messages(0)->set_ismpi(true);
     reqA->mutable_messages(0)->set_mpiworldsize(worldSize);
-    reqA->mutable_messages(0)->set_recordexecgraph(true);
     std::shared_ptr<faabric::BatchExecuteRequest> reqB =
       faabric::util::batchExecFactory("mpi", "mpi_long_alltoall", 1);
     reqB->mutable_messages(0)->set_ismpi(true);
     reqB->mutable_messages(0)->set_mpiworldsize(worldSize);
-    reqB->mutable_messages(0)->set_recordexecgraph(true);
 
-    // Allocate resources so that both applications are scheduled in the
-    // same way: two ranks locally and two remotely
-    setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
+    // Set enough resources to fit both applications
+    setLocalRemoteSlots(worldSize, worldSize, 0, 0);
+    std::vector<std::string> expectedHostsA(4, 0);
+    std::vector<std::string> expectedHostsB(4, 0);
+
+    SECTION("Same distribution")
+    {
+        expectedHostsA = { getDistTestMasterIp(),
+                           getDistTestMasterIp(),
+                           getDistTestWorkerIp(),
+                           getDistTestWorkerIp() };
+        expectedHostsB = expectedHostsA;
+    }
+
+    SECTION("Inverted")
+    {
+        expectedHostsA = { getDistTestMasterIp(),
+                           getDistTestMasterIp(),
+                           getDistTestWorkerIp(),
+                           getDistTestWorkerIp() };
+        expectedHostsB = { getDistTestWorkerIp(),
+                           getDistTestWorkerIp(),
+                           getDistTestMasterIp(),
+                           getDistTestMasterIp() };
+    }
+
+    SECTION("Uneven")
+    {
+        expectedHostsA = { getDistTestMasterIp(),
+                           getDistTestMasterIp(),
+                           getDistTestMasterIp(),
+                           getDistTestWorkerIp() };
+        expectedHostsA = { getDistTestMasterIp(),
+                           getDistTestWorkerIp(),
+                           getDistTestWorkerIp(),
+                           getDistTestWorkerIp() };
+    }
+
+    // Preload scheduling decisions so that both applications are scheduled
+    // in the same way: two ranks locally and two rankls remotely
+    auto preloadDecA = std::make_shared<batch_scheduler::SchedulingDecision>(
+      reqA->appid(), reqA->groupid());
+    auto preloadDecB = std::make_shared<batch_scheduler::SchedulingDecision>(
+      reqB->appid(), reqB->groupid());
+    for (int i = 0; i < worldSize; i++) {
+        preloadDecA->addMessage(expectedHostsA.at(i), 0, 0, i);
+        preloadDecB->addMessage(expectedHostsB.at(i), 0, 0, i);
+    }
+    plannerCli.preloadSchedulingDecision(preloadDecA);
+    plannerCli.preloadSchedulingDecision(preloadDecB);
+
     plannerCli.callFunctions(reqA);
     waitForMpiMessagesInFlight(reqA);
 
-    setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
     plannerCli.callFunctions(reqB);
     waitForMpiMessagesInFlight(reqB);
 
     // Check both results are successful
-    auto resultA = getMpiBatchResult(reqA->messages(0));
-    auto resultB = getMpiBatchResult(reqB->messages(0));
-
-    // Get the execution graph for both requests
-    auto execGraphA = faabric::util::getFunctionExecGraph(resultA);
-    auto execGraphB = faabric::util::getFunctionExecGraph(resultB);
-
-    // Builld the expectation for both requests
-    std::vector<std::string> expectedHosts = { getDistTestMasterIp(),
-                                               getDistTestMasterIp(),
-                                               getDistTestWorkerIp(),
-                                               getDistTestWorkerIp() };
-
-    // Check the expecation against the actual execution graphs
-    checkSchedulingFromExecGraph(execGraphA, expectedHosts);
-    checkSchedulingFromExecGraph(execGraphB, expectedHosts);
+    checkMpiBatchResults(reqA, expectedHostsA);
+    checkMpiBatchResults(reqB, expectedHostsB);
 }
 }
