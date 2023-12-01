@@ -8,7 +8,6 @@
 #include <conf/FaasmConfig.h>
 #include <faabric/planner/PlannerClient.h>
 #include <faabric/scheduler/Scheduler.h>
-#include <faabric/util/ExecGraph.h>
 #include <faabric/util/func.h>
 #include <faabric/util/network.h>
 #include <faaslet/Faaslet.h>
@@ -45,7 +44,7 @@ class DistTestsFixture
         faabric::scheduler::setExecutorFactory(fac);
     }
 
-    std::string getDistTestMasterIp() { return conf.endpointHost; }
+    std::string getDistTestMasterIp() const { return conf.endpointHost; }
 
     std::string getDistTestWorkerIp()
     {
