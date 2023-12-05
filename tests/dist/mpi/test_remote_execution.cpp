@@ -14,10 +14,8 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
                  "Test running an MPI function spanning two hosts",
                  "[mpi]")
 {
-    // Set up resources so that application is split among two hosts (two ranks
-    // locally, two ranks remotely)
     int worldSize = 4;
-    setLocalRemoteSlots(worldSize, 2, worldSize - 2, 0);
+    setLocalRemoteSlots(worldSize, worldSize);
 
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =
@@ -30,9 +28,19 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
                                                getDistTestWorkerIp(),
                                                getDistTestWorkerIp() };
 
+    // Before calling the function, pre-load a scheduling decision so that
+    // execution spans two hosts
+    auto preloadDec = std::make_shared<batch_scheduler::SchedulingDecision>(
+      req->appid(), req->groupid());
+    for (int i = 0; i < expectedHosts.size(); i++) {
+        preloadDec->addMessage(expectedHosts.at(i), 0, 0, i);
+    }
+
+    // Preload decision
+    plannerCli.preloadSchedulingDecision(preloadDec);
+
     // Call the functions
     plannerCli.callFunctions(req);
-    waitForMpiMessagesInFlight(req);
 
     // Check it's successful
     checkMpiBatchResults(req, expectedHosts);
