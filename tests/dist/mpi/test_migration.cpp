@@ -3,7 +3,6 @@
 #include "fixtures.h"
 
 #include <faabric/scheduler/Scheduler.h>
-#include <faabric/util/ExecGraph.h>
 #include <faabric/util/batch.h>
 
 #include <set>
@@ -26,7 +25,6 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     faabric::Message& msg = req->mutable_messages()->at(0);
     msg.set_ismpi(true);
     msg.set_mpiworldsize(worldSize);
-    msg.set_recordexecgraph(true);
 
     // Try to migrate at 50% of execution
     int numLoops = 10000;
@@ -37,7 +35,12 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     plannerCli.callFunctions(req);
 
     // Wait until all messages are in flight
-    waitForMpiMessagesInFlight(req);
+    std::vector<std::string> expectedHostsBefore = { getDistTestMasterIp(),
+                                                     getDistTestMasterIp(),
+                                                     getDistTestWorkerIp(),
+                                                     getDistTestWorkerIp() };
+    auto actualHostsBefore = waitForMpiMessagesInFlight(req);
+    REQUIRE(expectedHostsBefore == actualHostsBefore);
 
     // Update the total slots so that a migration opportunity appears. We
     // either migrate the first two ranks from the main to the worker, or
@@ -63,16 +66,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     }
 
     // Check it's successful
-    auto result = getMpiBatchResult(msg);
-
-    // Check that we have indeed migrated
-    auto execGraph = faabric::util::getFunctionExecGraph(msg);
-    std::vector<std::string> expectedHostsBefore = { getDistTestMasterIp(),
-                                                     getDistTestMasterIp(),
-                                                     getDistTestWorkerIp(),
-                                                     getDistTestWorkerIp() };
-    checkSchedulingFromExecGraph(
-      execGraph, expectedHostsBefore, expectedHostsAfter);
+    checkMpiBatchResults(req, expectedHostsAfter);
 }
 
 TEST_CASE_METHOD(MpiDistTestsFixture,
@@ -91,7 +85,6 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     faabric::Message& msg = req->mutable_messages()->at(0);
     msg.set_ismpi(true);
     msg.set_mpiworldsize(worldSize);
-    msg.set_recordexecgraph(true);
 
     // Try to migrate at 50% of execution
     int numLoops = 10000;
@@ -144,15 +137,8 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     // Call the functions
     plannerCli.callFunctions(req);
 
-    // Wait until all messages are in flight
-    waitForMpiMessagesInFlight(req);
-
     // Check it's successful
-    auto result = getMpiBatchResult(msg);
-
-    // Check that we have indeed migrated
-    auto execGraph = faabric::util::getFunctionExecGraph(msg);
-    checkSchedulingFromExecGraph(execGraph, hostsBefore, hostsAfter);
+    checkMpiBatchResults(req, hostsAfter);
 }
 
 TEST_CASE_METHOD(MpiDistTestsFixture,
@@ -168,7 +154,6 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
       faabric::util::batchExecFactory("mpi", "migrate", 1);
     reqA->mutable_messages(0)->set_ismpi(true);
     reqA->mutable_messages(0)->set_mpiworldsize(worldSize);
-    reqA->mutable_messages(0)->set_recordexecgraph(true);
     reqA->mutable_messages(0)->set_cmdline(
       fmt::format("{} {}", checkAt, numLoops));
 
@@ -176,7 +161,6 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
       faabric::util::batchExecFactory("mpi", "migrate", 1);
     reqB->mutable_messages(0)->set_ismpi(true);
     reqB->mutable_messages(0)->set_mpiworldsize(worldSize);
-    reqB->mutable_messages(0)->set_recordexecgraph(true);
     reqB->mutable_messages(0)->set_cmdline(
       fmt::format("{} {}", checkAt, numLoops));
 
@@ -210,10 +194,12 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
     plannerCli.preloadSchedulingDecision(preloadDecB);
 
     plannerCli.callFunctions(reqA);
-    waitForMpiMessagesInFlight(reqA);
+    auto actualHostsBeforeA = waitForMpiMessagesInFlight(reqA);
+    REQUIRE(actualHostsBeforeA == expectedHostsBeforeA);
 
     plannerCli.callFunctions(reqB);
-    waitForMpiMessagesInFlight(reqB);
+    auto actualHostsBeforeB = waitForMpiMessagesInFlight(reqB);
+    REQUIRE(actualHostsBeforeB == expectedHostsBeforeB);
 
     std::vector<std::string> expectedHostsAfterA(worldSize,
                                                  getDistTestMasterIp());
@@ -221,16 +207,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
                                                  getDistTestWorkerIp());
 
     // Check it's successful
-    getMpiBatchResult(reqA->messages(0));
-    getMpiBatchResult(reqB->messages(0));
-
-    // Check that we have indeed migrated
-    auto execGraphA = faabric::util::getFunctionExecGraph(reqA->messages(0));
-    auto execGraphB = faabric::util::getFunctionExecGraph(reqB->messages(0));
-
-    checkSchedulingFromExecGraph(
-      execGraphA, expectedHostsBeforeA, expectedHostsAfterA);
-    checkSchedulingFromExecGraph(
-      execGraphB, expectedHostsBeforeB, expectedHostsAfterB);
+    checkMpiBatchResults(reqA, expectedHostsAfterA);
+    checkMpiBatchResults(reqB, expectedHostsAfterB);
 }
 }

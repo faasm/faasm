@@ -66,6 +66,7 @@ VERSION_FILE=${PROJ_ROOT}/VERSION
 export LOG_LEVEL=debug
 export FAASM_ROOT=$(pwd)
 export FAASM_VERSION=$(cat ${VERSION_FILE})
+export FAASM_INI_FILE=${PROJ_ROOT}/faasm.ini
 
 if [[ "$MODE" == "terminal" ]]; then
     export FAASM_BUILD_DIR=$(pwd)/dev/native/build
