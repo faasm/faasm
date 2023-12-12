@@ -136,6 +136,86 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
 
     // Call the functions
     plannerCli.callFunctions(req);
+    auto actualHostsBefore = waitForMpiMessagesInFlight(req);
+    REQUIRE(actualHostsBefore == hostsBefore);
+
+    // Check it's successful
+    checkMpiBatchResults(req, hostsAfter);
+}
+
+TEST_CASE_METHOD(MpiDistTestsFixture,
+                 "Test migrating between two hosts without emptying neither",
+                 "[mpi]")
+{
+    // Allocate resources so that two mpi ranks are scheduled in one worker
+    // and two in the other
+    int worldSize = 6;
+    int numSlots = 4;
+
+    // Set up the message
+    std::shared_ptr<faabric::BatchExecuteRequest> req =
+      faabric::util::batchExecFactory("mpi", "migrate", 1);
+    faabric::Message& msg = req->mutable_messages()->at(0);
+    msg.set_ismpi(true);
+    msg.set_mpiworldsize(worldSize);
+
+    // Try to migrate at 50% of execution
+    int numLoops = 10000;
+    int checkAt = 5;
+    msg.set_cmdline(fmt::format("{} {}", checkAt, numLoops));
+
+    // Before calling the function, pre-load a scheduling decision
+    auto preloadDec = std::make_shared<batch_scheduler::SchedulingDecision>(
+      req->appid(), req->groupid());
+
+    std::vector<std::string> hostsBefore;
+    std::vector<std::string> hostsAfter;
+
+    // Force a sub-optimal scheduling (3 locally, three remotely), so that
+    // we migrate one rank from one host to the other. Both hosts will stil
+    // run ranks after the migration
+    SECTION("From non-main to main")
+    {
+        setLocalRemoteSlots(numSlots, numSlots - 1, 0, 0);
+
+        hostsBefore = { getDistTestMasterIp(), getDistTestMasterIp(),
+                        getDistTestMasterIp(), getDistTestWorkerIp(),
+                        getDistTestWorkerIp(), getDistTestWorkerIp() };
+        hostsAfter = { getDistTestMasterIp(), getDistTestMasterIp(),
+                       getDistTestMasterIp(), getDistTestWorkerIp(),
+                       getDistTestWorkerIp(), getDistTestMasterIp() };
+    }
+
+    SECTION("From main to non-main")
+    {
+        // This test-case is particularly tricky as we need to chain the local
+        // leader in the non-main host
+        setLocalRemoteSlots(numSlots - 1, numSlots + 1, 0, 0);
+
+        hostsBefore = { getDistTestMasterIp(), getDistTestMasterIp(),
+                        getDistTestMasterIp(), getDistTestWorkerIp(),
+                        getDistTestWorkerIp(), getDistTestWorkerIp() };
+        hostsAfter = { getDistTestMasterIp(), getDistTestWorkerIp(),
+                       getDistTestWorkerIp(), getDistTestWorkerIp(),
+                       getDistTestWorkerIp(), getDistTestWorkerIp() };
+    }
+
+    assert(hostsBefore.size() == worldSize);
+    assert(hostsAfter.size() == worldSize);
+
+    // In a preloaded scheduling decision we only care about the host we
+    // execute at, and the group index
+    for (int i = 0; i < hostsBefore.size(); i++) {
+        preloadDec->addMessage(hostsBefore.at(i), 0, 0, i);
+    }
+
+    // Preload decision
+    plannerCli.preloadSchedulingDecision(preloadDec);
+
+    // Call the functions
+    plannerCli.callFunctions(req);
+    auto actualHostsBefore = waitForMpiMessagesInFlight(req);
+    REQUIRE(actualHostsBefore == hostsBefore);
 
     // Check it's successful
     checkMpiBatchResults(req, hostsAfter);
