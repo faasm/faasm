@@ -11,7 +11,7 @@ metadata:
 spec:
   containers:
     - name: upload
-      image: faasm.azurecr.io/upload:0.16.0
+      image: faasm.azurecr.io/upload:0.17.0
       ports:
         - containerPort: 8002
         - containerPort: 5000
@@ -30,5 +30,5 @@ spec:
           value: "/build/faasm/third-party/lib:/usr/local/lib"
         - name: PYTHON_CODEGEN
           value: "on"
-        - name: WASM_VM
+        - name: FAASM_WASM_VM
           value: "wavm"

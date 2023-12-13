@@ -32,7 +32,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm.azurecr.io/worker:0.16.0
+        - image: faasm.azurecr.io/worker:0.17.0
           name: faasm-worker
           ports:
             - containerPort: 8080
@@ -65,7 +65,7 @@ spec:
               value: "700000"
             - name: ENDPOINT_INTERFACE
               value: "eth0"
-            - name: WASM_VM
+            - name: FAASM_WASM_VM
               value: "wavm"
 
 ---

@@ -49,7 +49,7 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
 
     std::string pythonPre = setEnvVar("PYTHON_PRELOAD", "on");
     std::string captureStdout = setEnvVar("CAPTURE_STDOUT", "on");
-    std::string wasmVm = setEnvVar("WASM_VM", "blah");
+    std::string wasmVm = setEnvVar("FAASM_WASM_VM", "blah");
 
     std::string chainedTimeout = setEnvVar("CHAINED_CALL_TIMEOUT", "9999");
 
@@ -100,7 +100,7 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
 
     setEnvVar("PYTHON_PRELOAD", pythonPre);
     setEnvVar("CAPTURE_STDOUT", captureStdout);
-    setEnvVar("WASM_VM", wasmVm);
+    setEnvVar("FAASM_WASM_VM", wasmVm);
 
     setEnvVar("CHAINED_CALL_TIMEOUT", chainedTimeout);
 

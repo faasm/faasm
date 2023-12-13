@@ -27,7 +27,7 @@ void FaasmConfig::initialise()
     pythonPreload = getEnvVar("PYTHON_PRELOAD", "off");
     captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
 
-    wasmVm = getEnvVar("WASM_VM", "wavm");
+    wasmVm = getEnvVar("FAASM_WASM_VM", "wavm");
     chainedCallTimeout = this->getIntParam("CHAINED_CALL_TIMEOUT", "300000");
 
     std::string faasmLocalDir =

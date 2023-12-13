@@ -21,7 +21,7 @@ TEST_ENV = {
     "REDIS_QUEUE_HOST": "redis" if IS_CI else "redis-queue",
     "REDIS_STATE_HOST": "redis" if IS_CI else "redis-state",
     "TERM": "xterm-256color",
-    "WASM_VM": "wavm",
+    "FAASM_WASM_VM": "wavm",
     # Sanitiser env. variables
     "ASAN_OPTIONS": "halt_on_error=1:quarantine_size_mb=16",
     "LSAN_OPTIONS": "suppressions={}/leak-sanitizer-ignorelist.txt".format(

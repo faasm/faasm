@@ -23,7 +23,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.16.0
+      image: faasm.azurecr.io/cli:0.17.0
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -52,7 +52,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.16.0
+      image: faasm.azurecr.io/cli:0.17.0
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -196,7 +196,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.16.0
+      image: faasm.azurecr.io/cli:0.17.0
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -224,18 +224,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli:0.16.0
+      image: faasm.azurecr.io/cli:0.17.0
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.16.0
+        image: faasm.azurecr.io/redis:0.17.0
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.16.0
+        image: faasm.azurecr.io/minio:0.17.0
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -330,18 +330,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli:0.16.0
+      image: faasm.azurecr.io/cli:0.17.0
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.16.0
+        image: faasm.azurecr.io/redis:0.17.0
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.16.0
+        image: faasm.azurecr.io/minio:0.17.0
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -434,18 +434,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli-sgx-sim:0.16.0
+      image: faasm.azurecr.io/cli-sgx-sim:0.17.0
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.16.0
+        image: faasm.azurecr.io/redis:0.17.0
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.16.0
+        image: faasm.azurecr.io/minio:0.17.0
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -525,7 +525,7 @@ jobs:
     env:
       CONAN_CACHE_MOUNT_SOURCE: ~/.conan
       FAASM_INI_FILE: ./faasm.ini
-      FAASM_VERSION: 0.16.0
+      FAASM_VERSION: 0.17.0
       WASM_VM: ${{ matrix.wasm_vm }}
     steps:
       - uses: csegarragonz/set-compose-version-action@main
@@ -549,7 +549,7 @@ jobs:
         with:
           submodules: true
       - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.21.1
+        run: pip3 install faasmctl==0.23.0
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
@@ -593,7 +593,7 @@ jobs:
         working-directory: ${{ github.workspace }}
     env:
       FAASM_INI_FILE: ./faasm.ini
-      FAASM_VERSION: 0.16.0
+      FAASM_VERSION: 0.17.0
       PYTHON_CODEGEN: "on"
     steps:
       - uses: csegarragonz/set-compose-version-action@main
@@ -622,7 +622,7 @@ jobs:
           build-type: release
         if: matrix.detached == false
       - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.21.1
+        run: pip3 install faasmctl==0.23.0
       - name: "Fetch python's CPP submodulle"
         run: git submodule update --init -f third-party/cpp
         working-directory: ${{ github.workspace }}/clients/python
