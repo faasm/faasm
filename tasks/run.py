@@ -10,8 +10,8 @@ def do_run_command(cmd_name, user, function, data, cmdline):
     if cmdline:
         args.append("--cmdline '{}'".format(cmdline))
 
-    wasm_vm = getenv("WASM_VM", default="wavm")
-    extra_env = {"WASM_VM": wasm_vm}
+    wasm_vm = getenv("FAASM_WASM_VM", default="wavm")
+    extra_env = {"FAASM_WASM_VM": wasm_vm}
 
     run_command(cmd_name, args, extra_env=extra_env)
 

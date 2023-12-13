@@ -73,7 +73,7 @@ spec:
               value: "700000"
             - name: ENDPOINT_INTERFACE
               value: "eth0"
-            - name: WASM_VM
+            - name: FAASM_WASM_VM
               value: "sgx"
             - name: SGX_AESM_ADDR
               value: "1"

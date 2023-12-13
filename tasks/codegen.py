@@ -102,7 +102,7 @@ def libs(ctx, clean=False):
     Run codegen for shared libraries
     """
     env = copy(environ)
-    env.update({"WASM_VM": "wavm"})
+    env.update({"FAASM_WASM_VM": "wavm"})
     for so in LIB_FAKE_FILES:
         _do_codegen_shared_lib(so, clean)
 
@@ -113,7 +113,7 @@ def wavm(ctx, clean=False):
     Run codegen for shared libraries
     """
     env = copy(environ)
-    env.update({"WASM_VM": "wavm"})
+    env.update({"FAASM_WASM_VM": "wavm"})
     _do_codegen_user("demo", clean)
     _do_codegen_user("errors", clean)
     _do_codegen_user("mpi", clean)
@@ -126,7 +126,7 @@ def wamr(ctx, clean=False):
     Run WAMR codegen
     """
     env = copy(environ)
-    env.update({"WASM_VM": "wamr"})
+    env.update({"FAASM_WASM_VM": "wamr"})
     _do_codegen_user("demo", clean)
     _do_codegen_user("mpi", clean)
 
@@ -137,7 +137,7 @@ def sgx(ctx, clean=False):
     Run SGX codegen
     """
     env = copy(environ)
-    env.update({"WASM_VM": "sgx"})
+    env.update({"FAASM_WASM_VM": "sgx"})
     for user, func in SGX_ALLOWED_FUNCS:
         codegen(ctx, user, func, clean)
 
@@ -148,7 +148,7 @@ def python(ctx, clean=False):
     Run Python codegen
     """
     env = copy(environ)
-    env.update({"WASM_VM": "wavm"})
+    env.update({"FAASM_WASM_VM": "wavm"})
     codegen(ctx, PYTHON_USER, PYTHON_FUNC, clean)
     _do_codegen_shared_lib(PY_RUNTIME_ROOT, clean)
 
