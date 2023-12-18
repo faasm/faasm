@@ -456,12 +456,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     bool isSingleHost = parentReq->singlehost();
     auto& plannerCli = faabric::planner::getPlannerClient();
     if (isSingleHost || faabric::util::isTestMode()) {
-        SPDLOG_DEBUG("Pre-loading scheduling decision for single-host OMP sub-app: {}", req->appid());
+        SPDLOG_DEBUG(
+          "Pre-loading scheduling decision for single-host OMP sub-app: {}",
+          req->appid());
 
-        auto preloadDec = std::make_shared<faabric::batch_scheduler::SchedulingDecision>(
-          req->appid(), req->groupid());
+        auto preloadDec =
+          std::make_shared<faabric::batch_scheduler::SchedulingDecision>(
+            req->appid(), req->groupid());
         for (int i = 0; i < req->messages_size(); i++) {
-            preloadDec->addMessage(faabric::util::getSystemConfig().endpointHost, 0, 0, i);
+            preloadDec->addMessage(
+              faabric::util::getSystemConfig().endpointHost, 0, 0, i);
         }
         plannerCli.preloadSchedulingDecision(preloadDec);
 
