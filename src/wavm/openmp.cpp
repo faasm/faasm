@@ -1,3 +1,4 @@
+#include <faabric/batch-scheduler/SchedulingDecision.h>
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
@@ -409,6 +410,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     WAVMWasmModule* parentModule = getExecutingWAVMModule();
     Runtime::Memory* memoryPtr = parentModule->defaultMemory;
     faabric::Message* parentCall = &ExecutorContext::get()->getMsg();
+    auto parentReq = ExecutorContext::get()->getBatchRequest();
 
     const std::string parentStr =
       faabric::util::funcToString(*parentCall, false);
@@ -439,11 +441,30 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     req->set_subtype(ThreadRequestType::OPENMP);
     // TODO(thread-opt): we don't relate the calling message with the callee.
     // This means that OpenMP messages could be sub-optimally scheduled
+    // We do not want to relate the caller message with the callee because
+    // the current planner implementation interprets the chained request as
+    // a SCALE_CHANGE request, and puts all threads (including the calling
+    // one) in the same group ID. This means that when we do omp barrier,
+    // we wait for an extra thread (the caller thread is not involved in the
+    // OMP computation!)
     // faabric::util::updateBatchExecAppId(req, parentCall->appid());
 
-    // In the local tests, we always set the single-host flag to avoid
-    // having to synchronise snapshots
-    if (faabric::util::isTestMode()) {
+    // If we know that this request must execute in a single host, we can
+    // go ahead and preload a scheduling decision. Note that we always run
+    // in single host for the local tests to avoid having to synchronise
+    // snapshots
+    bool isSingleHost = parentReq->singlehost();
+    auto& plannerCli = faabric::planner::getPlannerClient();
+    if (isSingleHost || faabric::util::isTestMode()) {
+        SPDLOG_DEBUG("Pre-loading scheduling decision for single-host OMP sub-app: {}", req->appid());
+
+        auto preloadDec = std::make_shared<faabric::batch_scheduler::SchedulingDecision>(
+          req->appid(), req->groupid());
+        for (int i = 0; i < req->messages_size(); i++) {
+            preloadDec->addMessage(faabric::util::getSystemConfig().endpointHost, 0, 0, i);
+        }
+        plannerCli.preloadSchedulingDecision(preloadDec);
+
         req->set_singlehost(true);
     }
 
