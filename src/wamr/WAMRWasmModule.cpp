@@ -167,6 +167,8 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
 
     // Set up thread stacks
     createThreadStacks();
+
+    // TODO: allocate a pool of OPenMP contexts here?
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
@@ -193,17 +195,13 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
     return returnValue;
 }
 
-int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
+AOTFuncType* getFuncTypeFromFuncPtr(WASMModuleCommon* wasmModule,
+                                    WASMModuleInstanceCommon* moduleInstance,
+                                    int32_t wasmFuncPtr)
 {
-    // WASM function pointers are indices into the module's function table
-    int wasmFuncPtr = msg.funcptr();
-    std::string inputData = msg.inputdata();
+    assert(wasmModule != nullptr);
+    assert(moduleInstance != nullptr);
 
-    SPDLOG_DEBUG("WAMR executing function from pointer {} (args: {})",
-                 wasmFuncPtr,
-                 inputData);
-
-    // Work out the function signature from the function pointer
     AOTModuleInstance* aotModuleInstance =
       reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTTableInstance* tableInstance = aotModuleInstance->tables[0];
@@ -216,7 +214,72 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
     uint32_t funcTypeIdx = aotModuleInstance->func_type_indexes[funcIdx];
 
     AOTModule* aotModule = reinterpret_cast<AOTModule*>(wasmModule);
-    AOTFuncType* funcType = aotModule->func_types[funcTypeIdx];
+
+    return aotModule->func_types[funcTypeIdx];
+}
+
+int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
+                                         uint32_t stackTop,
+                                         faabric::Message& msg)
+{
+    auto funcStr = faabric::util::funcToString(msg, false);
+    int wasmFuncPtr = msg.funcptr();
+    SPDLOG_DEBUG("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
+
+    auto ompLevel = threads::getCurrentOpenMPLevel();
+    int argc = ompLevel->nSharedVarOffsets;
+    std::vector<uint32_t> argv(argc + 1);
+    // The first element in the argv is used for the return value in WAMR
+    argv[0] = { 0 };
+
+    // The rest of the arguments are the ones corresponding to OpenMP
+    for (int i =0; i < argc; i++) {
+        argv.at(i + 1) = ompLevel->sharedVarOffsets[i];
+    }
+
+    // Work-out if the function reutrns a value or returns void
+    AOTFuncType* funcType = getFuncTypeFromFuncPtr(wasmModule, moduleInstance, wasmFuncPtr);
+    bool returnsVoid = funcType->result_count == 0;
+
+    // Note that, even if argv.size() == argc + 1, this method takes the _real_
+    // argc
+    auto originalArgv = argv;
+    // TODO: in WAVM we modify the exec_env (created inside executeCatchException)
+    // to change the stack top. It seems that we createa different exec_env
+    // every time so maybe we don't have to do it?
+    bool success = executeCatchException(nullptr, wasmFuncPtr, argc, argv);
+
+    if (!success) {
+        SPDLOG_ERROR("Error executing OpenMP func {}: {}",
+                     wasmFuncPtr,
+                     wasm_runtime_get_exception(moduleInstance));
+        throw std::runtime_error("Error executing WASM OpenMP func ptr with WAMR");
+    }
+
+    // If we are calling a void function by pointer with some arguments, the
+    // return value will be, precisely, the input arguments (and not 0)
+    uint32_t returnValue;
+    if (returnsVoid) {
+        returnValue = !(argv[0] == originalArgv[0]);
+    } else {
+        returnValue = 0;
+    }
+
+    SPDLOG_DEBUG("WAMR finished executing OMP thread {} for {}", threadPoolIdx, funcStr);
+    return returnValue;
+}
+
+int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
+{
+    // WASM function pointers are indices into the module's function table
+    int wasmFuncPtr = msg.funcptr();
+    std::string inputData = msg.inputdata();
+
+    SPDLOG_DEBUG("WAMR executing function from pointer {} (args: {})",
+                 wasmFuncPtr,
+                 inputData);
+
+    AOTFuncType* funcType = getFuncTypeFromFuncPtr(wasmModule, moduleInstance, wasmFuncPtr);
     int argCount = funcType->param_count;
     int resultCount = funcType->result_count;
     SPDLOG_DEBUG("WAMR Function pointer has {} arguments and returns {} value",

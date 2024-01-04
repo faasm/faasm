@@ -2,6 +2,7 @@
 
 #include <wamr/WAMRModuleMixin.h>
 #include <wasm/WasmModule.h>
+
 #include <wasm_runtime_common.h>
 
 #include <setjmp.h>
@@ -44,6 +45,10 @@ class WAMRWasmModule final
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
     int32_t executeFunction(faabric::Message& msg) override;
+
+    int32_t executeOMPThread(int threadPoolIdx,
+                             uint32_t stackTop,
+                             faabric::Message& msg) override;
 
     // ----- Exception handling -----
     void doThrowException(std::exception& e) override;
