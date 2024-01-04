@@ -57,8 +57,6 @@ uint32_t getFaasmMemoryApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmMpiApi(NativeSymbol** nativeSymbols);
 
-uint32_t getFaasmOpenMPApi(NativeSymbol** nativeSymbols);
-
 uint32_t getFaasmProcessApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmPthreadApi(NativeSymbol** nativeSymbols);
