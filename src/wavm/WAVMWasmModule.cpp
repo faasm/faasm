@@ -986,7 +986,7 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
 
     std::string funcStr = faabric::util::funcToString(msg, false);
-    SPDLOG_DEBUG("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
+    SPDLOG_INFO("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
 
     // Set up function args
     // NOTE: an OpenMP microtask takes the following arguments:
@@ -1014,6 +1014,7 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     executeWasmFunction(ctx, funcInstance, invokeArgs, returnValue);
     msg.set_returnvalue(returnValue.i32);
 
+    SPDLOG_INFO("Finished OpenMP thread {} for {} (ret: {})", threadPoolIdx, funcStr, returnValue.i32);
     return returnValue.i32;
 }
 
