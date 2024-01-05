@@ -150,6 +150,9 @@ void doOpenMPFork(int32_t loc,
     req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
     // Configure the mesages
+    parentCall->set_appidx(0);
+    parentCall->set_groupidx(0);
+    parentCall->set_funcptr(microTask);
     for (int i = 0; i < req->messages_size(); i++) {
         faabric::Message& m = req->mutable_messages()->at(i);
 
@@ -281,6 +284,7 @@ void doOpenMPFork(int32_t loc,
             throw std::runtime_error("OpenMP threads failed");
         }
     }
+    */
 
     // Perform snapshot updates if not on single host. Note that, here we know
     // for sure that we must do dirty tracking, and are the last thread in

@@ -168,7 +168,14 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     // Set up thread stacks
     createThreadStacks();
 
-    // TODO: allocate a pool of OPenMP contexts here?
+    // TODO: allocate a pool of OpenMP contexts here?
+    // TODO: allocate them lazily?
+    // openMPContexts = std::vector<WASMExecEnv*>(threadPoolSize, nullptr);
+    /*
+    for (int i = 0; i < threadPoolSize; i++) {
+        openMPContexts.at(i) = wasm_exec_env_create(moduleInstance, STACK_SIZE);
+    }
+    */
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
@@ -228,11 +235,16 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
                                          uint32_t stackTop,
                                          faabric::Message& msg)
 {
+    // TODO: probably need  a mutex here
+
     auto funcStr = faabric::util::funcToString(msg, false);
     int wasmFuncPtr = msg.funcptr();
     SPDLOG_DEBUG("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
 
     auto ompLevel = threads::getCurrentOpenMPLevel();
+    if (ompLevel == nullptr) {
+        SPDLOG_ERROR("null OMP level!");
+    }
     int argc = ompLevel->nSharedVarOffsets;
     std::vector<uint32_t> argv(argc + 1);
     // The first element in the argv is used for the return value in WAMR
@@ -251,9 +263,50 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
     // argc
     auto originalArgv = argv;
     // TODO: in WAVM we modify the exec_env (created inside executeCatchException)
-    // to change the stack top. It seems that we createa different exec_env
+    // to change the stack top. It seems that we create a different exec_env
     // every time so maybe we don't have to do it?
-    bool success = executeCatchException(nullptr, wasmFuncPtr, argc, argv);
+    // bool success = executeCatchException(nullptr, wasmFuncPtr, argc, argv);
+    // FIXME: duplicate the code from executeCatchException here see if we can
+    // get it to work
+
+    // NOTE: i am thinking a new "thread" wants a new moduleInstance, and a new
+    // eecution environment (different threads then just share the same Wasm
+    // Module)
+    // Create a copy of the module instance for this ephemeral thread
+    // WASMModuleInstanceCommon* newModuleInstance =
+        // wasm_runtime_instantiate(wasmModule, STACK_SIZE_KB, 0, errorBuffer, ERROR_BUFFER_SIZE);
+
+    auto execEnvDtor = [&](WASMExecEnv* execEnv) {
+        if (execEnv != nullptr) {
+            wasm_runtime_destroy_exec_env(execEnv);
+        }
+        wasm_runtime_set_exec_env_tls(nullptr);
+    };
+    bool success = false;
+    // Use existing thread-local execution environment if it exists
+    auto* currentExecEnv = wasm_runtime_get_exec_env_tls();
+    if (currentExecEnv != nullptr) {
+        SPDLOG_WARN("re-using exec env!");
+        success = wasm_runtime_call_indirect(currentExecEnv, wasmFuncPtr, argc, argv.data());
+    } else {
+        std::unique_ptr<WASMExecEnv, decltype(execEnvDtor)> execEnv(
+            wasm_exec_env_create(moduleInstance, STACK_SIZE_KB),
+          execEnvDtor);
+        if (execEnv == nullptr) {
+            throw std::runtime_error("Error creating execution environment");
+        }
+        wasm_exec_env_set_thread_info(execEnv.get());
+        success = wasm_runtime_call_indirect(execEnv.get(), wasmFuncPtr, argc, argv.data());
+    }
+
+    // Create a copy of the module instance for this ephemeral thread
+    /*
+    WASMModuleInstanceCommon* newModuleInstance =
+        wasm_runtime_instantiate(wasmModule, STACK_SIZE_KB, 0, errorBuffer, ERROR_BUFFER_SIZE);
+    wasm_runtime_set_custom_data_internal(newModuleInstance, wasm_runtime_get_custom_data(moduleInstance));
+    wasm_native_inherit_contexts(newModuleInstance, moduleInstance);
+    */
+    // TODO: end of duplicated section
 
     if (!success) {
         SPDLOG_ERROR("Error executing OpenMP func {}: {}",
