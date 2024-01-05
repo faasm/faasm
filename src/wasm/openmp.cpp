@@ -142,13 +142,10 @@ void doOpenMPFork(int32_t loc,
     // OMP computation!)
     // faabric::util::updateBatchExecAppId(req, parentCall->appid());
 
-    // If we know that this request must execute in a single host, we can
-    // go ahead and preload a scheduling decision. Note that we always run
-    // in single host for the local tests to avoid having to synchronise
-    // snapshots
-    bool isSingleHost = parentReq->singlehost();
+    // Preload the schedulign decisions in local test mode to avoid having to
+    // distribute the snapshots
     auto& plannerCli = faabric::planner::getPlannerClient();
-    if (isSingleHost || faabric::util::isTestMode()) {
+    if (faabric::util::isTestMode()) {
         SPDLOG_INFO(
           "Pre-loading scheduling decision for single-host OMP sub-app: {}",
           req->appid());
