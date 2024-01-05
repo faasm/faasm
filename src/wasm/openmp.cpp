@@ -100,8 +100,7 @@ void doOpenMPFork(int32_t loc,
                   int32_t microTask,
                   uint32_t* sharedVars)
 {
-    OMP_FUNC_ARGS(
-      "__kmpc_fork_call {} {} {}", loc, nSharedVars, microTask, *sharedVars);
+    OMP_FUNC_ARGS("__kmpc_fork_call {} {} {}", loc, nSharedVars, microTask);
 
     auto* parentCall = &faabric::scheduler::ExecutorContext::get()->getMsg();
     auto* parentModule = getExecutingModule();
