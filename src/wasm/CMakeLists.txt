@@ -5,6 +5,7 @@ faasm_private_lib(wasm
     chaining_util.cpp
     host_interface_test.cpp
     migration.cpp
+    openmp.cpp
 )
 
 # Shared variables with the cross-compilation toolchain

@@ -11,8 +11,8 @@ int main()
 
     faabric::util::initLogging();
 
-    faabric::util::SystemConfig& config = faabric::util::getSystemConfig();
-    config.print();
+    // Print the Faasm config
+    conf::getFaasmConfig().print();
 
     // WARNING: All 0MQ-related operations must take place in a self-contined
     // scope to ensure all sockets are destructed before closing the context.

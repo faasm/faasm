@@ -1,3 +1,4 @@
+#include <conf/FaasmConfig.h>
 #include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/runner/FaabricMain.h>
 #include <faabric/util/logging.h>
@@ -9,6 +10,9 @@ int main()
     storage::initFaasmS3();
 
     faabric::util::initLogging();
+
+    // Print the Faasm config
+    conf::getFaasmConfig().print();
 
     // WARNING: All 0MQ-related operations must take place in a self-contined
     // scope to ensure all sockets are destructed before closing the context.

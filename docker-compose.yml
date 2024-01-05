@@ -20,7 +20,7 @@ services:
     volumes:
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
     environment:
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - PLANNER_PORT=8080
 
   minio:
@@ -89,7 +89,7 @@ services:
       - CAPTURE_STDOUT=on
       - CGROUP_MODE=on
       - GLOBAL_MESSAGE_TIMEOUT=600000
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - NETNS_MODE=off
       - MAX_NET_NAMESPACES=100
       - PLANNER_HOST=planner
