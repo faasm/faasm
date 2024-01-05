@@ -100,6 +100,8 @@ class WAMRWasmModule final
     void bindInternal(faabric::Message& msg);
 
     bool doGrowMemory(uint32_t pageChange) override;
+
+    std::vector<WASMExecEnv*> openMPContexts;
 };
 
 WAMRWasmModule* getExecutingWAMRModule();
