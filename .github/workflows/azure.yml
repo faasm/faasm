@@ -57,10 +57,13 @@ jobs:
         working-directory: ${{ github.workspace }}/experiment-base
       - name: "Install faasmctl"
         run: source ./bin/workon.sh && pip3 install faasmctl==0.24.0
+        working-directory: ${{ github.workspace }}/experiment-base
       - name: "Deploy Faasm on k8s cluster"
         run: source ./bin/workon.sh && faasmctl deploy.k8s --workers=4
+        working-directory: ${{ github.workspace }}/experiment-base
       - name: "Build, upload and run a simple CPP function"
         run:  source ./bin/workon.sh && faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello"
+        working-directory: ${{ github.workspace }}/experiment-base
       - name: "Always delete AKS cluster"
         if: always()
         run: ./bin/inv_wrapper.sh cluster.delete --name ${{ env.CLUSTER_NAME }}
