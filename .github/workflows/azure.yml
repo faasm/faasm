@@ -56,11 +56,11 @@ jobs:
           ./bin/inv_wrapper.sh cluster.credentials --name ${{ env.CLUSTER_NAME }}
         working-directory: ${{ github.workspace }}/experiment-base
       - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.24.0
+        run: source ./bin/workon.sh && pip3 install faasmctl==0.24.0
       - name: "Deploy Faasm on k8s cluster"
-        run: faasmctl deploy.k8s --workers=4
+        run: source ./bin/workon.sh && faasmctl deploy.k8s --workers=4
       - name: "Build, upload and run a simple CPP function"
-        run:  faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello"
+        run:  source ./bin/workon.sh && faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello"
       - name: "Always delete AKS cluster"
         if: always()
         run: ./bin/inv_wrapper.sh cluster.delete --name ${{ env.CLUSTER_NAME }}
