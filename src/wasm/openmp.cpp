@@ -115,7 +115,6 @@ void doOpenMPFork(int32_t loc,
     auto nextLevel =
       std::make_shared<threads::Level>(parentLevel->getMaxThreadsAtNextLevel());
     nextLevel->fromParentLevel(parentLevel);
-    SPDLOG_INFO("Parent depth: {} - Next level depth: {}", parentLevel->depth, nextLevel->depth);
 
     // Set up shared variables
     if (nSharedVars > 0) {
@@ -198,6 +197,10 @@ void doOpenMPFork(int32_t loc,
     faabric::batch_scheduler::SchedulingDecision decision(req->appid(), 0);
     if (req->messages_size() > 0) {
         decision = faabric::planner::getPlannerClient().callFunctions(req);
+    } else {
+        // TODO: here create a communication group of size 1 for the new
+        // thread?
+        ;
     }
 
     // Invoke the main thread (number zero)
@@ -213,7 +216,13 @@ void doOpenMPFork(int32_t loc,
     m.set_appidx(0);
     m.set_groupidx(0);
     m.set_funcptr(microTask);
+
+    // Finally, set the executor context, execute, and reset the context
+    auto parentExecutorContext = faabric::scheduler::ExecutorContext::get();
+    faabric::scheduler::ExecutorContext::set(parentExecutorContext->getExecutor(), thisThreadReq, 0);
     auto returnValue = parentModule->executeTask(0, 0, thisThreadReq);
+    faabric::scheduler::ExecutorContext::set(parentExecutorContext->getExecutor(), parentReq, 0);
+
     if (returnValue != 0) {
         SPDLOG_ERROR(
           "OpenMP thread (0) failed, result {} on message {}",
@@ -221,7 +230,6 @@ void doOpenMPFork(int32_t loc,
           thisThreadReq->messages(0).id());
         throw std::runtime_error("OpenMP threads failed");
     }
-    SPDLOG_WARN("OpenMP thread (0) success!");
 
     // Wait for all other threads to finish
     for (int i = 0; i < req->messages_size(); i++) {
@@ -234,8 +242,6 @@ void doOpenMPFork(int32_t loc,
             SPDLOG_ERROR(
               "OpenMP thread ({}) failed, result {} on message {}", i + 1, msgResult.returnvalue(), msgResult.id());
             throw std::runtime_error("OpenMP threads failed");
-        } else {
-            SPDLOG_WARN("OpenMP thread ({}) success!", i + 1);
         }
     }
 
