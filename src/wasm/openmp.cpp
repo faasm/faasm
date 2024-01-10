@@ -185,7 +185,6 @@ void doOpenMPFork(int32_t loc,
     }
 
     // Invoke all non-main threads
-    // std::shared_ptr<faabric::
     faabric::batch_scheduler::SchedulingDecision decision(req->appid(), 0);
     if (req->messages_size() > 0) {
         decision = faabric::planner::getPlannerClient().callFunctions(req);
