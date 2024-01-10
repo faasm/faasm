@@ -102,15 +102,18 @@ void doOpenMPFork(int32_t loc,
 {
     OMP_FUNC_ARGS("__kmpc_fork_call {} {} {}", loc, nSharedVars, microTask);
 
+    // To replicate the fork behaviour, we create (n - 1) executors with thread
+    // semantics (i.e. sharing the same Faaslet). And instruct the calling
+    // (parent) executor to also execute the same micro task
     auto* parentCall = &faabric::scheduler::ExecutorContext::get()->getMsg();
     auto* parentModule = getExecutingModule();
     auto parentReq =
       faabric::scheduler::ExecutorContext::get()->getBatchRequest();
+    const auto parentStr = faabric::util::funcToString(*parentCall, false);
 
-    const std::string parentStr =
-      faabric::util::funcToString(*parentCall, false);
-
-    // Set up the next level
+    // OpenMP execution contexs are called levels, and they contain the
+    // thread-local information to execute the microTask (mostly private and
+    // shared variables)
     std::shared_ptr<threads::Level> parentLevel = level;
     auto nextLevel =
       std::make_shared<threads::Level>(parentLevel->getMaxThreadsAtNextLevel());
@@ -126,17 +129,7 @@ void doOpenMPFork(int32_t loc,
         throw std::runtime_error("Nested OpenMP support removed");
     }
 
-    // Set up the chained calls
-    // FIXME: according to the OpenMP docs, the caller thread becomes part of
-    // the new team, not spawns a whole team and waits for them to finish:
-    // https://www.openmp.org/spec-html/5.1/openmpse3.html
-    // "When any thread encounters a parallel construct, the thread creates a
-    // team of itself and zero or more additional threads and becomes the
-    // primary thread of the new team."
-    // In this sense, it behaves very much like MPI_Init, with the difference
-    // that the spawned threads should:
-    // - Use the same WASM module
-    // - Start from a function pointer (instead than from the main entry point)
+    // Set up the chained calls with thread semantics
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(
         parentCall->user(), parentCall->function(), nextLevel->numThreads - 1);
@@ -145,32 +138,10 @@ void doOpenMPFork(int32_t loc,
     // Propagate the app ID to let the planner know that these are messages
     // for the same app
     faabric::util::updateBatchExecAppId(req, parentCall->appid());
-    // Propagate the single-host flag
-    // FIXME: right now, we do this to avoid having to take a snapshot now,
-    // and push it to the planner
+    // Propagate the single-host flag. The single host flag can be used to hint
+    // that we do not need to preemptively distribute snapshots
     req->set_singlehost(parentReq->singlehost());
-
-    // Preload the schedulign decisions in local test mode to avoid having to
-    // distribute the snapshots
-    auto& plannerCli = faabric::planner::getPlannerClient();
-    if (faabric::util::isTestMode()) {
-        SPDLOG_INFO(
-          "Pre-loading scheduling decision for single-host OMP sub-app: {}",
-          req->appid());
-
-        auto preloadDec =
-          std::make_shared<faabric::batch_scheduler::SchedulingDecision>(
-            req->appid(), req->groupid());
-        for (int i = 0; i < req->messages_size(); i++) {
-            preloadDec->addMessage(
-              faabric::util::getSystemConfig().endpointHost, 0, 0, i);
-        }
-        plannerCli.preloadSchedulingDecision(preloadDec);
-
-        req->set_singlehost(true);
-    }
-
-    // Add remote context
+    // Serialise the level so that it is available in the request
     std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
     req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
@@ -192,23 +163,49 @@ void doOpenMPFork(int32_t loc,
         m.set_groupidx(i + 1);
     }
 
+    // Preload the schedulign decisions in local test mode to avoid having to
+    // distribute the snapshots
+    // TODO: can we skip this?
+    auto& plannerCli = faabric::planner::getPlannerClient();
+    if (faabric::util::isTestMode()) {
+        SPDLOG_INFO(
+          "Pre-loading scheduling decision for single-host OMP sub-app: {}",
+          req->appid());
+
+        auto preloadDec =
+          std::make_shared<faabric::batch_scheduler::SchedulingDecision>(
+            req->appid(), req->groupid());
+        for (int i = 0; i < req->messages_size(); i++) {
+            preloadDec->addMessage(
+              faabric::util::getSystemConfig().endpointHost, 0, 0, i);
+        }
+        plannerCli.preloadSchedulingDecision(preloadDec);
+
+        req->set_singlehost(true);
+    }
+
     // Invoke all non-main threads
     // std::shared_ptr<faabric::
     faabric::batch_scheduler::SchedulingDecision decision(req->appid(), 0);
     if (req->messages_size() > 0) {
         decision = faabric::planner::getPlannerClient().callFunctions(req);
     } else {
-        // TODO: here create a communication group of size 1 for the new
-        // thread?
-        ;
+        // In a one-thread OpenMP loop, we manually create a communication
+        // group of size one
+        const std::string thisHost =
+          faabric::util::getSystemConfig().endpointHost;
+        decision.addMessage(thisHost, parentCall->id(), 0, 0);
+        faabric::transport::getPointToPointBroker()
+          .setUpLocalMappingsFromSchedulingDecision(decision);
     }
 
     // Invoke the main thread (number zero)
     auto thisThreadReq = faabric::util::batchExecFactory(
-        parentCall->user(), parentCall->function(), 1);
+      parentCall->user(), parentCall->function(), 1);
     thisThreadReq->set_type(faabric::BatchExecuteRequest::THREADS);
     thisThreadReq->set_subtype(ThreadRequestType::OPENMP);
-    thisThreadReq->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
+    thisThreadReq->set_contextdata(serialisedLevel.data(),
+                                   serialisedLevel.size());
     // Update the group and batch id for inter-thread communication
     faabric::util::updateBatchExecAppId(thisThreadReq, parentCall->appid());
     faabric::util::updateBatchExecGroupId(thisThreadReq, decision.groupId);
@@ -219,15 +216,16 @@ void doOpenMPFork(int32_t loc,
 
     // Finally, set the executor context, execute, and reset the context
     auto parentExecutorContext = faabric::scheduler::ExecutorContext::get();
-    faabric::scheduler::ExecutorContext::set(parentExecutorContext->getExecutor(), thisThreadReq, 0);
+    faabric::scheduler::ExecutorContext::set(
+      parentExecutorContext->getExecutor(), thisThreadReq, 0);
     auto returnValue = parentModule->executeTask(0, 0, thisThreadReq);
-    faabric::scheduler::ExecutorContext::set(parentExecutorContext->getExecutor(), parentReq, 0);
+    faabric::scheduler::ExecutorContext::set(
+      parentExecutorContext->getExecutor(), parentReq, 0);
 
     if (returnValue != 0) {
-        SPDLOG_ERROR(
-          "OpenMP thread (0) failed, result {} on message {}",
-          thisThreadReq->messages(0).returnvalue(),
-          thisThreadReq->messages(0).id());
+        SPDLOG_ERROR("OpenMP thread (0) failed, result {} on message {}",
+                     thisThreadReq->messages(0).returnvalue(),
+                     thisThreadReq->messages(0).id());
         throw std::runtime_error("OpenMP threads failed");
     }
 
@@ -236,30 +234,18 @@ void doOpenMPFork(int32_t loc,
         uint32_t messageId = req->messages().at(i).id();
 
         auto msgResult = faabric::planner::getPlannerClient().getMessageResult(
-          req->appid(), messageId, 10 * faabric::util::getSystemConfig().boundTimeout);
+          req->appid(),
+          messageId,
+          10 * faabric::util::getSystemConfig().boundTimeout);
 
         if (msgResult.returnvalue() != 0) {
-            SPDLOG_ERROR(
-              "OpenMP thread ({}) failed, result {} on message {}", i + 1, msgResult.returnvalue(), msgResult.id());
+            SPDLOG_ERROR("OpenMP thread ({}) failed, result {} on message {}",
+                         i + 1,
+                         msgResult.returnvalue(),
+                         msgResult.id());
             throw std::runtime_error("OpenMP threads failed");
         }
     }
-
-    // Execute the threads
-    /* OLD REMOVE ME
-    faabric::scheduler::Executor* executor =
-      faabric::scheduler::ExecutorContext::get()->getExecutor();
-    std::vector<std::pair<uint32_t, int>> results =
-      executor->executeThreads(req, parentModule->getMergeRegions());
-
-    for (auto [mid, res] : results) {
-        if (res != 0) {
-            SPDLOG_ERROR(
-              "OpenMP thread failed, result {} on message {}", res, mid);
-            throw std::runtime_error("OpenMP threads failed");
-        }
-    }
-    */
 
     // Clear this module's merge regions
     parentModule->clearMergeRegions();
