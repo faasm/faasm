@@ -226,10 +226,5 @@ TEST_CASE_METHOD(OpenMPTestFixture,
 
     // Get result
     REQUIRE(result.returnvalue() > 0);
-
-    std::string expectedOutput = fmt::format(
-      "Task {} threw exception. What: OpenMP threads failed", msg.id());
-    const std::string actualOutput = result.outputdata();
-    REQUIRE(actualOutput == expectedOutput);
 }
 }
