@@ -166,6 +166,7 @@ void doOpenMPFork(int32_t loc,
     // Preload the schedulign decisions in local test mode to avoid having to
     // distribute the snapshots
     // TODO: can we skip this?
+    /*
     auto& plannerCli = faabric::planner::getPlannerClient();
     if (faabric::util::isTestMode()) {
         SPDLOG_INFO(
@@ -183,6 +184,7 @@ void doOpenMPFork(int32_t loc,
 
         req->set_singlehost(true);
     }
+    */
 
     // Invoke all non-main threads
     faabric::batch_scheduler::SchedulingDecision decision(req->appid(), 0);
