@@ -110,6 +110,8 @@ void doOpenMPFork(int32_t loc,
     auto parentReq =
       faabric::scheduler::ExecutorContext::get()->getBatchRequest();
     const auto parentStr = faabric::util::funcToString(*parentCall, false);
+    auto* parentExecutor =
+      faabric::scheduler::ExecutorContext::get()->getExecutor();
 
     // OpenMP execution contexs are called levels, and they contain the
     // thread-local information to execute the microTask (mostly private and
@@ -138,9 +140,9 @@ void doOpenMPFork(int32_t loc,
     // Propagate the app ID to let the planner know that these are messages
     // for the same app
     faabric::util::updateBatchExecAppId(req, parentCall->appid());
-    // Propagate the single-host flag. The single host flag can be used to hint
+    // Propagate the single-host hint. The single host flag can be used to hint
     // that we do not need to preemptively distribute snapshots
-    req->set_singlehost(parentReq->singlehost());
+    req->set_singlehosthint(parentReq->singlehosthint());
     // Serialise the level so that it is available in the request
     std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
     req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
@@ -163,28 +165,54 @@ void doOpenMPFork(int32_t loc,
         m.set_groupidx(i + 1);
     }
 
-    // Preload the schedulign decisions in local test mode to avoid having to
-    // distribute the snapshots
-    // TODO: can we skip this?
-    /*
-    auto& plannerCli = faabric::planner::getPlannerClient();
-    if (faabric::util::isTestMode()) {
-        SPDLOG_INFO(
-          "Pre-loading scheduling decision for single-host OMP sub-app: {}",
-          req->appid());
+    // Do snapshotting if not on a single host. Note that, from the caller
+    // thread, we cannot know if the request is going to be single host or not.
+    // So, by default, we always take a snapshot. We can bypass this by setting
+    // the single host hint flag in the caller request
+    // TODO: ideally, we would first call the planner to know if the scheduling
+    // decision will be single host or not, and then have the threads wait for
+    // the snapshot if necessary (i.e. getOrAwaitSnapshot())
+    std::shared_ptr<faabric::util::SnapshotData> snap = nullptr;
+    if (!req->singlehosthint()) {
+        snap = parentExecutor->getMainThreadSnapshot(*parentCall, true);
 
-        auto preloadDec =
-          std::make_shared<faabric::batch_scheduler::SchedulingDecision>(
-            req->appid(), req->groupid());
-        for (int i = 0; i < req->messages_size(); i++) {
-            preloadDec->addMessage(
-              faabric::util::getSystemConfig().endpointHost, 0, 0, i);
+        // Get dirty regions since last batch of threads
+        std::span<uint8_t> memView = parentExecutor->getMemoryView();
+        faabric::util::getDirtyTracker()->stopTracking(memView);
+        faabric::util::getDirtyTracker()->stopThreadLocalTracking(memView);
+
+        // If this is the first batch, these dirty regions will be empty
+        std::vector<char> dirtyRegions =
+          faabric::util::getDirtyTracker()->getBothDirtyPages(memView);
+
+        // Apply changes to snapshot
+        snap->fillGapsWithBytewiseRegions();
+        std::vector<faabric::util::SnapshotDiff> updates =
+          snap->diffWithDirtyRegions(memView, dirtyRegions);
+
+        if (updates.empty()) {
+            SPDLOG_DEBUG(
+              "No updates to main thread snapshot for {} over {} pages",
+              parentStr,
+              dirtyRegions.size());
+        } else {
+            SPDLOG_DEBUG("Updating main thread snapshot for {} with {} diffs",
+                         parentStr,
+                         updates.size());
+            snap->applyDiffs(updates);
         }
-        plannerCli.preloadSchedulingDecision(preloadDec);
 
-        req->set_singlehost(true);
+        // Clear merge regions, not persisted between batches of threads
+        snap->clearMergeRegions();
+
+        // Now we have to add any merge regions we've been saving up for this
+        // next batch of threads
+        auto mergeRegions = parentModule->getMergeRegions();
+        for (const auto& mr : mergeRegions) {
+            snap->addMergeRegion(
+              mr.offset, mr.length, mr.dataType, mr.operation);
+        }
     }
-    */
 
     // Invoke all non-main threads
     faabric::batch_scheduler::SchedulingDecision decision(req->appid(), 0);
@@ -217,13 +245,15 @@ void doOpenMPFork(int32_t loc,
     m.set_funcptr(microTask);
 
     // Finally, set the executor context, execute, and reset the context
-    auto parentExecutorContext = faabric::scheduler::ExecutorContext::get();
-    faabric::scheduler::ExecutorContext::set(
-      parentExecutorContext->getExecutor(), thisThreadReq, 0);
+    faabric::scheduler::ExecutorContext::set(parentExecutor, thisThreadReq, 0);
+    if (!decision.isSingleHost()) {
+        faabric::util::getDirtyTracker()->startThreadLocalTracking(
+          parentExecutor->getMemoryView());
+    }
     auto returnValue = parentModule->executeTask(0, 0, thisThreadReq);
-    faabric::scheduler::ExecutorContext::set(
-      parentExecutorContext->getExecutor(), parentReq, 0);
+    faabric::scheduler::ExecutorContext::set(parentExecutor, parentReq, 0);
 
+    // Process and set thread result
     if (returnValue != 0) {
         SPDLOG_ERROR("OpenMP thread (0) failed, result {} on message {}",
                      thisThreadReq->messages(0).returnvalue(),
@@ -247,6 +277,36 @@ void doOpenMPFork(int32_t loc,
                          msgResult.id());
             throw std::runtime_error("OpenMP threads failed");
         }
+    }
+
+    // Perform snapshot updates if not on single host. Note that, here we know
+    // for sure that we must do dirty tracking, and are the last thread in
+    // the batch
+    if (!decision.isSingleHost()) {
+        // First, get all the thread local diffs for this thread
+        std::span<uint8_t> memView = parentExecutor->getMemoryView();
+        faabric::util::getDirtyTracker()->stopThreadLocalTracking(memView);
+        auto thisThreadDirtyRegions =
+          faabric::util::getDirtyTracker()->getThreadLocalDirtyPages(memView);
+
+        // Second, get the diffs for the batch request that has executed locally
+        auto diffs = parentExecutor->mergeDirtyRegions(*parentCall,
+                                                       thisThreadDirtyRegions);
+        snap->queueDiffs(diffs);
+
+        // Write queued diffs (local and remote) to snapshot
+        int nWritten = snap->writeQueuedDiffs();
+
+        // Remap memory to snapshot if it's been updated
+        if (nWritten > 0) {
+            parentExecutor->setMemorySize(snap->getSize());
+            snap->mapToMemory(memView);
+        }
+
+        // Start tracking again
+        memView = parentExecutor->getMemoryView();
+        faabric::util::getDirtyTracker()->startTracking(memView);
+        faabric::util::getDirtyTracker()->startThreadLocalTracking(memView);
     }
 
     // Clear this module's merge regions
