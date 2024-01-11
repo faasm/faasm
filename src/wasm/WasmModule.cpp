@@ -520,10 +520,10 @@ int WasmModule::awaitPthreadCall(faabric::Message* msg, int pthreadPtr)
         req->set_type(faabric::BatchExecuteRequest::THREADS);
         req->set_subtype(wasm::ThreadRequestType::PTHREAD);
 
-        // In the local tests, we always set the single-host flag to avoid
+        // In the local tests, we always set the single-host hint to avoid
         // having to synchronise snapshots
         if (faabric::util::isTestMode()) {
-            req->set_singlehost(true);
+            req->set_singlehosthint(true);
         }
 
         for (int i = 0; i < nPthreadCalls; i++) {

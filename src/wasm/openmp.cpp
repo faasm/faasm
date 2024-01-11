@@ -236,6 +236,7 @@ void doOpenMPFork(int32_t loc,
     thisThreadReq->set_contextdata(serialisedLevel.data(),
                                    serialisedLevel.size());
     thisThreadReq->set_singlehost(parentReq->singlehost());
+    thisThreadReq->set_singlehosthint(parentReq->singlehosthint());
     // Update the group and batch id for inter-thread communication
     faabric::util::updateBatchExecAppId(thisThreadReq, parentCall->appid());
     faabric::util::updateBatchExecGroupId(thisThreadReq, decision.groupId);

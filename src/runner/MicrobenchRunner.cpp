@@ -63,7 +63,7 @@ int MicrobenchRunner::doRun(std::ofstream& outFs,
 
     auto req = createBatchRequest(user, function, inputData);
     faabric::Message msg = req->messages().at(0);
-    req->set_singlehost(true);
+    req->set_singlehosthint(true);
 
     // Check files have been uploaded
     storage::FileLoader& loader = storage::getFileLoader();
