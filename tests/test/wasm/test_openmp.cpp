@@ -37,7 +37,7 @@ class OpenMPTestFixture
     {
         faabric::Message msg = faabric::util::messageFactory("omp", function);
         auto req = faabric::util::batchExecFactory("omp", function, 1);
-        req->set_singlehost(true);
+        req->set_singlehosthint(true);
         faabric::Message result =
           executeWithPool(req, OMP_TEST_TIMEOUT_MS).at(0);
 
