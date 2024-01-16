@@ -6,6 +6,7 @@
 
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
+#include <faabric/executor/ExecutorFactory.h>
 #include <faabric/planner/PlannerClient.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/func.h>
@@ -41,7 +42,7 @@ class DistTestsFixture
         // Set up executor
         std::shared_ptr<faaslet::FaasletFactory> fac =
           std::make_shared<faaslet::FaasletFactory>();
-        faabric::scheduler::setExecutorFactory(fac);
+        faabric::executor::setExecutorFactory(fac);
     }
 
     std::string getDistTestMasterIp() const { return conf.endpointHost; }

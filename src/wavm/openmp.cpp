@@ -1,7 +1,6 @@
 #include <faabric/batch-scheduler/SchedulingDecision.h>
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/proto/faabric.pb.h>
-#include <faabric/scheduler/ExecutorContext.h>
-#include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/StateKeyValue.h>
 #include <faabric/transport/PointToPointBroker.h>
@@ -27,7 +26,7 @@
 #include <WAVM/Runtime/Runtime.h>
 
 using namespace WAVM;
-using namespace faabric::scheduler;
+using namespace faabric::executor;
 
 namespace wasm {
 

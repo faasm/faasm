@@ -47,7 +47,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("demo", function, 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
-    faabric::scheduler::ExecutorContext::set(nullptr, req, 0);
+    faabric::executor::ExecutorContext::set(nullptr, req, 0);
     faaslet::Faaslet f(msg);
 
     // Execute the function using another message
@@ -55,7 +55,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         std::shared_ptr<faabric::BatchExecuteRequest> req =
           faabric::util::batchExecFactory("demo", function, 1);
         faabric::Message& msg = req->mutable_messages()->at(0);
-        faabric::scheduler::ExecutorContext::set(nullptr, req, 0);
+        faabric::executor::ExecutorContext::set(nullptr, req, 0);
 
         std::string inputData = fmt::format("hello there {}", i);
         msg.set_inputdata(inputData);

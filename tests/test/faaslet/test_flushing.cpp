@@ -5,9 +5,9 @@
 
 #include <codegen/MachineCodeGenerator.h>
 #include <conf/FaasmConfig.h>
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/runner/FaabricMain.h>
-#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
@@ -114,7 +114,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
     wasm::WAVMModuleCache& cache = wasm::getWAVMModuleCache();
     REQUIRE(cache.getTotalCachedModuleCount() == 2);
 
-    faabric::scheduler::getExecutorFactory()->flushHost();
+    faabric::executor::getExecutorFactory()->flushHost();
     REQUIRE(cache.getTotalCachedModuleCount() == 0);
 }
 
@@ -127,7 +127,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
       faabric::util::batchExecFactory("demo", "echo", 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
 
-    faabric::scheduler::ExecutorContext::set(nullptr, req, 0);
+    faabric::executor::ExecutorContext::set(nullptr, req, 0);
     faaslet::Faaslet f(msg);
     f.executeTask(0, 0, req);
 
@@ -136,7 +136,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
     REQUIRE(cache.isModuleCached("demo", "echo", ""));
 
     // Flush and check it's gone
-    faabric::scheduler::getExecutorFactory()->flushHost();
+    faabric::executor::getExecutorFactory()->flushHost();
     REQUIRE(!cache.isModuleCached("demo", "echo", ""));
 
     f.shutdown();
@@ -176,8 +176,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
     // Call the function
     auto invokeReqA = faabric::util::batchExecFactory("demo", "foo", 1);
     auto invokeMsgA = invokeReqA->messages(0);
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-    faabric::scheduler::setExecutorFactory(fac);
+    faabric::executor::setExecutorFactory(fac);
     plannerCli.callFunctions(invokeReqA);
 
     // Check the result
@@ -189,7 +188,7 @@ TEST_CASE_METHOD(FlushingTestFixture,
     SLEEP_MS(1000);
 
     // Flush
-    sch.flushLocally();
+    fac->flushHost();
 
     // Upload the second version and check wasm is as expected
     auto invokeReqB = faabric::util::batchExecFactory("demo", "foo", 1);

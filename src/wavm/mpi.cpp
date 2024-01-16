@@ -1,21 +1,20 @@
 #include "math.h"
 #include "syscalls.h"
 
+#include <faabric/executor/ExecutorContext.h>
+#include <faabric/mpi/MpiContext.h>
+#include <faabric/mpi/mpi.h>
+#include <faabric/scheduler/Scheduler.h>
+#include <faabric/util/gids.h>
+#include <faabric/util/logging.h>
 #include <wasm/WasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 
-#include <faabric/mpi/MpiContext.h>
-#include <faabric/mpi/mpi.h>
-#include <faabric/scheduler/ExecutorContext.h>
-#include <faabric/scheduler/Scheduler.h>
-#include <faabric/util/gids.h>
-#include <faabric/util/logging.h>
-
+using namespace faabric::executor;
 using namespace faabric::mpi;
-using namespace faabric::scheduler;
 using namespace WAVM;
 
 #define MPI_FUNC(str)                                                          \

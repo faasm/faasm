@@ -4,12 +4,11 @@
 
 #include <catch2/catch.hpp>
 
+#include <faabric/executor/ExecutorFactory.h>
+#include <faabric/runner/FaabricMain.h>
+#include <faabric/util/logging.h>
 #include <faaslet/Faaslet.h>
 #include <storage/S3Wrapper.h>
-
-#include <faabric/runner/FaabricMain.h>
-#include <faabric/scheduler/ExecutorFactory.h>
-#include <faabric/util/logging.h>
 
 using namespace faabric::scheduler;
 
@@ -25,25 +24,20 @@ int main(int argc, char* argv[])
     std::shared_ptr<faaslet::FaasletFactory> fac =
       std::make_shared<faaslet::FaasletFactory>();
 
-    // WARNING: all 0MQ sockets have to have gone *out of scope* before we shut
-    // down the context, therefore this segment must be in a nested scope (or
-    // another function).
-    int result;
-    {
-        faabric::runner::FaabricMain m(fac);
-        m.startBackground();
+    faabric::runner::FaabricMain m(fac);
+    m.startBackground();
 
-        // Wait for things to start
-        usleep(3000 * 1000);
+    // Wait for things to start
+    usleep(3000 * 1000);
 
-        // Run the tests
-        result = Catch::Session().run(argc, argv);
-        fflush(stdout);
+    // Run the tests
+    int result = Catch::Session().run(argc, argv);
+    fflush(stdout);
 
-        // Shut down
-        SPDLOG_INFO("Shutting down");
-        m.shutdown();
-    }
+    // Shut down
+    SPDLOG_INFO("Shutting down");
+    m.shutdown();
     storage::shutdownFaasmS3();
+
     return result;
 }

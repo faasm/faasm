@@ -1,9 +1,6 @@
 #pragma once
 
-#include <faabric/scheduler/ExecutorFactory.h>
-#include <faabric/scheduler/Scheduler.h>
-#include <faabric/util/func.h>
-
+#include <faabric/executor/ExecutorFactory.h>
 #include <system/NetworkNamespace.h>
 #include <wasm/WasmModule.h>
 
@@ -11,7 +8,7 @@
 
 namespace faaslet {
 
-class Faaslet final : public faabric::scheduler::Executor
+class Faaslet final : public faabric::executor::Executor
 {
   public:
     explicit Faaslet(faabric::Message& msg);
@@ -42,16 +39,16 @@ class Faaslet final : public faabric::scheduler::Executor
     std::shared_ptr<isolation::NetworkNamespace> ns;
 };
 
-class FaasletFactory final : public faabric::scheduler::ExecutorFactory
+class FaasletFactory final : public faabric::executor::ExecutorFactory
 {
   public:
     ~FaasletFactory();
 
-  protected:
-    std::shared_ptr<faabric::scheduler::Executor> createExecutor(
-      faabric::Message& msg) override;
-
     void flushHost() override;
+
+  protected:
+    std::shared_ptr<faabric::executor::Executor> createExecutor(
+      faabric::Message& msg) override;
 };
 
 void preloadPythonRuntime();

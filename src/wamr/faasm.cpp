@@ -1,5 +1,5 @@
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/proto/faabric.pb.h>
-#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
@@ -13,7 +13,7 @@
 
 #include <wasm_export.h>
 
-using namespace faabric::scheduler;
+using namespace faabric::executor;
 
 namespace wasm {
 
