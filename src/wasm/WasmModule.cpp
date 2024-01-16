@@ -547,8 +547,15 @@ int WasmModule::awaitPthreadCall(faabric::Message* msg, int pthreadPtr)
             pthreadPtrsToChainedCalls.insert({ p.pthreadPtr, m.id() });
         }
 
+        std::shared_ptr<faabric::util::SnapshotData> snap = nullptr;
+        if (!req->singlehosthint()) {
+            snap = executor->getMainThreadSnapshot(*msg, true);
+        }
+
         // Execute the threads and await results
-        lastPthreadResults = executor->executeThreads(req, mergeRegions);
+        faabric::planner::getPlannerClient().callFunctions(req);
+        lastPthreadResults = faabric::scheduler::getScheduler().awaitThreadResults(
+          req, 10 * faabric::util::getSystemConfig().boundTimeout);
 
         // Empty the queue
         queuedPthreadCalls.clear();
