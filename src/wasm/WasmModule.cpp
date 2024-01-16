@@ -554,8 +554,9 @@ int WasmModule::awaitPthreadCall(faabric::Message* msg, int pthreadPtr)
 
         // Execute the threads and await results
         faabric::planner::getPlannerClient().callFunctions(req);
-        lastPthreadResults = faabric::scheduler::getScheduler().awaitThreadResults(
-          req, 10 * faabric::util::getSystemConfig().boundTimeout);
+        lastPthreadResults =
+          faabric::scheduler::getScheduler().awaitThreadResults(
+            req, 10 * faabric::util::getSystemConfig().boundTimeout);
 
         // Empty the queue
         queuedPthreadCalls.clear();
