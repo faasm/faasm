@@ -188,6 +188,8 @@ TEST_CASE_METHOD(FlushingTestFixture,
     SLEEP_MS(1000);
 
     // Flush
+    faabric::state::getGlobalState().forceClearAll(false);
+    faabric::scheduler::getScheduler().reset();
     fac->flushHost();
 
     // Upload the second version and check wasm is as expected
