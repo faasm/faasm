@@ -73,6 +73,7 @@ class DistTestsFixture
         localResources->set_slots(nLocalSlots);
         localResources->set_usedslots(nLocalUsedSlots);
         sch.addHostToGlobalSet(getDistTestMasterIp(), localResources);
+        conf.overrideCpuCount = nLocalSlots;
 
         auto remoteResources = std::make_shared<faabric::HostResources>();
         remoteResources->set_slots(nRemoteSlots);

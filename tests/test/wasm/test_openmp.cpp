@@ -37,6 +37,7 @@ class OpenMPTestFixture
     {
         faabric::Message msg = faabric::util::messageFactory("omp", function);
         auto req = faabric::util::batchExecFactory("omp", function, 1);
+        req->set_singlehosthint(true);
         faabric::Message result =
           executeWithPool(req, OMP_TEST_TIMEOUT_MS).at(0);
 
@@ -220,15 +221,10 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     sch.setThisHostResources(res);
 
     auto req = faabric::util::batchExecFactory("omp", "nested_parallel", 1);
-    auto& msg = *req->mutable_messages(0);
+    req->set_singlehosthint(true);
     faabric::Message result = executeWithPool(req, 1000, false).at(0);
 
     // Get result
     REQUIRE(result.returnvalue() > 0);
-
-    std::string expectedOutput = fmt::format(
-      "Task {} threw exception. What: OpenMP threads failed", msg.id());
-    const std::string actualOutput = result.outputdata();
-    REQUIRE(actualOutput == expectedOutput);
 }
 }
