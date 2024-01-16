@@ -221,7 +221,7 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     sch.setThisHostResources(res);
 
     auto req = faabric::util::batchExecFactory("omp", "nested_parallel", 1);
-    auto& msg = *req->mutable_messages(0);
+    req->set_singlehosthint(true);
     faabric::Message result = executeWithPool(req, 1000, false).at(0);
 
     // Get result
