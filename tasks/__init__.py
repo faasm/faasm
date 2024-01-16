@@ -3,7 +3,7 @@ from invoke import Collection
 from . import codegen
 from . import dev
 from . import disas
-from . import docker_tasks
+from . import docker
 from . import docs
 from . import flame
 from . import format_code
@@ -20,6 +20,7 @@ ns = Collection(
     codegen,
     dev,
     disas,
+    docker,
     docs,
     flame,
     format_code,
@@ -31,6 +32,3 @@ ns = Collection(
     tests,
     wast,
 )
-
-# Custom names
-ns.add_collection(ns.from_module(docker_tasks), name="docker")

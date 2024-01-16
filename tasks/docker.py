@@ -1,10 +1,8 @@
 from copy import copy
-from docker import from_env as from_docker_env
 from faasmtools.docker import ACR_NAME
 from invoke import task
 from os import environ
 from os.path import join
-from packaging import version
 from subprocess import run, PIPE
 from tasks.util.env import (
     FAASM_SGX_MODE_DISABLED,
@@ -207,23 +205,3 @@ def pull(ctx, c):
             check=True,
             cwd=PROJ_ROOT,
         )
-
-
-@task
-def delete_old(ctx):
-    """
-    Deletes old Docker images
-    """
-    faasm_ver = get_version()
-
-    dock = from_docker_env()
-    images = dock.images.list()
-    for image in images:
-        for t in image.tags:
-            if not t.startswith("{}".format(ACR_NAME)):
-                continue
-
-            tag_ver = t.split(":")[-1]
-            if version.parse(tag_ver) < version.parse(faasm_ver):
-                print("Removing old image: {}".format(t))
-                dock.images.remove(t, force=True)
