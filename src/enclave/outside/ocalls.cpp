@@ -1,4 +1,4 @@
-#include <faabric/scheduler/ExecutorContext.h>
+#include <faabric/executor/ExecutorContext.h>
 
 #include <enclave/outside/EnclaveInterface.h>
 #include <wasm/chaining.h>
@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cstring>
 
-using namespace faabric::scheduler;
+using namespace faabric::executor;
 
 extern "C"
 {

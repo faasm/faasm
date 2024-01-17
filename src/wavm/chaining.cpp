@@ -1,8 +1,7 @@
 #include "WAVMWasmModule.h"
 #include "syscalls.h"
 
-#include <faabric/scheduler/ExecutorContext.h>
-#include <faabric/scheduler/Scheduler.h>
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/logging.h>
 
@@ -12,7 +11,7 @@
 #include <WAVM/Runtime/Runtime.h>
 
 using namespace WAVM;
-using namespace faabric::scheduler;
+using namespace faabric::executor;
 
 namespace wasm {
 void chainLink() {}

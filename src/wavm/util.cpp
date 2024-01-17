@@ -2,17 +2,17 @@
 
 #include <wavm/WAVMWasmModule.h>
 
-#include <faabric/scheduler/ExecutorContext.h>
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/logging.h>
 
-#include <boost/filesystem.hpp>
-
 #include <WAVM/WASI/WASIABI.h>
 
+#include <boost/filesystem.hpp>
+
 using namespace WAVM;
-using namespace faabric::scheduler;
+using namespace faabric::executor;
 
 namespace wasm {
 void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t* buffer)

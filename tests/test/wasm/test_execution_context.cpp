@@ -1,9 +1,8 @@
 #include "utils.h"
 #include <catch2/catch.hpp>
 
-#include <faabric/scheduler/ExecutorContext.h>
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/util/func.h>
-
 #include <wasm/WasmExecutionContext.h>
 #include <wavm/WAVMWasmModule.h>
 

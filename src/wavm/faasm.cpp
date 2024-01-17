@@ -1,8 +1,7 @@
 #include "syscalls.h"
 
 #include <conf/FaasmConfig.h>
-#include <faabric/scheduler/ExecutorContext.h>
-#include <faabric/scheduler/Scheduler.h>
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/snapshot/SnapshotClient.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/transport/PointToPointBroker.h>
@@ -25,7 +24,7 @@
 
 using namespace WAVM;
 using namespace faabric::transport;
-using namespace faabric::scheduler;
+using namespace faabric::executor;
 
 namespace wasm {
 
@@ -670,8 +669,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                  isCurrentBatch ? "this batch" : "next batch");
 
     if (isCurrentBatch) {
-        faabric::scheduler::Executor* executor =
-          ExecutorContext::get()->getExecutor();
+        Executor* executor = ExecutorContext::get()->getExecutor();
         auto snap = executor->getMainThreadSnapshot(*msg, false);
         snap->addMergeRegion(varPtr, dataType.first, dataType.second, mergeOp);
     } else {

@@ -1,6 +1,7 @@
 #include <conf/FaasmConfig.h>
+#include <faabric/executor/ExecutorContext.h>
+#include <faabric/planner/PlannerClient.h>
 #include <faabric/proto/faabric.pb.h>
-#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/batch.h>
@@ -503,8 +504,8 @@ int WasmModule::awaitPthreadCall(faabric::Message* msg, int pthreadPtr)
     assert(msg != nullptr);
 
     // Execute the queued pthread calls
-    faabric::scheduler::Executor* executor =
-      faabric::scheduler::ExecutorContext::get()->getExecutor();
+    faabric::executor::Executor* executor =
+      faabric::executor::ExecutorContext::get()->getExecutor();
     if (!queuedPthreadCalls.empty()) {
         int nPthreadCalls = queuedPthreadCalls.size();
 

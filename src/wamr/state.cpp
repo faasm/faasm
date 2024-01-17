@@ -1,14 +1,14 @@
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/proto/faabric.pb.h>
-#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/util/logging.h>
-
 #include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
+
 #include <wasm_export.h>
 
-using namespace faabric::scheduler;
+using namespace faabric::executor;
 
 namespace wasm {
 /**

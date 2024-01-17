@@ -1,28 +1,26 @@
 #include "syscalls.h"
 
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/proto/faabric.pb.h>
-#include <faabric/scheduler/ExecutorContext.h>
-#include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/config.h>
 #include <faabric/util/func.h>
 #include <faabric/util/logging.h>
-
 #include <threads/ThreadState.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
 #include <wavm/WAVMWasmModule.h>
 
-#include <linux/futex.h>
-
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 
+#include <linux/futex.h>
+
 using namespace WAVM;
-using namespace faabric::scheduler;
+using namespace faabric::executor;
 
 namespace wasm {
 

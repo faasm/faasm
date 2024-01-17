@@ -1,6 +1,6 @@
 #include <faabric/batch-scheduler/SchedulingDecision.h>
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/mpi/MpiWorldRegistry.h>
-#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/scheduler/FunctionCallClient.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/snapshot/SnapshotClient.h>
@@ -14,7 +14,7 @@ namespace wasm {
 void doMigrationPoint(int32_t entrypointFuncWasmOffset,
                       const std::string& entrypointFuncArg)
 {
-    auto* call = &faabric::scheduler::ExecutorContext::get()->getMsg();
+    auto* call = &faabric::executor::ExecutorContext::get()->getMsg();
     auto& sch = faabric::scheduler::getScheduler();
 
     // Detect if there is a pending migration for the current app
@@ -62,7 +62,7 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
         // chaining from the master host of the app, and
         // we are most likely migrating from a non-master host. Thus, we must
         // take and push the snapshot manually.
-        auto* exec = faabric::scheduler::ExecutorContext::get()->getExecutor();
+        auto* exec = faabric::executor::ExecutorContext::get()->getExecutor();
         auto snap =
           std::make_shared<faabric::util::SnapshotData>(exec->getMemoryView());
         std::string snapKey = "migration_" + std::to_string(msg.id());

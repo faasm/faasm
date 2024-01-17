@@ -24,9 +24,8 @@ int main(int argc, char* argv[])
     storage::initFaasmS3();
 
     // Set Faaslets as the executors
-    std::shared_ptr<faabric::scheduler::ExecutorFactory> fac =
-      std::make_shared<faaslet::FaasletFactory>();
-    faabric::scheduler::setExecutorFactory(fac);
+    auto fac = std::make_shared<faaslet::FaasletFactory>();
+    faabric::executor::setExecutorFactory(fac);
 
     int result = Catch::Session().run(argc, argv);
 

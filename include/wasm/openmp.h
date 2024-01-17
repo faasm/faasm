@@ -1,6 +1,6 @@
 #pragma once
 
-#include <faabric/scheduler/ExecutorContext.h>
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/util/logging.h>
 #include <faabric/util/macros.h>
 #include <threads/ThreadState.h>
@@ -12,7 +12,7 @@
 #define OMP_FUNC(str)                                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
     faabric::Message* msg =                                                    \
-      &faabric::scheduler::ExecutorContext::get()->getMsg();                   \
+      &faabric::executor::ExecutorContext::get()->getMsg();                    \
     int32_t localThreadNum = level->getLocalThreadNum(msg);                    \
     int32_t globalThreadNum = level->getGlobalThreadNum(msg);                  \
     UNUSED(level);                                                             \
@@ -24,7 +24,7 @@
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
     faabric::Message* msg =                                                    \
-      &faabric::scheduler::ExecutorContext::get()->getMsg();                   \
+      &faabric::executor::ExecutorContext::get()->getMsg();                    \
     int32_t localThreadNum = level->getLocalThreadNum(msg);                    \
     int32_t globalThreadNum = level->getGlobalThreadNum(msg);                  \
     UNUSED(level);                                                             \

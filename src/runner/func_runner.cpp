@@ -1,8 +1,8 @@
 #include <conf/FaasmConfig.h>
+#include <faabric/executor/ExecutorFactory.h>
 #include <faabric/planner/PlannerClient.h>
 #include <faabric/redis/Redis.h>
 #include <faabric/runner/FaabricMain.h>
-#include <faabric/scheduler/ExecutorFactory.h>
 #include <faabric/util/batch.h>
 #include <faabric/util/config.h>
 #include <faabric/util/environment.h>

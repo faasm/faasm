@@ -1,6 +1,6 @@
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/mpi/MpiContext.h>
 #include <faabric/mpi/mpi.h>
-#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/util/bytes.h>
 #include <wamr/WAMRModuleMixin.h>
 #include <wamr/WAMRWasmModule.h>
@@ -619,7 +619,7 @@ static int32_t MPI_Get_version_wrapper(wasm_exec_env_t execEnv,
 static int32_t MPI_Init_wrapper(wasm_exec_env_t execEnv, int32_t a, int32_t b)
 {
     faabric::Message* call =
-      &faabric::scheduler::ExecutorContext::get()->getMsg();
+      &faabric::executor::ExecutorContext::get()->getMsg();
 
     // Note - only want to initialise the world on rank zero (or when rank isn't
     // set yet)

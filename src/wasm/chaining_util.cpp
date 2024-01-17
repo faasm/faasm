@@ -1,6 +1,6 @@
 #include <conf/FaasmConfig.h>
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/planner/PlannerClient.h>
-#include <faabric/scheduler/ExecutorContext.h>
 #include <faabric/util/ExecGraph.h>
 #include <faabric/util/batch.h>
 #include <faabric/util/bytes.h>
@@ -13,7 +13,7 @@ namespace wasm {
 int awaitChainedCall(unsigned int messageId)
 {
     int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;
-    auto* exec = faabric::scheduler::ExecutorContext::get()->getExecutor();
+    auto* exec = faabric::executor::ExecutorContext::get()->getExecutor();
 
     int returnCode = 1;
     try {
@@ -22,7 +22,7 @@ int awaitChainedCall(unsigned int messageId)
         const faabric::Message result =
           plannerCli.getMessageResult(appId, messageId, callTimeoutMs);
         returnCode = result.returnvalue();
-    } catch (faabric::scheduler::ChainedCallException& ex) {
+    } catch (faabric::executor::ChainedCallException& ex) {
         SPDLOG_ERROR(
           "Error getting chained call message: {}: {}", messageId, ex.what());
     } catch (faabric::redis::RedisNoResponseException& ex) {
@@ -41,7 +41,7 @@ int makeChainedCall(const std::string& functionName,
                     const std::vector<uint8_t>& inputData)
 {
     faabric::Message* originalCall =
-      &faabric::scheduler::ExecutorContext::get()->getMsg();
+      &faabric::executor::ExecutorContext::get()->getMsg();
 
     std::string user = originalCall->user();
 
@@ -92,9 +92,8 @@ int makeChainedCall(const std::string& functionName,
 
     // Record the chained call in the executor before invoking the new
     // functions to avoid data races
-    faabric::scheduler::ExecutorContext::get()
-      ->getExecutor()
-      ->addChainedMessage(req->messages(0));
+    faabric::executor::ExecutorContext::get()->getExecutor()->addChainedMessage(
+      req->messages(0));
 
     auto& plannerCli = faabric::planner::getPlannerClient();
     plannerCli.callFunctions(req);
@@ -108,14 +107,14 @@ int makeChainedCall(const std::string& functionName,
 int awaitChainedCallOutput(unsigned int messageId, char* buffer, int bufferLen)
 {
     int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;
-    auto* exec = faabric::scheduler::ExecutorContext::get()->getExecutor();
+    auto* exec = faabric::executor::ExecutorContext::get()->getExecutor();
 
     faabric::Message result;
     try {
         auto msg = exec->getChainedMessage(messageId);
         auto& plannerCli = faabric::planner::getPlannerClient();
         result = plannerCli.getMessageResult(msg, callTimeoutMs);
-    } catch (faabric::scheduler::ChainedCallException& e) {
+    } catch (faabric::executor::ChainedCallException& e) {
         SPDLOG_ERROR(
           "Error awaiting for chained call {}: {}", messageId, e.what());
         return 1;

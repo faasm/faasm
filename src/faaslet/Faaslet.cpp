@@ -115,7 +115,7 @@ int32_t Faaslet::executeTask(int threadPoolIdx,
 
 void Faaslet::reset(faabric::Message& msg)
 {
-    faabric::scheduler::Executor::reset(msg);
+    faabric::executor::Executor::reset(msg);
     module->reset(msg, localResetSnapshotKey);
 }
 
@@ -151,7 +151,7 @@ std::string Faaslet::getLocalResetSnapshotKey()
 
 FaasletFactory::~FaasletFactory() {}
 
-std::shared_ptr<faabric::scheduler::Executor> FaasletFactory::createExecutor(
+std::shared_ptr<faabric::executor::Executor> FaasletFactory::createExecutor(
   faabric::Message& msg)
 {
     return std::make_shared<Faaslet>(msg);

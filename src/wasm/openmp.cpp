@@ -1,3 +1,6 @@
+#include <faabric/executor/ExecutorContext.h>
+#include <faabric/planner/PlannerClient.h>
+#include <faabric/transport/PointToPointBroker.h>
 #include <faabric/util/batch.h>
 #include <faabric/util/func.h>
 #include <faabric/util/testing.h>
@@ -9,8 +12,7 @@ namespace wasm {
 static std::shared_ptr<faabric::transport::PointToPointGroup>
 getExecutingPointToPointGroup()
 {
-    faabric::Message& msg =
-      faabric::scheduler::ExecutorContext::get()->getMsg();
+    faabric::Message& msg = faabric::executor::ExecutorContext::get()->getMsg();
     return faabric::transport::PointToPointGroup::getOrAwaitGroup(
       msg.groupid());
 }
@@ -105,13 +107,13 @@ void doOpenMPFork(int32_t loc,
     // To replicate the fork behaviour, we create (n - 1) executors with thread
     // semantics (i.e. sharing the same Faaslet). And instruct the calling
     // (parent) executor to also execute the same micro task
-    auto* parentCall = &faabric::scheduler::ExecutorContext::get()->getMsg();
+    auto* parentCall = &faabric::executor::ExecutorContext::get()->getMsg();
     auto* parentModule = getExecutingModule();
     auto parentReq =
-      faabric::scheduler::ExecutorContext::get()->getBatchRequest();
+      faabric::executor::ExecutorContext::get()->getBatchRequest();
     const auto parentStr = faabric::util::funcToString(*parentCall, false);
     auto* parentExecutor =
-      faabric::scheduler::ExecutorContext::get()->getExecutor();
+      faabric::executor::ExecutorContext::get()->getExecutor();
 
     // OpenMP execution contexs are called levels, and they contain the
     // thread-local information to execute the microTask (mostly private and
@@ -246,13 +248,13 @@ void doOpenMPFork(int32_t loc,
     m.set_funcptr(microTask);
 
     // Finally, set the executor context, execute, and reset the context
-    faabric::scheduler::ExecutorContext::set(parentExecutor, thisThreadReq, 0);
+    faabric::executor::ExecutorContext::set(parentExecutor, thisThreadReq, 0);
     if (!decision.isSingleHost()) {
         faabric::util::getDirtyTracker()->startThreadLocalTracking(
           parentExecutor->getMemoryView());
     }
     auto returnValue = parentModule->executeTask(0, 0, thisThreadReq);
-    faabric::scheduler::ExecutorContext::set(parentExecutor, parentReq, 0);
+    faabric::executor::ExecutorContext::set(parentExecutor, parentReq, 0);
 
     // Process and set thread result
     if (returnValue != 0) {
@@ -351,7 +353,7 @@ void for_static_init(int32_t schedule,
     typedef typename std::make_unsigned<T>::type UT;
 
     faabric::Message* msg =
-      &faabric::scheduler::ExecutorContext::get()->getMsg();
+      &faabric::executor::ExecutorContext::get()->getMsg();
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
     int32_t localThreadNum = level->getLocalThreadNum(msg);
 

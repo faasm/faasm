@@ -1,10 +1,9 @@
 #include <conf/FaasmConfig.h>
+#include <faabric/executor/ExecutorContext.h>
+#include <faabric/executor/ExecutorFactory.h>
 #include <faabric/planner/PlannerClient.h>
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/runner/FaabricMain.h>
-#include <faabric/scheduler/ExecutorContext.h>
-#include <faabric/scheduler/ExecutorFactory.h>
-#include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/batch.h>
 #include <faabric/util/config.h>
 #include <faabric/util/logging.h>
@@ -146,7 +145,7 @@ int MicrobenchRunner::execute(const std::string& inFile,
     // Set up the runner
     std::shared_ptr<faaslet::FaasletFactory> fac =
       std::make_shared<faaslet::FaasletFactory>();
-    faabric::scheduler::setExecutorFactory(fac);
+    faabric::executor::setExecutorFactory(fac);
     faabric::runner::FaabricMain m(fac);
     m.startRunner();
 
