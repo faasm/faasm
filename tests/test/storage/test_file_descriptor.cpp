@@ -10,7 +10,6 @@
 #include <storage/FileLoader.h>
 #include <storage/SharedFiles.h>
 
-#include <WAVM/WASI/WASIABI.h>
 #include <boost/filesystem.hpp>
 #include <string_view>
 
