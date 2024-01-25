@@ -72,6 +72,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
     option.enable_ref_types = true;
     option.is_jit_mode = false;
     option.enable_simd = true;
+    option.segue_flags = 0x1F1F;
 
     if (isSgx) {
         option.size_level = 1;
