@@ -246,7 +246,7 @@ jobs:
         with:
           submodules: true
       - name: "Conan cache"
-        uses: faasm/conan-cache-action@v2
+        uses: faasm/conan-cache-action@v3
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -456,7 +456,7 @@ jobs:
         with:
           submodules: true
       - name: "Conan cache"
-        uses: faasm/conan-cache-action@v2
+        uses: faasm/conan-cache-action@v3
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
@@ -615,7 +615,7 @@ jobs:
         with:
           submodules: true
       - name: "Configure cache of built conan dependencies"
-        uses: faasm/conan-cache-action@v2
+        uses: faasm/conan-cache-action@v3
         with:
           build-type: release
         if: matrix.detached == false
