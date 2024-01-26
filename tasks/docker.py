@@ -139,9 +139,9 @@ def build(ctx, c, nocache=False, push=False):
             build_args["FAASM_SGX_PARENT_SUFFIX"] = SGX_HW_CONTAINER_SUFFIX
         elif container_name.endswith(SGX_SIMULATION_CONTAINER_SUFFIX):
             build_args["FAASM_SGX_MODE"] = FAASM_SGX_MODE_SIM
-            build_args[
-                "FAASM_SGX_PARENT_SUFFIX"
-            ] = SGX_SIMULATION_CONTAINER_SUFFIX
+            build_args["FAASM_SGX_PARENT_SUFFIX"] = (
+                SGX_SIMULATION_CONTAINER_SUFFIX
+            )
         else:
             build_args["FAASM_SGX_MODE"] = FAASM_SGX_MODE_DISABLED
 
