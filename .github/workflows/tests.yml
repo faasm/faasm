@@ -78,7 +78,7 @@ jobs:
       with:
         submodules: true
     # Check if any of the submodules have been modified
-    - uses: dorny/paths-filter@v2
+    - uses: dorny/paths-filter@v3
       id: filter
       with:
         filters: |
@@ -352,7 +352,7 @@ jobs:
         with:
           submodules: true
       - name: "Conan cache"
-        uses: faasm/conan-cache-action@v2
+        uses: faasm/conan-cache-action@v3
       - name: "Ping redis"
         run: redis-cli -h redis ping
       - name: "Ping minio"
