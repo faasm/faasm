@@ -96,6 +96,11 @@ class WAMRWasmModule final
     std::vector<uint8_t> wasmBytes;
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
+    // WAMR's execution environments are not thread-safe, so this execution
+    // environment should only be used by the main thread. Child threads use
+    // application-specific structures (e.g. OpenMP context vector)
+    WASMExecEnv* execEnv = nullptr;
+
 
     jmp_buf wamrExceptionJmpBuf;
 
