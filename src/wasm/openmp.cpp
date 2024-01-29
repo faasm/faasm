@@ -150,9 +150,6 @@ void doOpenMPFork(int32_t loc,
     req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
     // Configure the mesages
-    parentCall->set_appidx(0);
-    parentCall->set_groupidx(0);
-    parentCall->set_funcptr(microTask);
     for (int i = 0; i < req->messages_size(); i++) {
         faabric::Message& m = req->mutable_messages()->at(i);
 
@@ -568,6 +565,16 @@ int32_t doOpenMPMaster(int32_t loc, int32_t globalTid)
     OMP_FUNC_ARGS("__kmpc_master {} {}", loc, globalTid);
 
     return localThreadNum == 0;
+}
+
+void doOpenMPPushNumThreads(int32_t loc, int32_t globalTid, int32_t numThreads)
+{
+    OMP_FUNC_ARGS(
+      "__kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
+
+    if (numThreads > 0) {
+        level->pushedThreads = numThreads;
+    }
 }
 
 void doOpenMPEndMaster(int32_t loc, int32_t globalTid)

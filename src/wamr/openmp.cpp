@@ -77,6 +77,14 @@ static int32_t __kmpc_master_wrapper(wasm_exec_env_t exec_env,
     return wasm::doOpenMPMaster(loc, globalTid);
 }
 
+static void __kmpc_push_num_threads_wrapper(wasm_exec_env_t execEnv,
+                                            int32_t loc,
+                                            int32_t globalTid,
+                                            int32_t numThreads)
+{
+    wasm::doOpenMPPushNumThreads(loc, globalTid, numThreads);
+}
+
 static int32_t omp_get_num_threads_wrapper(wasm_exec_env_t exec_env)
 {
     return wasm::doOpenMPGetNumThreads();
@@ -107,6 +115,7 @@ static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__kmpc_fork_call, "(iiii)"),
     REG_NATIVE_FUNC(__kmpc_global_thread_num, "(i)i"),
     REG_NATIVE_FUNC(__kmpc_master, "(ii)i"),
+    REG_NATIVE_FUNC(__kmpc_push_num_threads, "(iii)"),
     REG_NATIVE_FUNC(omp_get_num_threads, "()i"),
     REG_NATIVE_FUNC(omp_get_thread_num, "()i"),
     REG_NATIVE_FUNC(omp_get_wtime, "()F"),

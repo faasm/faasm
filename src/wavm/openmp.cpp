@@ -110,12 +110,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 globalTid,
                                I32 numThreads)
 {
-    OMP_FUNC_ARGS(
-      "__kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
-
-    if (numThreads > 0) {
-        level->pushedThreads = numThreads;
-    }
+    wasm::doOpenMPPushNumThreads(loc, globalTid, numThreads);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,

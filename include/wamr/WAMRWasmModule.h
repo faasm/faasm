@@ -99,6 +99,9 @@ class WAMRWasmModule final
     // WAMR's execution environments are not thread-safe. Thus, we create an
     // array of them at the beginning, each thread will access a different
     // position in the array, so we do not need a mutex
+    // TODO: decide if we need a lock or not!
+    std::shared_mutex execEnvsMx;
+    // TODO: maybe make this uniqueptrs with a destructor
     std::vector<WASMExecEnv*> execEnvs;
 
     jmp_buf wamrExceptionJmpBuf;
