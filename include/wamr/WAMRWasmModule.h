@@ -96,19 +96,20 @@ class WAMRWasmModule final
     std::vector<uint8_t> wasmBytes;
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
-    // WAMR's execution environments are not thread-safe, so this execution
-    // environment should only be used by the main thread. Child threads use
-    // application-specific structures (e.g. OpenMP context vector)
-    WASMExecEnv* execEnv = nullptr;
-
+    // WAMR's execution environments are not thread-safe. Thus, we create an
+    // array of them at the beginning, each thread will access a different
+    // position in the array, so we do not need a mutex
+    std::vector<WASMExecEnv*> execEnvs;
 
     jmp_buf wamrExceptionJmpBuf;
 
-    int executeWasmFunction(const std::string& funcName);
+    int executeWasmFunction(int threadPoolIdx, const std::string& funcName);
 
-    int executeWasmFunctionFromPointer(faabric::Message& msg);
+    int executeWasmFunctionFromPointer(int threadPoolIdx,
+                                       faabric::Message& msg);
 
-    bool executeCatchException(WASMFunctionInstanceCommon* func,
+    bool executeCatchException(int threadPoolIdx,
+                               WASMFunctionInstanceCommon* func,
                                int wasmFuncPtr,
                                int argc,
                                std::vector<uint32_t>& argv);
@@ -116,8 +117,6 @@ class WAMRWasmModule final
     void bindInternal(faabric::Message& msg);
 
     bool doGrowMemory(uint32_t pageChange) override;
-
-    std::vector<WASMExecEnv*> openMPContexts;
 };
 
 WAMRWasmModule* getExecutingWAMRModule();

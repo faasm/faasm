@@ -106,7 +106,8 @@ void WAMRWasmModule::reset(faabric::Message& msg,
     std::string funcStr = faabric::util::funcToString(msg, true);
     SPDLOG_DEBUG("WAMR resetting after {} (snap key {})", funcStr, snapshotKey);
 
-    wasm_runtime_destroy_exec_env(execEnv);
+    // TODO: FIXME: does every thread call reset, or just once?
+    // wasm_runtime_destroy_exec_env(execEnv);
     wasm_runtime_deinstantiate(moduleInstance);
     bindInternal(msg);
 }
@@ -167,24 +168,30 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     }
     currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
 
-    // Create the execution environemnt for this thread
-    execEnv = wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE_KB);
-    if (execEnv == nullptr) {
-        SPDLOG_ERROR("Error creating execution environment!");
-        throw std::runtime_error("Error creating execution environment");
-    }
-
     // Set up thread stacks
+    // TODO: we want to connect the stack top in the thread stack to the
+    // execution environment that we are creating below!
     createThreadStacks();
 
-    // TODO: allocate contexts lazily?
-    // TODO: maybe we do not need to set the thread idx 0?
-    openMPContexts = std::vector<WASMExecEnv*>(threadPoolSize, nullptr);
-    for (int i = 0; i < threadPoolSize; i++) {
-        openMPContexts.at(i) = wasm_runtime_spawn_exec_env(execEnv);
-        if (openMPContexts.at(i) == nullptr) {
-            SPDLOG_ERROR("Failed to spawn thread execution env. for thread {}", i);
-            throw std::runtime_error("Failed to spawn thread execution environment");
+    // Create the execution environemnt for all the potential threads
+    execEnvs = std::vector<WASMExecEnv*>(threadPoolSize, nullptr);
+
+    // Execution environment for the main thread
+    execEnvs.at(0) =
+      wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE_KB);
+    if (execEnvs.at(0) == nullptr) {
+        SPDLOG_ERROR("Error allocating execution environment for main thread!");
+    }
+
+    // Execution environment for all subsequent threads. We deliberately do
+    // not initialise these lazily to avoid race conditions with the main
+    // thread exec env (which we clone from)
+    for (int i = 1; i < threadPoolSize; i++) {
+        execEnvs.at(i) = wasm_runtime_spawn_exec_env(execEnvs.at(0));
+        if (execEnvs.at(i) == nullptr) {
+            SPDLOG_ERROR(
+              "Error allocating execution environment for thread {}!", i);
+            throw std::runtime_error("Error allocating exec. env!");
         }
     }
 }
@@ -193,13 +200,16 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 {
     SPDLOG_DEBUG("WAMR executing message {}", msg.id());
 
+    // If we are calling this function, we know we are thread pool 0
+    int thisThreadPoolIdx = 0;
+
     // Make sure context is set
     WasmExecutionContext ctx(this);
     int returnValue = 0;
 
     if (msg.funcptr() > 0) {
         // Run the function from the pointer
-        returnValue = executeWasmFunctionFromPointer(msg);
+        returnValue = executeWasmFunctionFromPointer(thisThreadPoolIdx, msg);
     } else {
         prepareArgcArgv(msg);
 
@@ -246,8 +256,6 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
                                          uint32_t stackTop,
                                          faabric::Message& msg)
 {
-    // TODO: probably need  a mutex here
-
     auto funcStr = faabric::util::funcToString(msg, false);
     int wasmFuncPtr = msg.funcptr();
     SPDLOG_DEBUG("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
@@ -262,68 +270,27 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
     argv[0] = { 0 };
 
     // The rest of the arguments are the ones corresponding to OpenMP
-    for (int i =0; i < argc; i++) {
+    for (int i = 0; i < argc; i++) {
         argv.at(i + 1) = ompLevel->sharedVarOffsets[i];
     }
 
     // Work-out if the function reutrns a value or returns void
-    AOTFuncType* funcType = getFuncTypeFromFuncPtr(wasmModule, moduleInstance, wasmFuncPtr);
+    AOTFuncType* funcType =
+      getFuncTypeFromFuncPtr(wasmModule, moduleInstance, wasmFuncPtr);
     bool returnsVoid = funcType->result_count == 0;
 
     // Note that, even if argv.size() == argc + 1, this method takes the _real_
     // argc
     auto originalArgv = argv;
-    // TODO: in WAVM we modify the exec_env (created inside executeCatchException)
-    // to change the stack top. It seems that we create a different exec_env
-    // every time so maybe we don't have to do it?
-    // bool success = executeCatchException(nullptr, wasmFuncPtr, argc, argv);
-    // FIXME: duplicate the code from executeCatchException here see if we can
-    // get it to work
-
-    // NOTE: i am thinking a new "thread" wants a new moduleInstance, and a new
-    // eecution environment (different threads then just share the same Wasm
-    // Module)
-    // Create a copy of the module instance for this ephemeral thread
-    // WASMModuleInstanceCommon* newModuleInstance =
-        // wasm_runtime_instantiate(wasmModule, STACK_SIZE_KB, 0, errorBuffer, ERROR_BUFFER_SIZE);
-
-    auto execEnvDtor = [&](WASMExecEnv* execEnv) {
-        if (execEnv != nullptr) {
-            wasm_runtime_destroy_exec_env(execEnv);
-        }
-        wasm_runtime_set_exec_env_tls(nullptr);
-    };
-    bool success = false;
-    // Use existing thread-local execution environment if it exists
-    auto* currentExecEnv = wasm_runtime_get_exec_env_tls();
-    if (currentExecEnv != nullptr) {
-        SPDLOG_WARN("re-using exec env!");
-        success = wasm_runtime_call_indirect(currentExecEnv, wasmFuncPtr, argc, argv.data());
-    } else {
-        std::unique_ptr<WASMExecEnv, decltype(execEnvDtor)> execEnv(
-            wasm_exec_env_create(moduleInstance, STACK_SIZE_KB),
-          execEnvDtor);
-        if (execEnv == nullptr) {
-            throw std::runtime_error("Error creating execution environment");
-        }
-        wasm_exec_env_set_thread_info(execEnv.get());
-        success = wasm_runtime_call_indirect(execEnv.get(), wasmFuncPtr, argc, argv.data());
-    }
-
-    // Create a copy of the module instance for this ephemeral thread
-    /*
-    WASMModuleInstanceCommon* newModuleInstance =
-        wasm_runtime_instantiate(wasmModule, STACK_SIZE_KB, 0, errorBuffer, ERROR_BUFFER_SIZE);
-    wasm_runtime_set_custom_data_internal(newModuleInstance, wasm_runtime_get_custom_data(moduleInstance));
-    wasm_native_inherit_contexts(newModuleInstance, moduleInstance);
-    */
-    // TODO: end of duplicated section
+    bool success =
+      executeCatchException(threadPoolIdx, nullptr, wasmFuncPtr, argc, argv);
 
     if (!success) {
         SPDLOG_ERROR("Error executing OpenMP func {}: {}",
                      wasmFuncPtr,
                      wasm_runtime_get_exception(moduleInstance));
-        throw std::runtime_error("Error executing WASM OpenMP func ptr with WAMR");
+        throw std::runtime_error(
+          "Error executing WASM OpenMP func ptr with WAMR");
     }
 
     // If we are calling a void function by pointer with some arguments, the
@@ -335,11 +302,13 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
         returnValue = 0;
     }
 
-    SPDLOG_DEBUG("WAMR finished executing OMP thread {} for {}", threadPoolIdx, funcStr);
+    SPDLOG_DEBUG(
+      "WAMR finished executing OMP thread {} for {}", threadPoolIdx, funcStr);
     return returnValue;
 }
 
-int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
+int WAMRWasmModule::executeWasmFunctionFromPointer(int threadPoolIdx,
+                                                   faabric::Message& msg)
 {
     // WASM function pointers are indices into the module's function table
     int wasmFuncPtr = msg.funcptr();
@@ -349,7 +318,8 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
                  wasmFuncPtr,
                  inputData);
 
-    AOTFuncType* funcType = getFuncTypeFromFuncPtr(wasmModule, moduleInstance, wasmFuncPtr);
+    AOTFuncType* funcType =
+      getFuncTypeFromFuncPtr(wasmModule, moduleInstance, wasmFuncPtr);
     int argCount = funcType->param_count;
     int resultCount = funcType->result_count;
     SPDLOG_DEBUG("WAMR Function pointer has {} arguments and returns {} value",
@@ -385,7 +355,8 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
         }
     }
     std::vector<uint32_t> originalArgv = argv;
-    bool success = executeCatchException(nullptr, wasmFuncPtr, argCount, argv);
+    bool success = executeCatchException(
+      threadPoolIdx, nullptr, wasmFuncPtr, argCount, argv);
 
     if (!success) {
         SPDLOG_ERROR("Error executing {}: {}",
@@ -407,7 +378,8 @@ int WAMRWasmModule::executeWasmFunctionFromPointer(faabric::Message& msg)
     return returnValue;
 }
 
-int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
+int WAMRWasmModule::executeWasmFunction(int threadPoolIdx,
+                                        const std::string& funcName)
 {
     SPDLOG_DEBUG("WAMR executing function from string {}", funcName);
 
@@ -425,7 +397,8 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
     // pass it, therefore we should provide a single integer argv even though
     // it's not actually used
     std::vector<uint32_t> argv = { 0 };
-    bool success = executeCatchException(func, NO_WASM_FUNC_PTR, 0, argv);
+    bool success =
+      executeCatchException(threadPoolIdx, func, NO_WASM_FUNC_PTR, 0, argv);
     uint32_t returnValue = argv[0];
 
     if (!success) {
@@ -442,7 +415,8 @@ int WAMRWasmModule::executeWasmFunction(const std::string& funcName)
 // Low-level method to call a WASM function in WAMR and catch any thrown
 // exceptions. This method is shared both if we call a function by pointer or
 // by name
-bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
+bool WAMRWasmModule::executeCatchException(int threadPoolIdx,
+                                           WASMFunctionInstanceCommon* func,
                                            int wasmFuncPtr,
                                            int argc,
                                            std::vector<uint32_t>& argv)
@@ -457,35 +431,15 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
           "Incorrect combination of arguments to execute WAMR function");
     }
 
-    /*
-    auto execEnvDtor = [&](WASMExecEnv* execEnv) {
-        if (execEnv != nullptr) {
-            wasm_runtime_destroy_exec_env(execEnv);
-        }
-        wasm_runtime_set_exec_env_tls(nullptr);
-
-        faabric::util::UniqueLock lock(wamrGlobalsMutex);
-        wasm_runtime_destroy_thread_env();
-    };
-    */
-
-    // We have multiple threads (i.e. Faaslets) using the same global (i.e.
-    // process) WAMR instance. Thus, in general (i.e. if we are using a
-    // thread in an execution environment but this thread has not called
-    // wasm_runtime_init), we need to set the thread environment. In addition,
-    // we must do so with a unique lock on the runtime's state.
-    {
-        faabric::util::UniqueLock lock(wamrGlobalsMutex);
-        wasm_runtime_init_thread_env();
+    // Prepare thread execution environment
+    WASMExecEnv* thisThreadExecEnv = thisThreadExecEnv =
+      execEnvs.at(threadPoolIdx);
+    if (thisThreadExecEnv == nullptr) {
+        SPDLOG_ERROR("Null execution environment for thread: {}!",
+                     threadPoolIdx);
+        throw std::runtime_error("Null execution environment!");
     }
-
-    // Create an execution environment
-    /*
-    std::unique_ptr<WASMExecEnv, decltype(execEnvDtor)> execEnv(
-      wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE_KB), execEnvDtor);
-    if (execEnv == nullptr) {
-        throw std::runtime_error("Error creating execution environment");
-    }
+    wasm_runtime_init_thread_env();
 
     bool success;
     {
@@ -497,10 +451,10 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
             case 0: {
                 if (isIndirect) {
                     success = wasm_runtime_call_indirect(
-                      execEnv, wasmFuncPtr, argc, argv.data());
+                      thisThreadExecEnv, wasmFuncPtr, argc, argv.data());
                 } else {
                     success = wasm_runtime_call_wasm(
-                      execEnv, func, argc, argv.data());
+                      thisThreadExecEnv, func, argc, argv.data());
                 }
                 break;
             }
@@ -508,17 +462,21 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
             // a longjmp (and returns a value different than 0) as local
             // variables in the stack could be corrupted
             case WAMRExceptionTypes::FunctionMigratedException: {
+                wasm_runtime_destroy_thread_env();
                 throw faabric::util::FunctionMigratedException(
                   "Migrating MPI rank");
             }
             case WAMRExceptionTypes::QueueTimeoutException: {
+                wasm_runtime_destroy_thread_env();
                 throw std::runtime_error("Timed-out dequeueing!");
             }
             case WAMRExceptionTypes::DefaultException: {
+                wasm_runtime_destroy_thread_env();
                 throw std::runtime_error("Default WAMR exception");
             }
             default: {
                 SPDLOG_ERROR("WAMR exception handler reached unreachable case");
+                wasm_runtime_destroy_thread_env();
                 throw std::runtime_error("Unreachable WAMR exception handler");
             }
         }
