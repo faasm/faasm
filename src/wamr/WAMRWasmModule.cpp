@@ -17,7 +17,6 @@
 
 #include <aot_runtime.h>
 #include <platform_common.h>
-#include <wasm_exec_env.h>
 #include <wasm_export.h>
 
 #define NO_WASM_FUNC_PTR -1
@@ -49,6 +48,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
     initArgs.mem_alloc_option.allocator.malloc_func = (void*)::malloc;
     initArgs.mem_alloc_option.allocator.realloc_func = (void*)::realloc;
     initArgs.mem_alloc_option.allocator.free_func = (void*)::free;
+    initArgs.max_thread_num = 20; // TODO: faabric::util::;
 
     bool success = wasm_runtime_full_init(&initArgs);
     if (!success) {
@@ -105,6 +105,7 @@ void WAMRWasmModule::reset(faabric::Message& msg,
     std::string funcStr = faabric::util::funcToString(msg, true);
     SPDLOG_DEBUG("WAMR resetting after {} (snap key {})", funcStr, snapshotKey);
 
+    wasm_runtime_destroy_exec_env(execEnv);
     wasm_runtime_deinstantiate(moduleInstance);
     bindInternal(msg);
 }
@@ -165,17 +166,26 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     }
     currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
 
+    // Create the execution environemnt for this thread
+    execEnv = wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE_KB);
+    if (execEnv == nullptr) {
+        SPDLOG_ERROR("Error creating execution environment!");
+        throw std::runtime_error("Error creating execution environment");
+    }
+
     // Set up thread stacks
     createThreadStacks();
 
-    // TODO: allocate a pool of OpenMP contexts here?
-    // TODO: allocate them lazily?
-    // openMPContexts = std::vector<WASMExecEnv*>(threadPoolSize, nullptr);
-    /*
+    // TODO: allocate contexts lazily?
+    // TODO: maybe we do not need to set the thread idx 0?
+    openMPContexts = std::vector<WASMExecEnv*>(threadPoolSize, nullptr);
     for (int i = 0; i < threadPoolSize; i++) {
-        openMPContexts.at(i) = wasm_exec_env_create(moduleInstance, STACK_SIZE);
+        openMPContexts.at(i) = wasm_runtime_spawn_exec_env(execEnv);
+        if (openMPContexts.at(i) == nullptr) {
+            SPDLOG_ERROR("Failed to spawn thread execution env. for thread {}", i);
+            throw std::runtime_error("Failed to spawn thread execution environment");
+        }
     }
-    */
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
@@ -440,22 +450,23 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
           "Incorrect combination of arguments to execute WAMR function");
     }
 
+    /*
     auto execEnvDtor = [&](WASMExecEnv* execEnv) {
         if (execEnv != nullptr) {
             wasm_runtime_destroy_exec_env(execEnv);
         }
-        wasm_runtime_set_exec_env_tls(nullptr);
+        // wasm_runtime_set_exec_env_tls(nullptr);
     };
+    */
 
     // Create an execution environment
+    /*
     std::unique_ptr<WASMExecEnv, decltype(execEnvDtor)> execEnv(
-      wasm_exec_env_create(moduleInstance, STACK_SIZE_KB), execEnvDtor);
-    if (execEnv == nullptr) {
-        throw std::runtime_error("Error creating execution environment");
-    }
+      wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE_KB), execEnvDtor);
+      */
 
     // Set thread handle and stack boundary (required by WAMR)
-    wasm_exec_env_set_thread_info(execEnv.get());
+    // wasm_exec_env_set_thread_info(execEnv.get());
 
     bool success;
     {
@@ -467,10 +478,10 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
             case 0: {
                 if (isIndirect) {
                     success = wasm_runtime_call_indirect(
-                      execEnv.get(), wasmFuncPtr, argc, argv.data());
+                      execEnv, wasmFuncPtr, argc, argv.data());
                 } else {
                     success = wasm_runtime_call_wasm(
-                      execEnv.get(), func, argc, argv.data());
+                      execEnv, func, argc, argv.data());
                 }
                 break;
             }
