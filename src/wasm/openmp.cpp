@@ -284,7 +284,6 @@ void doOpenMPFork(int32_t loc,
             throw std::runtime_error("OpenMP threads failed");
         }
     }
-    */
 
     // Perform snapshot updates if not on single host. Note that, here we know
     // for sure that we must do dirty tracking, and are the last thread in
