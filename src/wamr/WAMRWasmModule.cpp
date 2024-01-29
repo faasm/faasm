@@ -16,6 +16,7 @@
 #include <sys/mman.h>
 
 #include <aot_runtime.h>
+#include <thread_manager.h>
 #include <platform_common.h>
 #include <wasm_export.h>
 
@@ -48,7 +49,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
     initArgs.mem_alloc_option.allocator.malloc_func = (void*)::malloc;
     initArgs.mem_alloc_option.allocator.realloc_func = (void*)::realloc;
     initArgs.mem_alloc_option.allocator.free_func = (void*)::free;
-    initArgs.max_thread_num = 20; // TODO: faabric::util::;
+    initArgs.max_thread_num = faabric::util::getUsableCores();
 
     bool success = wasm_runtime_full_init(&initArgs);
     if (!success) {
@@ -172,19 +173,24 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     // execution environment that we are creating below!
     createThreadStacks();
 
-    // Create the execution environemnt for all the potential threads
-    execEnvs = std::vector<WASMExecEnv*>(threadPoolSize, nullptr);
+    {
+        faabric::util::FullLock lock(execEnvsMx);
 
-    // Execution environment for the main thread
-    execEnvs.at(0) =
-      wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE_KB);
-    if (execEnvs.at(0) == nullptr) {
-        SPDLOG_ERROR("Error allocating execution environment for main thread!");
+        // Create the execution environemnt for all the potential threads
+        execEnvs = std::vector<WASMExecEnv*>(threadPoolSize, nullptr);
+
+        // Execution environment for the main thread
+        execEnvs.at(0) =
+          wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE_KB);
+        if (execEnvs.at(0) == nullptr) {
+            SPDLOG_ERROR("Error allocating execution environment for main thread!");
+        }
     }
 
     // Execution environment for all subsequent threads. We deliberately do
     // not initialise these lazily to avoid race conditions with the main
     // thread exec env (which we clone from)
+    /*
     for (int i = 1; i < threadPoolSize; i++) {
         execEnvs.at(i) = wasm_runtime_spawn_exec_env(execEnvs.at(0));
         if (execEnvs.at(i) == nullptr) {
@@ -193,6 +199,7 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
             throw std::runtime_error("Error allocating exec. env!");
         }
     }
+    */
 }
 
 int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
@@ -245,6 +252,46 @@ AOTFuncType* getFuncTypeFromFuncPtr(WASMModuleCommon* wasmModule,
     return aotModule->func_types[funcTypeIdx];
 }
 
+// Method to create our custom thread execution environment. Inspired from
+// WAMR's thread manager library:
+// https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/libraries/thread-mgr/thread_manager.c
+WASMExecEnv* createThreadExecutionContext(WASMExecEnv* parentExecEnv,
+                                          int threadPoolIdx,
+                                          uint32_t stackTop)
+{
+    auto* wasmModule = wasm_exec_env_get_module(parentExecEnv);
+    auto* parentModuleInstance = wasm_runtime_get_module_inst(parentExecEnv);
+
+    if (wasmModule == nullptr || parentModuleInstance == nullptr) {
+        throw std::runtime_error("null-pointing WASM modules!");
+    }
+
+    auto* moduleInstance = wasm_runtime_instantiate_internal(
+      wasmModule,
+      parentModuleInstance,
+      parentExecEnv,
+      STACK_SIZE_KB,
+      0,
+      nullptr,
+      0);
+
+    wasm_runtime_set_custom_data_internal(
+        moduleInstance, wasm_runtime_get_custom_data(parentModuleInstance));
+
+    wasm_native_inherit_contexts(moduleInstance, parentModuleInstance);
+
+    if (!(wasm_cluster_dup_c_api_imports(parentModuleInstance, moduleInstance))) {
+        throw std::runtime_error("Error copying API imports!");
+    }
+
+    auto* execEnv = wasm_exec_env_create_internal(moduleInstance, STACK_SIZE_KB);
+    if (!wasm_exec_env_set_aux_stack(execEnv, stackTop, STACK_SIZE_KB)) {
+        throw std::runtime_error("Error setting thread stack!");
+    }
+
+    return execEnv;
+}
+
 int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
                                          uint32_t stackTop,
                                          faabric::Message& msg)
@@ -252,6 +299,14 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
     auto funcStr = faabric::util::funcToString(msg, false);
     int wasmFuncPtr = msg.funcptr();
     SPDLOG_DEBUG("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
+
+    if (execEnvs.at(threadPoolIdx) == nullptr) {
+        // TODO: this may be too conservative
+        faabric::util::FullLock lock(execEnvsMx);
+
+        execEnvs.at(threadPoolIdx) = createThreadExecutionContext(execEnvs.at(0), threadPoolIdx, stackTop);
+        // execEnvs.at(threadPoolIdx) = wasm_runtime_spawn_exec_env(execEnvs.at(0));
+    }
 
     auto ompLevel = threads::getCurrentOpenMPLevel();
     if (ompLevel == nullptr) {
