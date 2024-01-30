@@ -11,6 +11,7 @@ po::variables_map parseRunnerCmdLine(int argc, char* argv[])
       "user", po::value<std::string>(), "function's user name (required)")(
       "function", po::value<std::string>(), "function name (required)")(
       "input-data", po::value<std::string>(), "input data for the function")(
+      "mpi-world-size", po::value<int>(), "MPI world size")(
       "cmdline",
       po::value<std::string>(),
       "command line arguments to pass the function");
