@@ -16,8 +16,7 @@
 #include <sys/mman.h>
 
 #include <aot_runtime.h>
-#include <thread_manager.h>
-#include <platform_common.h>
+#include <wasm_runtime_common.h>
 #include <wasm_export.h>
 
 #define NO_WASM_FUNC_PTR -1
@@ -62,7 +61,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
     initialiseWAMRNatives();
 
     // Set log level: BH_LOG_LEVEL_{FATAL,ERROR,WARNING,DEBUG,VERBOSE}
-    bh_log_set_verbose_level(BH_LOG_LEVEL_WARNING);
+    bh_log_set_verbose_level(BH_LOG_LEVEL_VERBOSE);
 
     wamrInitialised = true;
 }
@@ -253,12 +252,15 @@ AOTFuncType* getFuncTypeFromFuncPtr(WASMModuleCommon* wasmModule,
 }
 
 // Method to create our custom thread execution environment. Inspired from
+// WAMR's pthread_create:
+// https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/libraries/lib-pthread/lib_pthread_wrapper.c#L548-L655
 // WAMR's thread manager library:
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/libraries/thread-mgr/thread_manager.c
 WASMExecEnv* createThreadExecutionContext(WASMExecEnv* parentExecEnv,
                                           int threadPoolIdx,
                                           uint32_t stackTop)
 {
+    /*
     auto* wasmModule = wasm_exec_env_get_module(parentExecEnv);
     auto* parentModuleInstance = wasm_runtime_get_module_inst(parentExecEnv);
 
@@ -266,6 +268,7 @@ WASMExecEnv* createThreadExecutionContext(WASMExecEnv* parentExecEnv,
         throw std::runtime_error("null-pointing WASM modules!");
     }
 
+    // FIXME: this is creating a completely different module!
     auto* moduleInstance = wasm_runtime_instantiate_internal(
       wasmModule,
       parentModuleInstance,
@@ -280,14 +283,29 @@ WASMExecEnv* createThreadExecutionContext(WASMExecEnv* parentExecEnv,
 
     wasm_native_inherit_contexts(moduleInstance, parentModuleInstance);
 
+    // TODO: do we need this ones?
+    /*
     if (!(wasm_cluster_dup_c_api_imports(parentModuleInstance, moduleInstance))) {
         throw std::runtime_error("Error copying API imports!");
     }
 
-    auto* execEnv = wasm_exec_env_create_internal(moduleInstance, STACK_SIZE_KB);
+    auto* execEnv = wasm_exec_env_create_internal(parentModuleInstance, STACK_SIZE_KB);
+
+    // Here we use the thread stacks that we create as part of the
+    // createThreadStacks routine (and therefore is part of the linear memory)
+    // TODO: can we validate this claim?
+    if (!wasm_runtime_validate_app_addr(moduleInstance, stackTop - STACK_SIZE_KB, STACK_SIZE_KB)) {
+        SPDLOG_ERROR("WASM offset outside WAMR module instance memory!!");
+    } else {
+        SPDLOG_WARN("WASM offset INSIDE WAMR module instance memory");
+    }
     if (!wasm_exec_env_set_aux_stack(execEnv, stackTop, STACK_SIZE_KB)) {
         throw std::runtime_error("Error setting thread stack!");
     }
+
+    */
+
+    auto* execEnv = wasm_runtime_spawn_exec_env(parentExecEnv);
 
     return execEnv;
 }
@@ -305,8 +323,10 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
         faabric::util::FullLock lock(execEnvsMx);
 
         execEnvs.at(threadPoolIdx) = createThreadExecutionContext(execEnvs.at(0), threadPoolIdx, stackTop);
-        // execEnvs.at(threadPoolIdx) = wasm_runtime_spawn_exec_env(execEnvs.at(0));
     }
+    auto* execEnv = execEnvs.at(threadPoolIdx);
+    auto* moduleInstance = wasm_runtime_get_module_inst(execEnv);
+    auto* wasmModule = wasm_runtime_get_module(moduleInstance);
 
     auto ompLevel = threads::getCurrentOpenMPLevel();
     if (ompLevel == nullptr) {
@@ -480,13 +500,13 @@ bool WAMRWasmModule::executeCatchException(int threadPoolIdx,
     }
 
     // Prepare thread execution environment
-    WASMExecEnv* thisThreadExecEnv = thisThreadExecEnv =
-      execEnvs.at(threadPoolIdx);
+    WASMExecEnv* thisThreadExecEnv = execEnvs.at(threadPoolIdx);
     if (thisThreadExecEnv == nullptr) {
         SPDLOG_ERROR("Null execution environment for thread: {}!",
                      threadPoolIdx);
         throw std::runtime_error("Null execution environment!");
     }
+    // FIXME: this means that we can probably remove the ifdef in os_thread_ inited?
     wasm_runtime_init_thread_env();
 
     bool success;
