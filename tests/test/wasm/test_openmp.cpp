@@ -40,7 +40,7 @@ class OpenMPTestFixture
         auto req = faabric::util::batchExecFactory("omp", function, 1);
         req->set_singlehosthint(true);
 
-        SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+        // SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
         SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 

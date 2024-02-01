@@ -85,22 +85,22 @@ static void __kmpc_push_num_threads_wrapper(wasm_exec_env_t execEnv,
     wasm::doOpenMPPushNumThreads(loc, globalTid, numThreads);
 }
 
-static int32_t omp_get_num_threads_wrapper(wasm_exec_env_t exec_env)
+static int32_t omp_get_num_threads_wrapper(wasm_exec_env_t execEnv)
 {
     return wasm::doOpenMPGetNumThreads();
 }
 
-static int32_t omp_get_thread_num_wrapper(wasm_exec_env_t exec_env)
+static int32_t omp_get_thread_num_wrapper(wasm_exec_env_t execEnv)
 {
     return wasm::doOpenMPGetThreadNum();
 }
 
-static double omp_get_wtime_wrapper(wasm_exec_env_t exec_env)
+static double omp_get_wtime_wrapper(wasm_exec_env_t execEnv)
 {
     return wasm::doOpenMPGetWTime();
 }
 
-static void omp_set_num_threads_wrapper(wasm_exec_env_t exec_env,
+static void omp_set_num_threads_wrapper(wasm_exec_env_t execEnv,
                                         int32_t numThreads)
 {
     wasm::doOpenMPSetNumThreads(numThreads);
