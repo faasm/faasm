@@ -328,6 +328,7 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
         if (execEnv != nullptr) {
             wasm_runtime_destroy_exec_env(execEnv);
         }
+        wasm_runtime_set_exec_env_tls(nullptr);
 
         faabric::util::UniqueLock lock(wamrGlobalsMutex);
         wasm_runtime_destroy_thread_env();
