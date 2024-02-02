@@ -17,7 +17,6 @@
 
 #include <aot_runtime.h>
 #include <platform_common.h>
-#include <wasm_exec_env.h>
 #include <wasm_export.h>
 
 #define NO_WASM_FUNC_PTR -1
@@ -326,6 +325,7 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
     }
 
     auto execEnvDtor = [&](WASMExecEnv* execEnv) {
+        faabric::util::UniqueLock lock(wamrGlobalsMutex);
         wasm_runtime_destroy_thread_env();
 
         if (execEnv != nullptr) {
@@ -335,7 +335,7 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
 
     // Create an execution environment
     std::unique_ptr<WASMExecEnv, decltype(execEnvDtor)> execEnv(
-      wasm_exec_env_create(moduleInstance, STACK_SIZE_KB), execEnvDtor);
+      wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE_KB), execEnvDtor);
     if (execEnv == nullptr) {
         throw std::runtime_error("Error creating execution environment");
     }
