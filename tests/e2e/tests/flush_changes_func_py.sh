@@ -3,7 +3,7 @@
 set -o pipefail
 
 # Skip python tests in WAMR
-if [ "${WASM_VM}" == "wamr" ]; then
+if [ "${FAASM_WASM_VM}" == "wamr" ]; then
     exit 0
 fi
 
