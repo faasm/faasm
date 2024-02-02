@@ -403,7 +403,7 @@ jobs:
         if: |
           (${{ needs.wasm-funcs-cache.outputs.cpp == 'true' }} || \
            ${{ needs.wasm-funcs-cache.outputs.python == 'true' }}) \
-           || steps.machine-code-cache.outputs.cache-hit != 'true'
+           || steps.machine-code-cache.outputs.cache-hit != 'true' || always()
         run: |
           ./bin/inv_wrapper.sh dev.cc codegen_func dev.cc codegen_shared_obj
           ./bin/inv_wrapper.sh codegen.tests
