@@ -24,12 +24,18 @@ echo "======================================================================="
 # Run tests
 rc=0
 GLOBIGNORE="env.sh:run.sh"
+E2E_TESTS_DIR=${E2E_TESTS_ROOT}/tests
 failed_tests=""
 failed_test_num=0
 total_test_num=0
+
+pushd ${E2E_TESTS_DIR} >> /dev/null
+
 for test_case in *.sh; do
-    echo "Running test case: ${test_case}"
-    if ${E2E_TESTS_ROOT}/${test_case}; then
+    echo "-----------------------------------------------------------------------"
+    echo "        Running test case: ${test_case}"
+    echo "-----------------------------------------------------------------------"
+    if ${E2E_TESTS_DIR}/${test_case}; then
         echo "Success!"
     else
         echo "Failed!"
@@ -39,6 +45,8 @@ for test_case in *.sh; do
     fi
     total_test_num=$((total_test_num+1))
 done
+
+popd >> /dev/null
 
 # Print results
 success_test_num=$((total_test_num-failed_test_num))
