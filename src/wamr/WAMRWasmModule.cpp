@@ -325,28 +325,29 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
     }
 
     auto execEnvDtor = [&](WASMExecEnv* execEnv) {
-        faabric::util::UniqueLock lock(wamrGlobalsMutex);
-        wasm_runtime_destroy_thread_env();
-
         if (execEnv != nullptr) {
             wasm_runtime_destroy_exec_env(execEnv);
         }
+
+        faabric::util::UniqueLock lock(wamrGlobalsMutex);
+        wasm_runtime_destroy_thread_env();
     };
+
+    // We have multiple threads (i.e. Faaslets) using the same global (i.e.
+    // process) WAMR instance. Thus, in general (i.e. if we are using a
+    // thread in an execution environment but this thread has not called
+    // wasm_runtime_init), we need to set the thread environment. In addition,
+    // we must do so with a unique lock on the runtime's state.
+    {
+        faabric::util::UniqueLock lock(wamrGlobalsMutex);
+        wasm_runtime_init_thread_env();
+    }
 
     // Create an execution environment
     std::unique_ptr<WASMExecEnv, decltype(execEnvDtor)> execEnv(
       wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE_KB), execEnvDtor);
     if (execEnv == nullptr) {
         throw std::runtime_error("Error creating execution environment");
-    }
-
-    // Initialise the thread environment. Annoyingly, WAMR seems to be
-    // modifying some global state when initialising threads, so we must
-    // protect this with a lock. This could be a bottleneck in high-churn
-    // environments
-    {
-        faabric::util::UniqueLock lock(wamrGlobalsMutex);
-        wasm_runtime_init_thread_env();
     }
 
     bool success;
