@@ -83,6 +83,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test WAMR sbrk", "[wamr]")
     std::string inputData = "hello there";
     call.set_inputdata(inputData);
 
+    wasm_runtime_init_thread_env();
     wasm::WAMRWasmModule module;
     module.bindToFunction(call);
 
@@ -103,6 +104,10 @@ TEST_CASE_METHOD(FunctionExecTestFixture, "Test WAMR sbrk", "[wamr]")
     REQUIRE(sizeB > initialSize + growA);
     REQUIRE(sizeB == initialSize + growA + growB);
     REQUIRE(module.getCurrentBrk() == sizeB);
+
+    module.reset(call, "");
+
+    wasm_runtime_destroy_thread_env();
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture,
@@ -131,6 +136,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     std::string inputData = "hello there";
     call.set_inputdata(inputData);
 
+    wasm_runtime_init_thread_env();
     wasm::WAMRWasmModule module;
     module.bindToFunction(call);
 
@@ -143,5 +149,7 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     if (wasmOffset == 0) {
         SPDLOG_ERROR("WASM module malloc failed!");
     }
+
+    wasm_runtime_destroy_thread_env();
 }
 }
