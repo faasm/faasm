@@ -547,7 +547,7 @@ jobs:
         with:
           submodules: true
       - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.27.0
+        run: pip3 install faasmctl==0.28.0
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
