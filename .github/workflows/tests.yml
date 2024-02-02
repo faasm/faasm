@@ -588,7 +588,7 @@ jobs:
         faasm_wasm_vm: [wamr, wavm]
         mount_source: [on, off]
     env:
-      MOUNT_FAASM_SOURCE: ${{ matrix.mount_source }}
+      FAASM_MOUNT_SOURCE: ${{ matrix.mount_source }}
       FAASM_WASM_VM: ${{ matrix.faasm_wasm_vm }}
     steps:
       - uses: csegarragonz/set-compose-version-action@main
@@ -608,7 +608,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
       - name: "Run e2e tests"
         run: ./tests/e2e/run.sh
         env:

@@ -9,7 +9,7 @@ source ./env.sh
 pip3 install faasmctl==${FAASMCTL_VERSION}
 
 # Start Faasm cluster
-if [ "${MOUNT_FAASM_SOURCE}" == "on" ]; then
+if [ "${FAASM_MOUNT_SOURCE}" == "on" ]; then
     faasmctl deploy.compose --mount-source ${FAASM_SOURCE}
     faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.tools --build Release"
     faasmctl restart -s upload -s worker
