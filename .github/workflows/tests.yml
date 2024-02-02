@@ -579,26 +579,21 @@ jobs:
         if: always()
         run: faasmctl delete
 
-  quick-start:
+  e2e-tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        detached: [true, false]
-    defaults:
-      run:
-        working-directory: ${{ github.workspace }}
+        faasm_wasm_vm: [wamr, wavm]
+        mount_source: [on, off]
     env:
-      FAASM_INI_FILE: ./faasm.ini
-      FAASM_VERSION: 0.20.1
-      PYTHON_CODEGEN: "on"
+      MOUNT_FAASM_SOURCE: ${{ matrix.mount_source }}
+      FAASM_WASM_VM: ${{ matrix.faasm_wasm_vm }}
     steps:
       - uses: csegarragonz/set-compose-version-action@main
         with:
           compose-version: "2.22.0"
-      # The distributed tests use (pull) lots of docker images, so we may
-      # run out of disk space, use this action to free space beforehand
       - name: "Maximize build space"
         uses: easimon/maximize-build-space@master
         with:
@@ -614,75 +609,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
-      - name: "Configure cache of built conan dependencies"
-        uses: faasm/conan-cache-action@v3
-        with:
-          build-type: release
-        if: matrix.detached == false
-      - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.27.0
-      - name: "Fetch python's CPP submodulle"
-        run: git submodule update --init -f third-party/cpp
-        working-directory: ${{ github.workspace }}/clients/python
-      # Cache contains architecture-specific machine code
-      - name: "Get CPU model name"
-        run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
-      - name: "Print CPU model"
-        run: echo "${{ env.CPU_MODEL}}"
-      - name: "Configure S3 cache"
-        uses: actions/cache@v4
-        with:
-          path: ./dev/minio/data/faasm
-          key: ${{ env.CPU_MODEL }}-s3-data-${{ secrets.CACHE_VERSION }}
-      # Setup
-      - name: "Start docker compose mounting source code (attached)"
-        run: faasmctl deploy.compose --mount-source .
-        if: matrix.detached == false
-      - name: "Start docker compose without mounting source code (detached)"
-        run: faasmctl deploy.compose
-        if: matrix.detached == true
-      - name: "Re-build targets if necessary"
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.tools --build Release"
-      - name: "Re-start the services to pick up new binaries (if necessary)"
-        run: faasmctl restart -s upload -s worker
-      # This can fail when the container isn't ready, so we want to retry
-      - name: "Wait for upload server to be available"
-        run: |
-          (echo "Attempt 1" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
-          (echo "Attempt 2" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
-          (echo "Attempt 3" && faasmctl cli.faasm --cmd "./deploy/local/wait_for_upload.sh upload 8002") || \
-          (echo "Wait for upload failed after retries" && faasmctl logs -s upload && exit 1)
-      # Function upload
-      - name: "Build and upload cpp function"
-        run: faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello"
-      - name: "Build and upload python function"
-        run: faasmctl cli.python --cmd "./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello"
-      # Function invocation
-      - name: "Invoke cpp function"
-        run: |
-          # Make sure we error out if the docker compose command fails. By
-          # default, errors are silenced by the pipe
-          set -o pipefail
-          faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func.invoke demo hello" | tee output_1.log
-      - name: "Invoke python hello function"
-        run: faasmctl cli.python --cmd "./bin/inv_wrapper.sh func.invoke python hello"
-      # Re-invocation of same function with different code after flush
-      - name: "Flush workers"
-        run: |
-          faasmctl flush.workers
-          # Sleep for a bit after flush to give it time to propagate
-          sleep 10s
-      - name: "Build echo function and upload in place of hello function"
-        run: ./deploy/local/replace_hello_with_echo.sh
-      - name: "Invoke same cpp function with different WASM code"
-        run: |
-          set -o pipefail
-          faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func.invoke demo hello" | tee output_2.log
-      - name: "Check both outputs are different"
-        run: (cmp output_1.log output_2.log && exit 1 || exit 0)
-      # Print logs and finish
-      - name: "Unconditional cluster cleanup"
-        run: |
-          faasmctl logs
-          faasmctl delete
-        if: always()
+      - name: "Run e2e tests"
+        run: ./tests/e2e/run.sh
+        env:
+          FAASM_SOURCE: ${{ github.workspace }}
