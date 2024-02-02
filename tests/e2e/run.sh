@@ -41,7 +41,9 @@ for test_case in *.sh; do
     echo "-----------------------------------------------------------------------"
     # Deliberately ignore the logs, as they are usually not very helpful and
     # extremely verbose. If an E2E test fails, we need to inspect it manually
-    ${E2E_TESTS_DIR}/${test_case} > /dev/null 2>&1; this_rc="$?"
+    ${E2E_TESTS_DIR}/${test_case} > /dev/null 2>&1
+    this_rc=$?
+    echo "RC: ${this_rc}"
     case $this_rc in
         0)
             echo "Success!";;
@@ -53,7 +55,7 @@ for test_case in *.sh; do
             echo "Failed!"
             failed_tests="${failed_tests}\n${test_case}"
             rc=1
-            failed_test_num=$((${failed_test_num}+1))
+            failed_test_num=$((${failed_test_num}+1));;
     esac
     total_test_num=$((total_test_num+1))
 done

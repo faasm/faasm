@@ -3,7 +3,7 @@
 set -o pipefail
 
 # FIXME(#830):
-exit 0
+exit ${SKIPPED_TEST_RET_VAL}
 
 # Cross-compile the demo/hello function, upload it to the server, and run it
 faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello" | tee output_1.log

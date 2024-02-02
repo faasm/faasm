@@ -3,7 +3,7 @@
 set -o pipefail
 
 # FIXME(830)
-exit 0
+exit ${SKIPPED_TEST_RET_VAL}
 
 # Skip python tests in WAMR
 if [ "${FAASM_WASM_VM}" == "wamr" ]; then
