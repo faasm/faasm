@@ -35,8 +35,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test exit", "[faaslet]")
 
     SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-    // 21/02/2023 - See bytecodealliance/wasm-micro-runtime#1979
-    // SECTION("WAMR") { execWamrFunction(msg); }
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
 
     executeWithPool(req);
 }

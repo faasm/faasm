@@ -26,6 +26,7 @@ namespace wasm {
 // The high level API for WAMR can be found here:
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/include/wasm_export.h
 static bool wamrInitialised = false;
+const std::string WASI_PROC_EXIT = "Exception: wasi proc exit";
 
 // WAMR maintains some global state, which we must be careful not to modify
 // concurrently from our side. We are deliberately cautious with this locking,
@@ -325,10 +326,11 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
     }
 
     auto execEnvDtor = [&](WASMExecEnv* execEnv) {
+        wasm_runtime_destroy_thread_env();
+
         if (execEnv != nullptr) {
             wasm_runtime_destroy_exec_env(execEnv);
         }
-        wasm_runtime_set_exec_env_tls(nullptr);
     };
 
     // Create an execution environment
@@ -338,8 +340,8 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
         throw std::runtime_error("Error creating execution environment");
     }
 
-    // Set thread handle and stack boundary (required by WAMR)
-    wasm_exec_env_set_thread_info(execEnv.get());
+    // Set thread handle and stack boundary
+    wasm_runtime_init_thread_env();
 
     bool success;
     {
@@ -376,6 +378,12 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
                 throw std::runtime_error("Unreachable WAMR exception handler");
             }
         }
+    }
+
+    // Report "wasi proc exit" as success
+    if (!success && (std::string(wasm_runtime_get_exception(moduleInstance)) ==
+                     WASI_PROC_EXIT)) {
+        success = true;
     }
 
     return success;
