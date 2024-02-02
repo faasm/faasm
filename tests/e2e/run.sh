@@ -35,7 +35,9 @@ for test_case in *.sh; do
     echo "-----------------------------------------------------------------------"
     echo "        Running test case: ${test_case}"
     echo "-----------------------------------------------------------------------"
-    if ${E2E_TESTS_DIR}/${test_case}; then
+    # Deliberately ignore the logs, as they are usually not very helpful and
+    # extremely verbose. If an E2E test fails, we need to inspect it manually
+    if $(${E2E_TESTS_DIR}/${test_case} > /dev/null 2>&1); then
         echo "Success!"
     else
         echo "Failed!"
