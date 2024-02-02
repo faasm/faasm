@@ -381,9 +381,12 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
     }
 
     // Report "wasi proc exit" as success
-    if (!success && (std::string(wasm_runtime_get_exception(moduleInstance)) ==
-                     WASI_PROC_EXIT)) {
-        success = true;
+    if (!success) {
+        const char* exceptionPtr = wasm_runtime_get_exception(moduleInstance);
+        if (exceptionPtr != nullptr &&
+            (std::string(exceptionPtr) == WASI_PROC_EXIT)) {
+            success = true;
+        }
     }
 
     return success;
