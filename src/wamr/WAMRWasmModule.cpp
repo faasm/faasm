@@ -340,8 +340,14 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
         throw std::runtime_error("Error creating execution environment");
     }
 
-    // Set thread handle and stack boundary
-    wasm_runtime_init_thread_env();
+    // Initialise the thread environment. Annoyingly, WAMR seems to be
+    // modifying some global state when initialising threads, so we must
+    // protect this with a lock. This could be a bottleneck in high-churn
+    // environments
+    {
+        faabric::util::UniqueLock lock(wamrGlobalsMutex);
+        wasm_runtime_init_thread_env();
+    }
 
     bool success;
     {
