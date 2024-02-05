@@ -22,6 +22,7 @@ class SharedFilesExecTestFixture
   public:
     SharedFilesExecTestFixture()
       : loader(storage::getFileLoader())
+      , faasmConf(conf::getFaasmConfig())
     {
         storage::SharedFiles::clear();
     }
@@ -30,6 +31,7 @@ class SharedFilesExecTestFixture
 
   protected:
     storage::FileLoader& loader;
+    conf::FaasmConfig& faasmConf;
 };
 
 TEST_CASE_METHOD(SharedFilesExecTestFixture,

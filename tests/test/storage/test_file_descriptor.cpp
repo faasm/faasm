@@ -17,9 +17,7 @@ using namespace storage;
 
 namespace tests {
 
-class FileDescriptorTestFixture
-  : public SharedFilesTestFixture
-  , public FaasmConfTestFixture
+class FileDescriptorTestFixture : public SharedFilesTestFixture
 {
   public:
     FileDescriptorTestFixture() { fs.prepareFilesystem(); }
