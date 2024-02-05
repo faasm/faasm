@@ -15,4 +15,4 @@ faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func.flush"
 faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello" | tee output_2.log
 
 # The first and second outputs must differ, error otherwise
-cmp output_1.log output_2.log && exit 1
+cmp output_1.log output_2.log && exit 1 || exit 0

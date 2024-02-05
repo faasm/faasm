@@ -20,4 +20,4 @@ faasmctl flush.workers
 faasmctl cli.python --cmd "./bin/inv_wrapper.sh func.uploadpy hello func.invoke python hello" | tee output_2.log
 
 # The first and second outputs must differ, error otherwise
-cmp output_1.log output_2.log && exit 1
+cmp output_1.log output_2.log && exit 1 || exit 0
