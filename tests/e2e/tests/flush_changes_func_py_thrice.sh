@@ -28,5 +28,5 @@ faasmctl cli.python --cmd "./bin/inv_wrapper.sh func.uploadpy hello func.invoke 
 # The first and second outputs must differ, error otherwise
 cmp output_1.log output_2.log && exit 1
 
-# FIXME: The second and the thid must be equal, error otherwise
-# cmp output_2.log output_3.log || exit 1
+# The second and the thid must be equal, error otherwise
+cmp output_2.log output_3.log || exit 1
