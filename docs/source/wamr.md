@@ -12,9 +12,11 @@ There, the same thread of execution intialises the runtime, loads the module,
 instantiates the module, creates an execution environment, and calls the WASM
 function. However, Faasm is multi-threaded, and different Faaslets, executing
 different WASM modules, will share the same WAMR runtime instance. This
-instance has some global state that we need to protect with a mutex. In
-addition, this also means that we need to initialise the thread environment
-before creating an execution environment.
+instance has some global state that we need to protect with a mutex.
+
+In addition, whenever the thread initialising the runtime, and the thread using
+it differ we must initialise (and clean-up) the thread environment **before**
+creating an execution environment.
 
 Second, the different abstractions in WAMR are clearly depicted in their
 [documentation](https://bytecodealliance.github.io/wamr.dev/blog/the-wamr-memory-model/).
