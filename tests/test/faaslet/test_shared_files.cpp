@@ -17,7 +17,7 @@ namespace tests {
 
 class SharedFilesExecTestFixture
   : public S3TestFixture
-  , public FunctionExecTestFixture
+  , public MultiRuntimeFunctionExecTestFixture
 {
   public:
     SharedFilesExecTestFixture()
@@ -73,13 +73,10 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
 
     auto req = setUpContext("demo", "shared_file");
     auto call = req->mutable_messages()->at(0);
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
 
-// 05/02/2024 - FIXME: This test keeps failing with ASAN for some reason.
-#if !__has_feature(address_sanitizer)
     SECTION("WAMR")
     {
-        conf.wasmVm = "wamr";
+        faasmConf.wasmVm = "wamr";
 
         wasm_runtime_init_thread_env();
         wasm::WAMRWasmModule module;
@@ -96,11 +93,10 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
         REQUIRE(call.returnvalue() == 0);
         wasm_runtime_destroy_thread_env();
     }
-#endif
 
     SECTION("WAVM")
     {
-        conf.wasmVm = "wavm";
+        faasmConf.wasmVm = "wavm";
 
         wasm::WAVMWasmModule module;
         module.bindToFunction(call);

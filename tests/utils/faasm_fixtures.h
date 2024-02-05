@@ -36,16 +36,17 @@ class FaasmConfTestFixture
 /**
  * Fixture that sets up a dummy S3 bucket and deletes it after each test.
  */
-class S3TestFixture : public FaasmConfTestFixture
+class S3TestFixture
 {
   public:
     S3TestFixture()
     {
+        auto& faasmConf = conf::getFaasmConfig();
         faasmConf.s3Bucket = "faasm-test";
         s3.createBucket(faasmConf.s3Bucket);
     };
 
-    ~S3TestFixture() { s3.deleteBucket(faasmConf.s3Bucket); };
+    ~S3TestFixture() { s3.deleteBucket(conf::getFaasmConfig().s3Bucket); };
 
   protected:
     storage::S3Wrapper s3;
@@ -138,7 +139,9 @@ class MultiRuntimeFunctionExecTestFixture
  * Fixture that supports checks around loading function wasm and machine code
  * files, deleting all of them after each test.
  */
-class FunctionLoaderTestFixture : public S3TestFixture
+class FunctionLoaderTestFixture
+  : public S3TestFixture
+  , public FaasmConfTestFixture
 {
   public:
     FunctionLoaderTestFixture()
