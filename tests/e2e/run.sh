@@ -10,11 +10,11 @@ pip3 install faasmctl==${FAASMCTL_VERSION}
 
 # Start Faasm cluster and silence the output to make it easier to read the logs
 if [ "${FAASM_MOUNT_SOURCE}" == "on" ]; then
-    faasmctl deploy.compose --mount-source ${FAASM_SOURCE} >> /dev/null 2>&1 /dev/null
-    faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.tools --build Release" >> /dev/null 2>&1 /dev/null
-    faasmctl restart -s upload -s worker >> /dev/null 2>&1 /dev/null
+    faasmctl deploy.compose --mount-source ${FAASM_SOURCE}
+    faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.tools --build Release"
+    faasmctl restart -s upload -s worker
 else
-    faasmctl deploy.compose >> /dev/null 2>&1 /dev/null
+    faasmctl deploy.compose
 fi
 
 echo "======================================================================="
@@ -39,11 +39,12 @@ for test_case in *.sh; do
     echo "-----------------------------------------------------------------------"
     echo "        Running test case: ${test_case}"
     echo "-----------------------------------------------------------------------"
-    # Deliberately ignore the logs, as they are usually not very helpful and
-    # extremely verbose. If an E2E test fails, we need to inspect it manually
-    ${E2E_TESTS_DIR}/${test_case} > /dev/null 2>&1
+    # Discard the logs, but capture the return value
+    echo "Executing: ${E2E_TESTS_DIR}/${test_case}"
+    this_test=$(${E2E_TESTS_DIR}/${test_case})
     this_rc=$?
     echo "RC: ${this_rc}"
+    echo "Output: ${this_test}"
     case $this_rc in
         0)
             echo "Success!";;
