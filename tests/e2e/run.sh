@@ -24,7 +24,7 @@ echo "======================================================================="
 # Run tests
 GLOBIGNORE="env.sh:run.sh"
 E2E_TESTS_DIR=${E2E_TESTS_ROOT}/tests
-SKIPPED_TEST_RET_VAL=1337
+export SKIPPED_TEST_RET_VAL=1337
 
 rc=0
 failed_tests=""
