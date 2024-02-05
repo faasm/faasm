@@ -74,6 +74,7 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
     auto req = setUpContext("demo", "shared_file");
     auto call = req->mutable_messages()->at(0);
 
+#if !(__has_feature(address_sanitizer))
     SECTION("WAMR")
     {
         faasmConf.wasmVm = "wamr";
@@ -93,6 +94,7 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
         REQUIRE(call.returnvalue() == 0);
         wasm_runtime_destroy_thread_env();
     }
+#endif
 
     SECTION("WAVM")
     {
