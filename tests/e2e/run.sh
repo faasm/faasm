@@ -14,7 +14,7 @@ if [ "${FAASM_MOUNT_SOURCE}" == "on" ]; then
     faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.tools --build Release"
     faasmctl restart -s upload -s worker
 else
-    faasmctl deploy.compose
+    faasmctl deploy.compose --clean
 fi
 
 echo "======================================================================="
@@ -24,7 +24,7 @@ echo "======================================================================="
 # Run tests
 GLOBIGNORE="env.sh:run.sh"
 E2E_TESTS_DIR=${E2E_TESTS_ROOT}/tests
-export SKIPPED_TEST_RET_VAL=1337
+export SKIPPED_TEST_RET_VAL=222
 
 rc=0
 failed_tests=""
