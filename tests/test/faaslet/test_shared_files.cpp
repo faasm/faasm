@@ -17,12 +17,11 @@ namespace tests {
 
 class SharedFilesExecTestFixture
   : public S3TestFixture
-  , public MultiRuntimeFunctionExecTestFixture
+  , public FunctionExecTestFixture
 {
   public:
     SharedFilesExecTestFixture()
       : loader(storage::getFileLoader())
-      , faasmConf(conf::getFaasmConfig())
     {
         storage::SharedFiles::clear();
     }
@@ -31,7 +30,6 @@ class SharedFilesExecTestFixture
 
   protected:
     storage::FileLoader& loader;
-    conf::FaasmConfig& faasmConf;
 };
 
 TEST_CASE_METHOD(SharedFilesExecTestFixture,
@@ -75,11 +73,11 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
 
     auto req = setUpContext("demo", "shared_file");
     auto call = req->mutable_messages()->at(0);
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
 
-#if !(__has_feature(address_sanitizer))
     SECTION("WAMR")
     {
-        faasmConf.wasmVm = "wamr";
+        conf.wasmVm = "wamr";
 
         wasm_runtime_init_thread_env();
         wasm::WAMRWasmModule module;
@@ -96,11 +94,10 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
         REQUIRE(call.returnvalue() == 0);
         wasm_runtime_destroy_thread_env();
     }
-#endif
 
     SECTION("WAVM")
     {
-        faasmConf.wasmVm = "wavm";
+        conf.wasmVm = "wavm";
 
         wasm::WAVMWasmModule module;
         module.bindToFunction(call);

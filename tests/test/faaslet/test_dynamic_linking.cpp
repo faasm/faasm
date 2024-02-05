@@ -8,13 +8,10 @@
 
 namespace tests {
 // NOTE: if this is failing make sure you've set up libfake
-TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+TEST_CASE_METHOD(FunctionExecTestFixture,
                  "Test e2e execution of dynamic linking modules",
                  "[faaslet]")
 {
-    // TODO: dynlink tests only work with WAVM
-    conf::getFaasmConfig().wasmVm = "wavm";
-
     const char* filePath =
       "/usr/local/faasm/runtime_root/lib/fake/libfakeLibA.so";
     REQUIRE(boost::filesystem::exists(filePath));

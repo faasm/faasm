@@ -17,7 +17,6 @@ TEST_CASE_METHOD(S3TestFixture, "Test read/write keys in bucket", "[s3]")
     std::string simpleData = "I am a string";
     std::string dataA("£5^Itej__\n\tFoo");
     std::string dataB("ABCDEFGH123$$$&\r*");
-    auto& faasmConf = conf::getFaasmConfig();
 
     std::vector<uint8_t> byteDataA = { 0, 1, 2, 3, 'c', '\\', '@', '$', '%' };
     std::vector<uint8_t> byteDataB = { 11, 99, 123, '#', '\n', '\t' };
@@ -94,7 +93,5 @@ TEST_CASE_METHOD(S3TestFixture, "Test read/write keys in bucket", "[s3]")
 
     std::vector<std::string> actualEmpty = s3.listKeys(faasmConf.s3Bucket);
     REQUIRE(actualEmpty.empty());
-
-    faasmConf.reset();
 }
 }
