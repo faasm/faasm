@@ -9,7 +9,7 @@ faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo he
 faasmctl cli.cpp --cmd "sed -i 's/Hello/Bye/g' ./func/demo/hello.cpp"
 
 # Flush the executors
-inv func.flush
+faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func.flush"
 
 # Cross-compile again the demo/hello function, upload it to the server, and run it
 faasmctl cli.cpp --cmd "./bin/inv_wrapper.sh func demo hello func.upload demo hello func.invoke demo hello" | tee output_2.log

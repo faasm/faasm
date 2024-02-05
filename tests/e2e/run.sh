@@ -64,7 +64,7 @@ done
 popd >> /dev/null
 
 # Print results
-success_test_num=$((total_test_num-failed_test_num))
+success_test_num=$((total_test_num-failed_test_num-skipped_test_num))
 echo "======================================================================="
 if [ "$rc" -eq "0" ]; then
     echo "                  FAASM E2E TESTS: SUCCESS!                            "
@@ -73,8 +73,8 @@ else
 fi
 echo "-----------------------------------------------------------------------"
 echo "Succesful tests: ${success_test_num}/${total_test_num}"
-echo -e "Skipped tests: ${skipped_tests}"
-echo -e "Failed tests: ${failed_tests}"
+echo -e "Skipped tests: ${skipped_test_num}/${total_test_num}${skipped_tests}"
+echo -e "Failed tests: ${failed_test_num}/${total_test_num}${failed_tests}"
 echo "======================================================================="
 
 
