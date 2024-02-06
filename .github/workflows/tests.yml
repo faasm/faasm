@@ -305,7 +305,7 @@ jobs:
       - name: "Generate code coverage report"
         run: ./bin/inv_wrapper.sh dev.coverage-report --file-in faasm.profraw --file-out coverage.txt
       - name: "Upload coverage report to CodeCov"
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           # Note that this secret is specific to this repository
           token: ${{ secrets.CODECOV_TOKEN }}
