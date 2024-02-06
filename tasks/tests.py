@@ -1,6 +1,6 @@
 from invoke import task
 from os import environ, listdir
-from os.path import join
+from os.path import exists, join
 from subprocess import run
 from tasks.util.env import (
     FAASM_BUILD_DIR,
@@ -59,8 +59,10 @@ def tests(
     test_case=None,
     test_file=None,
     test_dir=None,
+    from_file=None,
     abort=False,
     debug=False,
+    random=False,
     repeats=1,
 ):
     """
@@ -74,6 +76,7 @@ def tests(
     tests_cmd = [
         join(FAASM_BUILD_DIR, "bin", "tests"),
         "--use-colour yes",
+        "--order rand" if random else "",
         "--abort" if abort else "",
     ]
 
@@ -94,6 +97,14 @@ def tests(
         for file_name in listdir(join(PROJ_ROOT, "tests", "test", test_dir)):
             tag_str += "[#{}],".format(file_name.split(".")[0])
         tests_cmd.append(tag_str[:-1])
+    elif from_file:
+        if not exists(from_file):
+            print(
+                "Requested running tests from file but file {} does not exist!".format(
+                    from_file
+                )
+            )
+        tests_cmd.append("--input-file {}".format(from_file))
 
     # TODO: run ./bin/cgroup.sh ?
 
