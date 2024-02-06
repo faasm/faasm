@@ -21,7 +21,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.21.0
+      image: faasm.azurecr.io/cli:0.21.1
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -50,7 +50,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.21.0
+      image: faasm.azurecr.io/cli:0.21.1
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -194,7 +194,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.21.0
+      image: faasm.azurecr.io/cli:0.21.1
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -222,18 +222,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli:0.21.0
+      image: faasm.azurecr.io/cli:0.21.1
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.21.0
+        image: faasm.azurecr.io/redis:0.21.1
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.21.0
+        image: faasm.azurecr.io/minio:0.21.1
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -328,18 +328,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli:0.21.0
+      image: faasm.azurecr.io/cli:0.21.1
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.21.0
+        image: faasm.azurecr.io/redis:0.21.1
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.21.0
+        image: faasm.azurecr.io/minio:0.21.1
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -432,18 +432,18 @@ jobs:
     env:
       HOST_TYPE: ci
     container:
-      image: faasm.azurecr.io/cli-sgx-sim:0.21.0
+      image: faasm.azurecr.io/cli-sgx-sim:0.21.1
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.21.0
+        image: faasm.azurecr.io/redis:0.21.1
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.21.0
+        image: faasm.azurecr.io/minio:0.21.1
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -523,7 +523,7 @@ jobs:
     env:
       CONAN_CACHE_MOUNT_SOURCE: ~/.conan
       FAASM_INI_FILE: ./faasm.ini
-      FAASM_VERSION: 0.21.0
+      FAASM_VERSION: 0.21.1
       FAASM_WASM_VM: ${{ matrix.wasm_vm }}
     steps:
       - uses: csegarragonz/set-compose-version-action@main
