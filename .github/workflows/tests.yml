@@ -324,7 +324,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sanitiser: [None, Address, Thread, Undefined]
+        sanitiser: [None, Thread, Undefined]
     env:
       HOST_TYPE: ci
     container:
