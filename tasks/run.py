@@ -23,7 +23,9 @@ def run(ctx, user, function, data=None, cmdline=None):
     """
     Execute a specific function using a single Faaslet
     """
-    do_run_command("func_runner", user, function, data, cmdline)
+    do_run_command(
+        "func_runner", user, function, data, cmdline, mpi_world_size=None
+    )
 
 
 @task()

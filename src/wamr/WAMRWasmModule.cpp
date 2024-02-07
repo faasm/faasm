@@ -17,7 +17,6 @@
 
 #include <aot_runtime.h>
 #include <platform_common.h>
-#include <wasm_exec_env.h>
 #include <wasm_export.h>
 
 #define NO_WASM_FUNC_PTR -1
@@ -26,6 +25,7 @@ namespace wasm {
 // The high level API for WAMR can be found here:
 // https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/include/wasm_export.h
 static bool wamrInitialised = false;
+const std::string WASI_PROC_EXIT = "Exception: wasi proc exit";
 
 // WAMR maintains some global state, which we must be careful not to modify
 // concurrently from our side. We are deliberately cautious with this locking,
@@ -329,17 +329,27 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
             wasm_runtime_destroy_exec_env(execEnv);
         }
         wasm_runtime_set_exec_env_tls(nullptr);
+
+        faabric::util::UniqueLock lock(wamrGlobalsMutex);
+        wasm_runtime_destroy_thread_env();
     };
+
+    // We have multiple threads (i.e. Faaslets) using the same global (i.e.
+    // process) WAMR instance. Thus, in general (i.e. if we are using a
+    // thread in an execution environment but this thread has not called
+    // wasm_runtime_init), we need to set the thread environment. In addition,
+    // we must do so with a unique lock on the runtime's state.
+    {
+        faabric::util::UniqueLock lock(wamrGlobalsMutex);
+        wasm_runtime_init_thread_env();
+    }
 
     // Create an execution environment
     std::unique_ptr<WASMExecEnv, decltype(execEnvDtor)> execEnv(
-      wasm_exec_env_create(moduleInstance, STACK_SIZE_KB), execEnvDtor);
+      wasm_runtime_create_exec_env(moduleInstance, STACK_SIZE_KB), execEnvDtor);
     if (execEnv == nullptr) {
         throw std::runtime_error("Error creating execution environment");
     }
-
-    // Set thread handle and stack boundary (required by WAMR)
-    wasm_exec_env_set_thread_info(execEnv.get());
 
     bool success;
     {
@@ -375,6 +385,15 @@ bool WAMRWasmModule::executeCatchException(WASMFunctionInstanceCommon* func,
                 SPDLOG_ERROR("WAMR exception handler reached unreachable case");
                 throw std::runtime_error("Unreachable WAMR exception handler");
             }
+        }
+    }
+
+    // Report "wasi proc exit" as success
+    if (!success) {
+        const char* exceptionPtr = wasm_runtime_get_exception(moduleInstance);
+        if (exceptionPtr != nullptr &&
+            (std::string(exceptionPtr) == WASI_PROC_EXIT)) {
+            success = true;
         }
     }
 
