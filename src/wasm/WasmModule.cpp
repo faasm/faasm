@@ -397,6 +397,7 @@ int32_t WasmModule::executeTask(
 
     // Perform the appropriate type of execution
     int returnValue;
+    msg.set_starttimestamp(faabric::util::getGlobalClock().epochMillis());
     if (req->type() == faabric::BatchExecuteRequest::THREADS) {
         switch (req->subtype()) {
             case ThreadRequestType::PTHREAD: {
@@ -428,6 +429,9 @@ int32_t WasmModule::executeTask(
         returnValue = executeFunction(msg);
     }
 
+    // Set result and timestamp
+    msg.set_finishtimestamp(faabric::util::getGlobalClock().epochMillis());
+    msg.set_returnvalue(returnValue);
     if (returnValue != 0) {
         msg.set_outputdata(
           fmt::format("Call failed (return value={})", returnValue));
