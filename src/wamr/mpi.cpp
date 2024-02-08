@@ -1063,7 +1063,13 @@ static int32_t MPI_Waitall_wrapper(wasm_exec_env_t execEnv,
                                    int32_t* requestArray,
                                    int32_t* statusArray)
 {
-    throw std::runtime_error("MPI_Waitall is not implemented!");
+    MPI_FUNC_ARGS("S - MPI_Waitall {} {}", (uintptr_t)requestArray, count);
+
+    for (int i = 0; i < count; i++) {
+        MPI_Wait_wrapper(execEnv, &requestArray[i], statusArray[i]);
+    }
+
+    return MPI_SUCCESS;
 }
 
 static int32_t MPI_Waitany_wrapper(wasm_exec_env_t execEnv,
