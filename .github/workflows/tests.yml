@@ -428,7 +428,7 @@ jobs:
       github.event.pull_request.draft == false &&
       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       HOST_TYPE: ci
     container:
