@@ -125,6 +125,18 @@ size_t EnclaveWasmModule::getArgvBufferSize()
     return argvBufferSize;
 }
 
+// Validate that a memory range defined by a pointer and a size is a valid
+// offset in the module's WASM linear memory.
+void EnclaveWasmModule::validateNativePointer(void* nativePtr, int size)
+{
+    bool success =
+      wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size);
+
+    if (!success) {
+        throw std::runtime_error("Failed validating native pointer!");
+    }
+}
+
 std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
   wasm_exec_env_t execEnv)
 {

@@ -38,7 +38,10 @@ uint32_t wasi_clock_time_get(wasm_exec_env_t exec_env,
             break;
         default:
             SPDLOG_ERROR("Unknown clock ID: {}", clockId);
-            throw std::runtime_error("Unknown clock ID");
+            auto ex = std::runtime_error("Unknown clock ID");
+            wasm::getExecutingWAMRModule()->doThrowException(ex);
+
+            return 0;
     }
 
     int retVal = clock_gettime(linuxClockId, &ts);
@@ -48,7 +51,10 @@ uint32_t wasi_clock_time_get(wasm_exec_env_t exec_env,
         }
 
         SPDLOG_ERROR("Unexpected clock error: {}", retVal);
-        throw std::runtime_error("Unexpected clock error");
+        auto ex = std::runtime_error("Unexpected clock error");
+        wasm::getExecutingWAMRModule()->doThrowException(ex);
+
+        return 0;
     }
 
     *result = faabric::util::timespecToNanos(&ts);
@@ -87,7 +93,10 @@ uint32_t wasi_poll_oneoff(wasm_exec_env_t exec_env,
             } else if (thisSub->u.u.clock.clock_id == __WASI_CLOCK_REALTIME) {
                 clockType = CLOCK_REALTIME;
             } else {
-                throw std::runtime_error("Unimplemented clock type");
+                auto ex = std::runtime_error("Unimplemented clock type");
+                wasm::getExecutingWAMRModule()->doThrowException(ex);
+
+                return 0;
             }
 
             // Do the sleep
@@ -95,7 +104,10 @@ uint32_t wasi_poll_oneoff(wasm_exec_env_t exec_env,
             faabric::util::nanosToTimespec(timeoutNanos, &t);
             clock_nanosleep(clockType, 0, &t, nullptr);
         } else {
-            throw std::runtime_error("Unimplemented event type");
+            auto ex = std::runtime_error("Unimplemented event type");
+            wasm::getExecutingWAMRModule()->doThrowException(ex);
+
+            return 0;
         }
 
         // Say that the event has occurred

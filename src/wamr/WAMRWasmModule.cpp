@@ -437,6 +437,19 @@ void WAMRWasmModule::doThrowException(std::exception& e)
 // Helper functions
 // -----
 
+// Validate that a memory range defined by a pointer and a size is a valid
+// offset in the module's WASM linear memory.
+void WAMRWasmModule::validateNativePointer(void* nativePtr, int size)
+{
+    bool success =
+      wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size);
+
+    if (!success) {
+        auto ex = std::runtime_error("Failed validating native pointer!");
+        getExecutingModule()->doThrowException(ex);
+    }
+}
+
 void WAMRWasmModule::writeStringToWasmMemory(const std::string& strHost,
                                              char* strWasm)
 {

@@ -62,7 +62,8 @@ class WamrMpiContextWrapper
 
         if (hostComm->id != FAABRIC_COMM_WORLD) {
             SPDLOG_ERROR("Unrecognised communicator type {}", hostComm->id);
-            throw std::runtime_error("Unexpected comm type");
+            auto ex = std::runtime_error("Unexpected comm type");
+            module->doThrowException(ex);
         }
     }
 
@@ -206,7 +207,9 @@ static int32_t MPI_Allgatherv_wrapper(wasm_exec_env_t execEnv,
                                       int32_t* recvType,
                                       int32_t* comm)
 {
-    throw std::runtime_error("MPI_Allgatherv not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Allgatherv");
+
+    return 0;
 }
 
 static int32_t MPI_Allreduce_wrapper(wasm_exec_env_t execEnv,
@@ -298,7 +301,9 @@ static int32_t MPI_Alltoallv_wrapper(wasm_exec_env_t execEnv,
                                      int32_t* recvType,
                                      int32_t* comm)
 {
-    throw std::runtime_error("MPI_Alltoallv not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Alltoallv");
+
+    return 0;
 }
 
 static int32_t MPI_Barrier_wrapper(wasm_exec_env_t execEnv, int32_t* comm)
@@ -371,7 +376,9 @@ static int32_t MPI_Cart_create_wrapper(wasm_exec_env_t execEnv,
       sizeof(faabric_communicator_t), (void**)&hostNewCommPtr);
     if (wasmPtr == 0) {
         SPDLOG_ERROR("Error allocating memory in the WASM's heap");
-        throw std::runtime_error("Error allocating memory in the WASM heap");
+        auto ex =
+          std::runtime_error("Error allocating memory in the WASM heap");
+        ctx->module->doThrowException(ex);
     }
     assert(hostNewCommPtr != nullptr);
 
@@ -414,7 +421,8 @@ static int32_t MPI_Cart_get_wrapper(wasm_exec_env_t execEnv,
 
     if (maxdims < MPI_CART_MAX_DIMENSIONS) {
         SPDLOG_ERROR("Unexpected number of max. dimensions: {}", maxdims);
-        throw std::runtime_error("Bad dimensions in MPI_Cart_get");
+        auto ex = std::runtime_error("Bad dimensions in MPI_Cart_get");
+        ctx->module->doThrowException(ex);
     }
 
     ctx->module->validateNativePointer(dims, sizeof(int) * maxdims);
@@ -469,7 +477,9 @@ static int32_t MPI_Comm_dup_wrapper(wasm_exec_env_t execEnv,
                                     int32_t* comm,
                                     int32_t* newComm)
 {
-    throw std::runtime_error("MPI_Comm_dup not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Comm_dup");
+
+    return 0;
 }
 
 static int32_t MPI_Comm_free_wrapper(wasm_exec_env_t execEnv, int32_t* comm)
@@ -512,7 +522,9 @@ static int32_t MPI_Comm_split_wrapper(wasm_exec_env_t execEnv,
                                       int32_t key,
                                       int32_t* newComm)
 {
-    throw std::runtime_error("MPI_Comm_split not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Comm_split");
+
+    return 0;
 }
 
 static int32_t MPI_Finalize_wrapper(wasm_exec_env_t execEnv)
@@ -613,7 +625,9 @@ static int32_t MPI_Get_version_wrapper(wasm_exec_env_t execEnv,
                                        int32_t* version,
                                        int32_t* subVersion)
 {
-    throw std::runtime_error("MPI_Get_version not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Get_version");
+
+    return 0;
 }
 
 static int32_t MPI_Init_wrapper(wasm_exec_env_t execEnv, int32_t a, int32_t b)
@@ -719,12 +733,16 @@ static int32_t MPI_Op_create_wrapper(wasm_exec_env_t execEnv,
                                      int32_t commute,
                                      int32_t op)
 {
-    throw std::runtime_error("MPI_Op_create not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Op_create");
+
+    return 0;
 }
 
 static int32_t MPI_Op_free_wrapper(wasm_exec_env_t execEnv, int32_t* op)
 {
-    throw std::runtime_error("MPI_Op_free not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Op_free");
+
+    return 0;
 }
 
 static int32_t MPI_Probe_wrapper(wasm_exec_env_t execEnv,
@@ -739,7 +757,9 @@ static int32_t MPI_Probe_wrapper(wasm_exec_env_t execEnv,
                   (uintptr_t)comm,
                   (uintptr_t)statusPtr);
 
-    throw std::runtime_error("MPI_Probe not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Probe");
+
+    return 0;
 }
 
 static int32_t MPI_Recv_wrapper(wasm_exec_env_t execEnv,
@@ -823,13 +843,17 @@ static int32_t MPI_Reduce_scatter_wrapper(wasm_exec_env_t execEnv,
                                           int32_t* op,
                                           int32_t* comm)
 {
-    throw std::runtime_error("MPI_Reduce_scatter not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Reduce_scatter");
+
+    return 0;
 }
 
 static int32_t MPI_Request_free_wrapper(wasm_exec_env_t execEnv,
                                         int32_t* requestPtr)
 {
-    throw std::runtime_error("MPI_Request_free not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Request_free");
+
+    return 0;
 }
 
 static int32_t MPI_Rsend_wrapper(wasm_exec_env_t execEnv,
@@ -840,7 +864,9 @@ static int32_t MPI_Rsend_wrapper(wasm_exec_env_t execEnv,
                                  int32_t tag,
                                  int32_t* comm)
 {
-    throw std::runtime_error("MPI_Rsend not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Rsend");
+
+    return 0;
 }
 
 static int32_t MPI_Scan_wrapper(wasm_exec_env_t execEnv,
@@ -1019,7 +1045,9 @@ static int32_t MPI_Type_contiguous_wrapper(wasm_exec_env_t execEnv,
 
 static int32_t MPI_Type_free_wrapper(wasm_exec_env_t execEnv, int32_t* datatype)
 {
-    throw std::runtime_error("MPI_Type_free is not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Type_free");
+
+    return 0;
 }
 
 static int32_t MPI_Type_size_wrapper(wasm_exec_env_t execEnv,
@@ -1078,7 +1106,9 @@ static int32_t MPI_Waitany_wrapper(wasm_exec_env_t execEnv,
                                    int32_t idx,
                                    int32_t* status)
 {
-    throw std::runtime_error("MPI_Waitany is not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("MPI_Waitany");
+
+    return 0;
 }
 
 static double MPI_Wtime_wrapper()

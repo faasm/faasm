@@ -1,5 +1,6 @@
 #include <faabric/util/logging.h>
 #include <stdexcept>
+#include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
 #include <wasm_export.h>
 
@@ -21,14 +22,18 @@ static int32_t syscall_wrapper(wasm_exec_env_t exec_env,
                         syscallNo);
             return 0;
         default:
-            throw std::runtime_error("Native syscall not implemented");
+            WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("syscall");
+
+            return 0;
     }
 }
 
 static int32_t __cxa_allocate_exception_wrapper(wasm_exec_env_t exec_env,
                                                 int32_t a)
 {
-    throw std::runtime_error("Native __cxa_allocate_exception not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("__cxa_allocate_exception");
+
+    return 0;
 }
 
 static void __cxa_throw_wrapper(wasm_exec_env_t exec_env,
@@ -36,7 +41,7 @@ static void __cxa_throw_wrapper(wasm_exec_env_t exec_env,
                                 int32_t b,
                                 int32_t c)
 {
-    throw std::runtime_error("Native __cxa_throw not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("__cxa_throw");
 }
 
 static int32_t shm_open_wrapper(wasm_exec_env_t exec_env,
@@ -44,7 +49,9 @@ static int32_t shm_open_wrapper(wasm_exec_env_t exec_env,
                                 int32_t b,
                                 int32_t c)
 {
-    throw std::runtime_error("Native shm_open not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("shm_open");
+
+    return 0;
 }
 
 static NativeSymbol ns[] = {
