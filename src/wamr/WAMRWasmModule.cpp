@@ -185,6 +185,12 @@ int32_t WAMRWasmModule::executeFunction(faabric::Message& msg)
 
         // Run the main function
         returnValue = executeWasmFunction(ENTRY_FUNC_NAME);
+
+        // When running the main function (_start in WASI) we want to overwrite
+        // the function's return value for the one in WAMR's WASI context.
+        // The former is just the return value of _start, whereas the latter
+        // is the actual return value of the entrypoint (e.g. main)
+        returnValue = wasm_runtime_get_wasi_ctx(moduleInstance)->exit_code;
     }
 
     // Record the return value
