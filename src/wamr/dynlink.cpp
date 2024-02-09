@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
 #include <wasm_export.h>
 
@@ -9,19 +10,25 @@ static int32_t dlopen_wrapper(wasm_exec_env_t exec_env,
                               char* filename,
                               int32_t flags)
 {
-    throw std::runtime_error("Native dlopen not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("dlopen");
+
+    return 0;
 }
 
 static int32_t dlsym_wrapper(wasm_exec_env_t exec_env,
                              void* handle,
                              char* symbol)
 {
-    throw std::runtime_error("Native dlsym not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("dlsym");
+
+    return 0;
 }
 
 static int32_t dlclose_wrapper(wasm_exec_env_t exec_env, void* handle)
 {
-    throw std::runtime_error("Native dlclose not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("dlclose");
+
+    return 0;
 }
 
 static NativeSymbol ns[] = {

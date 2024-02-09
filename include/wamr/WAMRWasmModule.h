@@ -15,6 +15,15 @@
 
 namespace wasm {
 
+class WAMRWasmModule;
+
+#define WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED(str)                                \
+    auto __errorStr = fmt::format("{} not implemented!", str);                 \
+    SPDLOG_ERROR(__errorStr);                                                  \
+    auto __ex = std::runtime_error(__errorStr);                                \
+    auto __module = wasm::getExecutingWAMRModule();                            \
+    __module->doThrowException(__ex);
+
 enum WAMRExceptionTypes
 {
     NoException = 0,
@@ -54,6 +63,8 @@ class WAMRWasmModule final
     void writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm, char* envBuffWasm);
 
     // ----- Address translation and validation -----
+    // Check if native pointer belongs to WASM memory
+    void validateNativePointer(void* nativePtr, int size);
 
     // Check if WASM offset belongs to WASM memory
     void validateWasmOffset(uint32_t wasmOffset, size_t size);

@@ -27,19 +27,6 @@ struct WAMRModuleMixin
 
     // ---- Native address - WASM offset translation and bound-checks ----
 
-    // Validate that a memory range defined by a pointer and a size is a valid
-    // offset in the module's WASM linear memory.
-    void validateNativePointer(void* nativePtr, int size)
-    {
-        auto moduleInstance = this->underlying().getModuleInstance();
-        bool success =
-          wasm_runtime_validate_native_addr(moduleInstance, nativePtr, size);
-
-        if (!success) {
-            throw std::runtime_error("Failed validating native pointer!");
-        }
-    }
-
     void* wasmOffsetToNativePointer(uint32_t wasmOffset)
     {
         auto moduleInstance = this->underlying().getModuleInstance();
@@ -64,11 +51,6 @@ struct WAMRModuleMixin
         uint32_t wasmOffset =
           wasm_runtime_module_malloc(moduleInstance, size, nativePtr);
 
-        if (wasmOffset == 0 || nativePtr == nullptr) {
-            throw std::runtime_error(
-              "Failed malloc-ing memory in WASM module!");
-        }
-
         return wasmOffset;
     }
 
@@ -81,7 +63,8 @@ struct WAMRModuleMixin
     {
         // Validate that the offset array has enough capacity to hold all
         // offsets (one per string)
-        validateNativePointer(strOffsets, strings.size() * sizeof(uint32_t));
+        this->underlying().validateNativePointer(
+          strOffsets, strings.size() * sizeof(uint32_t));
 
         char* nextBuffer = strBuffer;
         for (size_t i = 0; i < strings.size(); i++) {
@@ -89,7 +72,8 @@ struct WAMRModuleMixin
 
             // Validate that the WASM offset we are going to write to is within
             // the bounds of the linear memory
-            validateNativePointer(nextBuffer, thisStr.size() + 1);
+            this->underlying().validateNativePointer(nextBuffer,
+                                                     thisStr.size() + 1);
 
             std::copy(thisStr.begin(), thisStr.end(), nextBuffer);
             nextBuffer[thisStr.size()] = '\0';

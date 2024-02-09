@@ -39,8 +39,9 @@ static uint32_t dup_wrapper(wasm_exec_env_t exec_env, uint32_t fd)
 
 static uint32_t getpwnam_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 {
-    SPDLOG_DEBUG("S - getpwnam");
-    throw std::runtime_error("getpwnam not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("getpwnam");
+
+    return 0;
 }
 
 static int32_t sendfile_wrapper(wasm_exec_env_t exec_env,
@@ -49,13 +50,16 @@ static int32_t sendfile_wrapper(wasm_exec_env_t exec_env,
                                 int32_t offset,
                                 int32_t count)
 {
-    SPDLOG_DEBUG("S - sendfile {}");
-    throw std::runtime_error("sendfile not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("sendfile");
+
+    return 0;
 }
 
 static int32_t tempnam_wrapper(wasm_exec_env_t exec_env, int32_t a, int32_t b)
 {
-    throw std::runtime_error("tempnam not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("tempnam");
+
+    return 0;
 }
 
 static NativeSymbol ns[] = {
@@ -79,8 +83,9 @@ static uint32_t wasi_fd_allocate(wasm_exec_env_t exec_env,
                                  __wasi_filesize_t offset,
                                  __wasi_filesize_t len)
 {
-    SPDLOG_DEBUG("wasi_fd_allocate {}", fd);
-    throw std::runtime_error("wasi_fd_allocate not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_fd_allocate");
+
+    return 0;
 }
 
 static int32_t wasi_fd_close(wasm_exec_env_t exec_env, int32_t fd)
@@ -129,8 +134,9 @@ static int32_t wasi_fd_fdstat_set_flags(wasm_exec_env_t exec_env,
                                         int32_t a,
                                         int32_t b)
 {
-    SPDLOG_DEBUG("S - fd_fdstat_set_flags");
-    throw std::runtime_error("fd_fdstat_set_flags not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_fd_fdstat_set_flags");
+
+    return 0;
 }
 
 static int32_t wasi_fd_fdstat_set_rights(wasm_exec_env_t exec_env,
@@ -138,8 +144,9 @@ static int32_t wasi_fd_fdstat_set_rights(wasm_exec_env_t exec_env,
                                          int64_t b,
                                          int64_t c)
 {
-    SPDLOG_DEBUG("S - fd_fdstat_set_rights");
-    throw std::runtime_error("fd_fdstat_set_rights not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_fd_fdstat_set_rights");
+
+    return 0;
 }
 
 static int32_t doFileStat(uint32_t fd,
@@ -182,7 +189,9 @@ static int32_t wasi_fd_filestat_set_size(wasm_exec_env_t execEnv,
                                          int32_t a,
                                          int64_t b)
 {
-    throw std::runtime_error("wasi_fd_filestat_set_size not implemented!");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_fd_filestat_set_size");
+
+    return 0;
 }
 
 static uint32_t wasi_fd_pread(wasm_exec_env_t exec_env,
@@ -192,8 +201,9 @@ static uint32_t wasi_fd_pread(wasm_exec_env_t exec_env,
                               __wasi_filesize_t offset,
                               uint32_t* nReadWasm)
 {
-    SPDLOG_DEBUG("S - fd_pread {}");
-    throw std::runtime_error("fd_pread not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_fd_pread");
+
+    return 0;
 }
 
 static int32_t wasi_fd_prestat_dir_name(wasm_exec_env_t exec_env,
@@ -244,8 +254,9 @@ static uint32_t wasi_fd_pwrite(wasm_exec_env_t exec_env,
                                __wasi_filesize_t offset,
                                uint32_t* nWrittenWasm)
 {
-    SPDLOG_DEBUG("S - fd_pwrite {}");
-    throw std::runtime_error("fd_pwrite not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_fd_pwrite");
+
+    return 0;
 }
 
 static int32_t wasi_fd_read(wasm_exec_env_t exec_env,
@@ -290,8 +301,9 @@ static int32_t wasi_fd_readdir(wasm_exec_env_t exec_env,
                                int64_t d,
                                int32_t e)
 {
-    SPDLOG_DEBUG("S - fd_readdir");
-    throw std::runtime_error("fd_readdir not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("fd_readdir");
+
+    return 0;
 }
 
 static int32_t wasi_fd_seek(wasm_exec_env_t exec_env,
@@ -314,8 +326,9 @@ static int32_t wasi_fd_seek(wasm_exec_env_t exec_env,
 
 static uint32_t wasi_fd_sync(wasm_exec_env_t exec_env, __wasi_fd_t fd)
 {
-    SPDLOG_DEBUG("S - fd_sync {}", fd);
-    throw std::runtime_error("fd_sync not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_fd_sync");
+
+    return 0;
 }
 
 static uint32_t wasi_fd_tell(wasm_exec_env_t exec_env,
@@ -387,8 +400,9 @@ static int32_t wasi_path_create_directory(wasm_exec_env_t exec_env,
                                           int32_t* b,
                                           char* c)
 {
-    SPDLOG_DEBUG("S - path_create_directory");
-    throw std::runtime_error("path_create_directory not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_path_create_directory");
+
+    return 0;
 }
 
 static int32_t wasi_path_filestat_get(wasm_exec_env_t exec_env,
@@ -416,8 +430,9 @@ static uint32_t wasi_path_filestat_set_times(wasm_exec_env_t exec_env,
                                              __wasi_timestamp_t stMtim,
                                              __wasi_fstflags_t fstflags)
 {
-    SPDLOG_DEBUG("wasi_path_filestat_set_times {}", fd);
-    throw std::runtime_error("wasi_path_filestat_set_times not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_path_filesat_set_times");
+
+    return 0;
 }
 
 static int32_t wasi_path_link(wasm_exec_env_t exec_env,
@@ -429,8 +444,9 @@ static int32_t wasi_path_link(wasm_exec_env_t exec_env,
                               int32_t* f,
                               char* g)
 {
-    SPDLOG_DEBUG("S - path_link");
-    throw std::runtime_error("path_link not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_path_link");
+
+    return 0;
 }
 
 static int32_t wasi_path_open(wasm_exec_env_t exec_env,
@@ -495,8 +511,9 @@ static int32_t wasi_path_remove_directory(wasm_exec_env_t exec_env,
                                           int32_t* b,
                                           char* c)
 {
-    SPDLOG_DEBUG("S - path_remove_directory");
-    throw std::runtime_error("path_remove_directory not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_path_remove_directory");
+
+    return 0;
 }
 
 static int32_t wasi_path_rename(wasm_exec_env_t exec_env,
@@ -536,8 +553,9 @@ static int32_t wasi_path_symlink(wasm_exec_env_t exec_env,
                                  const char* newPath,
                                  uint32_t newPathLen)
 {
-    SPDLOG_DEBUG("S - path_symlink");
-    throw std::runtime_error("path_symlink not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("wasi_path_symlink");
+
+    return 0;
 }
 
 static int32_t wasi_path_unlink_file(wasm_exec_env_t exec_env,

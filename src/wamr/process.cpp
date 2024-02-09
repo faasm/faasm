@@ -1,4 +1,5 @@
 #include <faabric/util/logging.h>
+#include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
 #include <wasm/WasmEnvironment.h>
 
@@ -13,26 +14,30 @@ static uint32_t getpid_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 
 static uint32_t pclose_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 {
-    SPDLOG_DEBUG("pclose");
-    throw std::runtime_error("pclose not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("pclose");
+
+    return 0;
 }
 
 static uint32_t popen_wrapper(wasm_exec_env_t exec_env, uint32_t a, uint32_t b)
 {
-    SPDLOG_DEBUG("popen");
-    throw std::runtime_error("popen not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("popen");
+
+    return 0;
 }
 
 static uint32_t raise_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 {
-    SPDLOG_DEBUG("raise");
-    throw std::runtime_error("raise not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("raise");
+
+    return 0;
 }
 
 static uint32_t system_wrapper(wasm_exec_env_t exec_env, uint32_t a)
 {
-    SPDLOG_DEBUG("system");
-    throw std::runtime_error("system not implemented");
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("system");
+
+    return 0;
 }
 
 static NativeSymbol ns[] = {

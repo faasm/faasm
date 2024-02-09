@@ -41,6 +41,8 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     WASMModuleInstanceCommon* getModuleInstance();
 
+    void validateNativePointer(void* nativePtr, int size);
+
     // ---- argc/arv ----
 
     uint32_t getArgc();
