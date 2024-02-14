@@ -92,7 +92,6 @@ add_subdirectory(faabric)
 list(PREPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR}/faabric)
 list(PREPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR}/faabric)
 include(${CMAKE_CURRENT_BINARY_DIR}/faabric/conan_paths.cmake)
-find_package(cpprestsdk REQUIRED)
 
 # ----------------------------------------
 # SGX configuration
@@ -162,7 +161,7 @@ endif ()
 # We have to be very careful here to explicitly state which LLVM
 # installation we are linking against, as there may be more than one on the
 # system
-set(LLVM_DIR "/usr/lib/llvm-13/cmake" CACHE STRING "" FORCE)
+set(LLVM_DIR "/usr/lib/llvm-17/cmake" CACHE STRING "" FORCE)
 find_package(LLVM REQUIRED CONFIG)
 
 # Separate LLVM vars into CMake-friendly lists

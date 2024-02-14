@@ -2,7 +2,7 @@
 FROM faasm.azurecr.io/cpython:0.2.5 as python
 
 # Note - we don't often rebuild cpp-root so this dep may be behind
-FROM faasm.azurecr.io/cpp-root:0.9.5
+FROM faasm.azurecr.io/cpp-root:0.22.0
 ARG FAASM_VERSION
 
 # Flag to say we're in a container
@@ -36,7 +36,7 @@ RUN mkdir -p /usr/local/faasm/runtime_root/etc \
 # Out of tree clean build of the basic targets
 RUN cd /usr/local/code/faasm \
     && ./bin/create_venv.sh \
-    && source venv/bin/activate \
+    && source venv/bin/activate
     && inv dev.tools \
         --clean \
         --build Release \
