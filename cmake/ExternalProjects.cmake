@@ -18,7 +18,7 @@ endif()
 
 include(${CMAKE_CURRENT_BINARY_DIR}/conan.cmake)
 
-conan_check(VERSION 1.53.0 REQUIRED)
+conan_check(VERSION 1.63.0 REQUIRED)
 
 # Enable revisions in the conan config
 execute_process(COMMAND ${CONAN_CMD} config set general.revisions_enabled=1
@@ -30,9 +30,11 @@ endif()
 conan_cmake_configure(
     REQUIRES
         "catch2/2.13.9@#8793d3e6287d3684201418de556d98fe"
-        # These two dependencies are only needed to perform remote attestation
+        "cpprestsdk/2.10.19@#889c41bf66e2838146eec76e3f22af8d"
+        # These three dependencies are only needed to perform remote attestation
         # of SGX enclaves using Microsoft Azure's Attestation Service
-        "jwt-cpp/0.6.0@#cd6b5c1318b29f4becaf807b23f7bb44"
+        "cppcodec/0.2@#f6385611ce2f7cff954ac8b16e25c4fa"
+        "jwt-cpp/0.7.0@#c4df431e5f51bce435c3e696dcac15f8"
         "picojson/cci.20210117@#2af3ad146959275c97a6957b87b9073f"
         # 26/04/2023 - Temporarily add RapidJSON as a CMake dependency, as
         # it was removed from faabric. Eventually consolidate to just using one
@@ -41,6 +43,8 @@ conan_cmake_configure(
     GENERATORS
         cmake_find_package
         cmake_paths
+    OPTIONS
+        cpprestsdk:with_websockets=False
 )
 
 conan_cmake_autodetect(FAABRIC_CONAN_SETTINGS)
@@ -57,6 +61,8 @@ conan_cmake_install(PATH_OR_REFERENCE .
 include(${CMAKE_CURRENT_BINARY_DIR}/conan_paths.cmake)
 
 find_package(Catch2 REQUIRED)
+find_package(cppcodec REQUIRED)
+find_package(cpprestsdk REQUIRED)
 find_package(jwt-cpp REQUIRED)
 find_package(picojson REQUIRED)
 find_package(RapidJSON REQUIRED)
@@ -109,7 +115,7 @@ add_library(AWS::s3 ALIAS aws_ext_s3_lib)
 set(FETCHCONTENT_QUIET OFF)
 FetchContent_Declare(wavm_ext
     GIT_REPOSITORY "https://github.com/faasm/WAVM.git"
-    GIT_TAG "d58adfb287818a25f478ee1154fd630ccae77662"
+    GIT_TAG "1f9c2a0c83a0fd4bc8be3a701c043e60e10f7a43"
     CMAKE_ARGS "-DDLL_EXPORT= \
         -DDLL_IMPORT="
 )
