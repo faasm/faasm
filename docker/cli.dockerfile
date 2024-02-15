@@ -7,12 +7,12 @@ SHELL ["/bin/bash", "-c"]
 # Install various deps
 RUN apt update \
     && apt install -y \
-        clang-tidy-13 \
+        clang-tidy-17 \
         doxygen \
         vim
 
 # Install wabt
-RUN git clone -b 1.0.29 https://github.com/WebAssembly/wabt/ /tmp/wabt \
+RUN git clone -b 1.0.34 https://github.com/WebAssembly/wabt/ /tmp/wabt \
     && mkdir -p /tmp/wabt/build \
     && cd /tmp/wabt/build \
     && cmake -GNinja -DBUILD_TESTS=OFF -DBUILD_LIBWASM=OFF .. \
