@@ -25,7 +25,7 @@ class PthreadTestFixture
     void runTestLocally(const std::string& function)
     {
         std::shared_ptr<faabric::BatchExecuteRequest> req =
-          faabric::util::batchExecFactory("demo", function, 1);
+          faabric::util::batchExecFactory("threads", function, 1);
 
         executeWithPool(req);
     }
