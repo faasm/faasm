@@ -51,7 +51,7 @@ def cmake(
         makedirs(FAASM_INSTALL_DIR)
 
     # TODO: share this variable with faabric
-    llvm_major_version = 18
+    llvm_major_version = 17
     cmd = [
         "cmake",
         "-GNinja",
