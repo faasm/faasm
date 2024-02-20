@@ -68,7 +68,9 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
     // Switching this flag between 0 and 1 can make some WAMR generated code
     // seg-fault unexpectedly, so modify with care
     option.bounds_checks = 0;
-    option.enable_bulk_memory = false;
+    option.enable_bulk_memory = true;
+    // We need this for threads
+    option.enable_thread_mgr = true;
     option.enable_ref_types = true;
     option.is_jit_mode = false;
     option.enable_simd = true;

@@ -4,10 +4,11 @@ from os import makedirs
 from os.path import exists, join
 from subprocess import run
 from tasks.util.env import (
-    PROJ_ROOT,
     FAASM_BUILD_DIR,
     FAASM_INSTALL_DIR,
     FAASM_SGX_MODE_DISABLED,
+    LLVM_MAJOR_VERSION,
+    PROJ_ROOT,
 )
 
 DEV_TARGETS = [
@@ -50,18 +51,16 @@ def cmake(
     if not exists(FAASM_INSTALL_DIR):
         makedirs(FAASM_INSTALL_DIR)
 
-    # TODO: share this variable with faabric
-    llvm_major_version = 17
     cmd = [
         "cmake",
         "-GNinja",
         "-DCMAKE_BUILD_TYPE={}".format(build),
-        "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-{}".format(llvm_major_version),
-        "-DCMAKE_C_COMPILER=/usr/bin/clang-{}".format(llvm_major_version),
+        "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-{}".format(LLVM_MAJOR_VERSION),
+        "-DCMAKE_C_COMPILER=/usr/bin/clang-{}".format(LLVM_MAJOR_VERSION),
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
         "-DFAASM_PERF_PROFILING=ON" if perf else "",
         "-DFAASM_CODE_COVERAGE=ON" if coverage else "",
-        "-DFAASM_LLVM_MAJOR_VERSION={}".format(llvm_major_version),
+        "-DFAASM_LLVM_MAJOR_VERSION={}".format(LLVM_MAJOR_VERSION),
         "-DFAASM_SELF_TRACING=ON" if prof else "",
         "-DFAABRIC_SELF_TRACING=ON" if prof else "",
         "-DFAASM_USE_SANITISER={}".format(sanitiser),

@@ -1,7 +1,7 @@
 from invoke import task
 from os.path import join
 from subprocess import run
-from tasks.util.env import PROJ_ROOT
+from tasks.util.env import LLVM_MAJOR_VERSION, PROJ_ROOT
 
 
 @task(default=True)
@@ -55,7 +55,7 @@ def format(ctx, cwd=None, check=False):
     )
 
     clang_cmd = [
-        "clang-format-13",
+        "clang-format-{}".format(LLVM_MAJOR_VERSION),
         "--dry-run --Werror" if check else "-i",
         " ".join(files_to_check),
     ]
