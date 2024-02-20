@@ -161,7 +161,7 @@ endif ()
 # We have to be very careful here to explicitly state which LLVM
 # installation we are linking against, as there may be more than one on the
 # system
-set(LLVM_DIR "/usr/lib/llvm-17/cmake" CACHE STRING "" FORCE)
+set(LLVM_DIR "/usr/lib/llvm-${FAASM_LLVM_MAJOR_VERSION}/cmake" CACHE STRING "" FORCE)
 find_package(LLVM REQUIRED CONFIG)
 
 # Separate LLVM vars into CMake-friendly lists

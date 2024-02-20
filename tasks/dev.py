@@ -51,7 +51,7 @@ def cmake(
         makedirs(FAASM_INSTALL_DIR)
 
     # TODO: share this variable with faabric
-    llvm_major_version = 17
+    llvm_major_version = 18
     cmd = [
         "cmake",
         "-GNinja",
@@ -61,6 +61,7 @@ def cmake(
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
         "-DFAASM_PERF_PROFILING=ON" if perf else "",
         "-DFAASM_CODE_COVERAGE=ON" if coverage else "",
+        "-DFAASM_LLVM_MAJOR_VERSION={}".format(llvm_major_version),
         "-DFAASM_SELF_TRACING=ON" if prof else "",
         "-DFAABRIC_SELF_TRACING=ON" if prof else "",
         "-DFAASM_USE_SANITISER={}".format(sanitiser),
