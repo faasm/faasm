@@ -25,9 +25,7 @@ set(WAMR_BUILD_LIB_PTHREAD 0)
 set(WAMR_BUILD_SIMD 1)
 
 set(WAMR_BUILD_MULTI_MODULE 1)
-# If bulk memory set, WAMR allocates one single page, breaking our brk memory
-# management model
-set(WAMR_BUILD_BULK_MEMORY 0)
+set(WAMR_BUILD_BULK_MEMORY 1)
 
 # We must enable WAMR hardware bounds check here, otherwise WAMR uses malloc to
 # allocate memory, which is not page-aligned. This seems like a blunt instrument

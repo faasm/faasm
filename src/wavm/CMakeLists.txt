@@ -1,4 +1,3 @@
-
 faasm_private_lib(wavmmodule
     WAVMWasmModule.cpp
     WAVMModuleCache.cpp
@@ -26,6 +25,12 @@ faasm_private_lib(wavmmodule
     timing.cpp
     util.cpp
 )
+
+# Disable WAVM warnings
+target_compile_options(wavmmodule PRIVATE
+    -Wno-switch-enum
+)
+
 target_include_directories(wavmmodule PRIVATE ${FAASM_INCLUDE_DIR}/wavm)
 target_include_directories(wavmmodule PUBLIC ${FAASM_WAVM_SOURCE_DIR}/Lib)
 target_link_libraries(wavmmodule PUBLIC
