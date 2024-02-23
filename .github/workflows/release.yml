@@ -9,16 +9,14 @@ on:
     tags:
       - 'v*.*.*'
 
-jobs:
-  clean:
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Prune docker"
-        run: "docker system prune -f --all"
+# Cancel previous running actions for the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+jobs:
   build-dep-free-images:
-    needs: clean
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         image: [redis, minio, base]
@@ -48,7 +46,7 @@ jobs:
 
   build-dep-on-base-images:
     needs: build-dep-free-images
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         image: [cli, upload, worker]
@@ -80,7 +78,7 @@ jobs:
 
   build-base-sgx:
     needs: build-dep-free-images
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         sgx-mode: [[-sgx, Hardware], [-sgx-sim, Simulation]]
@@ -112,7 +110,7 @@ jobs:
 
   build-worker-cli-sgx:
     needs: build-base-sgx
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         image: [worker, cli]
