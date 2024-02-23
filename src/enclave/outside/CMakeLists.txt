@@ -53,7 +53,7 @@ set(ENCLAVE_UNTRUSTED_SRC
     EnclaveInterface.cpp
 )
 
-add_library(enclave_untrusted STATIC
+faasm_private_lib(enclave_untrusted
     ${ENCLAVE_UNTRUSTED_HEADERS}
     ${ENCLAVE_UNTRUSTED_SRC}
 )
@@ -62,7 +62,6 @@ target_include_directories(enclave_untrusted PUBLIC ${SGX_SDK_PATH}/include)
 
 target_compile_options(enclave_untrusted PRIVATE
     ${ENCLAVE_UNTRUSTED_C_FLAGS}
-    -std=c++11
     -ffunction-sections
     -fdata-sections
 )
@@ -107,7 +106,7 @@ endif ()
 # Link everything together and add alias
 # --------------------------------------------------------
 
-target_link_libraries(enclave_untrusted
+target_link_libraries(enclave_untrusted PUBLIC
     faasm::common_deps
     ${SGX_UNTRUSTED_RUNTIME_LIB}
     ${SGX_UAE_SERVICE_LIB}

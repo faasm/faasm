@@ -4,7 +4,7 @@
 
 #include <cppcodec/base64_url.hpp>
 #include <cpprest/http_client.h>
-#include <jwt-cpp/jwt.h>
+#include <jwt-cpp/traits/kazuho-picojson/defaults.h>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
