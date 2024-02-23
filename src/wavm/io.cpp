@@ -671,7 +671,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wasi,
                                I64 modTimeStamp,
                                I32 fstFlags)
 {
-    const std::string& pathStr = getStringFromWasm(path);
+    [[maybe_unused]] const std::string& pathStr = getStringFromWasm(path);
     SPDLOG_TRACE("S - path_filestat_set_times - {} {} {} {}",
                  fd,
                  lookupFlags,

@@ -47,6 +47,7 @@ faasm_private_lib(wamrlib "${WAMR_RUNTIME_LIB_SOURCE}")
 # Disable WAMR warnings
 target_compile_options(wamrlib PRIVATE
     -Wno-typedef-redefinition
+    -Wno-unused-but-set-variable
     -Wno-unused-command-line-argument
     # We comment out some problematic LLVM code in WAMR. Commenting out triggers
     # compilation warnings that we suppress
