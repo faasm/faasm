@@ -446,5 +446,16 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 
+// Declare the wasi threads main entrypoint (in the 'wasi' module, not
+// 'wasi_snapshot_preview2')
+WAVM_DEFINE_INTRINSIC_FUNCTION(wasiThreads,
+                               "thread-spawn",
+                               I32,
+                               thread_spawn,
+                               I32 a)
+{
+    throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
 void threadsLink() {}
 }
