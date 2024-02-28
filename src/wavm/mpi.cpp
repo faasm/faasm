@@ -3,6 +3,7 @@
 
 #include <faabric/executor/ExecutorContext.h>
 #include <faabric/mpi/MpiContext.h>
+#include <faabric/mpi/MpiMessage.h>
 #include <faabric/mpi/mpi.h>
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/gids.h>
@@ -683,7 +684,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                          inputs,
                          hostDtype,
                          count,
-                         faabric::mpi::MPIMessage::BROADCAST);
+                         faabric::mpi::MpiMessageType::BROADCAST);
 
     return MPI_SUCCESS;
 }
