@@ -302,6 +302,7 @@ jobs:
         run: ./bin/inv_wrapper.sh tests
         env:
           LLVM_PROFILE_FILE: faasm.profraw
+        timeout-minutes: 10
       - name: "Generate code coverage report"
         run: ./bin/inv_wrapper.sh dev.coverage-report --file-in faasm.profraw --file-out coverage.txt
       - name: "Upload coverage report to CodeCov"
@@ -417,6 +418,7 @@ jobs:
       # Run tests
       - name: "Run the tests"
         run: ./bin/inv_wrapper.sh tests
+        timeout-minutes: 10
 
   sgx-tests:
     needs: [cpp-funcs, py-funcs, conan-cache]
@@ -512,10 +514,11 @@ jobs:
       # Test run
       - name: "Run the tests"
         run: ./bin/inv_wrapper.sh tests
+        timeout-minutes: 10
 
   dist-tests:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
@@ -529,19 +532,6 @@ jobs:
       - uses: csegarragonz/set-compose-version-action@main
         with:
           compose-version: "2.22.0"
-      # The distributed tests use (pull) lots of docker images, so we may
-      # run out of disk space, use this action to free space beforehand
-      - name: "Maximize build space"
-        uses: easimon/maximize-build-space@master
-        with:
-          # Leave 25 GB for the / partition for docker images (stored under
-          # /var/lib/docker)
-          root-reserve-mb: 25600
-          remove-android: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'true'
-          remove-dotnet: 'true'
-          remove-haskell: 'true'
       - name: "Checkout code"
         uses: actions/checkout@v4
         with:
@@ -575,6 +565,7 @@ jobs:
         run: ./deploy/dist-test/upload.sh
       - name: "Run tests"
         run: ./deploy/dist-test/run.sh
+        timeout-minutes: 10
       - name: "Unconditional deletion of the cluster"
         if: always()
         run: faasmctl delete
