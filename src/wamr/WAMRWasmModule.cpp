@@ -1,6 +1,7 @@
 #include <faabric/util/files.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
+#include <faabric/util/memory.h>
 #include <faabric/util/string_tools.h>
 #include <storage/FileLoader.h>
 #include <wamr/WAMRWasmModule.h>
@@ -46,9 +47,11 @@ void WAMRWasmModule::initialiseWAMRGlobally()
 
     // Memory configuration
     initArgs.mem_alloc_type = Alloc_With_Allocator;
-    initArgs.mem_alloc_option.allocator.malloc_func = (void*)::malloc;
-    initArgs.mem_alloc_option.allocator.realloc_func = (void*)::realloc;
-    initArgs.mem_alloc_option.allocator.free_func = (void*)::free;
+    initArgs.mem_alloc_option.allocator.malloc_func = (void*)faabric::util::malloc;
+    // TODO: add realloc to faabric's symbols
+    // initArgs.mem_alloc_option.allocator.realloc_func = (void*)faabric::util::realloc;
+    initArgs.mem_alloc_option.allocator.realloc_func = (void*)std::realloc;
+    initArgs.mem_alloc_option.allocator.free_func = (void*)faabric::util::free;
 
     bool success = wasm_runtime_full_init(&initArgs);
     if (!success) {
