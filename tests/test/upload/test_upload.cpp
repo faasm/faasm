@@ -302,22 +302,40 @@ TEST_CASE_METHOD(UploadTestFixture,
     SECTION("Complete junk")
     {
         url = "iamjunk";
-        SECTION("GET") { isGet = true; }
-        SECTION("PUT") { isGet = false; }
+        SECTION("GET")
+        {
+            isGet = true;
+        }
+        SECTION("PUT")
+        {
+            isGet = false;
+        }
     }
 
     SECTION("Missing URL part")
     {
         url = fmt::format("{}/{}/", FUNCTION_URL_PART, "blah");
-        SECTION("GET") { isGet = true; }
-        SECTION("PUT") { isGet = false; }
+        SECTION("GET")
+        {
+            isGet = true;
+        }
+        SECTION("PUT")
+        {
+            isGet = false;
+        }
     }
 
     SECTION("Invalid first URL part")
     {
         url = "/x/demo/echo";
-        SECTION("GET") { isGet = true; }
-        SECTION("PUT") { isGet = false; }
+        SECTION("GET")
+        {
+            isGet = true;
+        }
+        SECTION("PUT")
+        {
+            isGet = false;
+        }
     }
 
     SECTION("Invalid GET operation")
@@ -329,8 +347,14 @@ TEST_CASE_METHOD(UploadTestFixture,
     SECTION("Shared file with no path")
     {
         url = fmt::format("/{}/", SHARED_FILE_URL_PART);
-        SECTION("GET") { isGet = true; }
-        SECTION("PUT") { isGet = false; }
+        SECTION("GET")
+        {
+            isGet = true;
+        }
+        SECTION("PUT")
+        {
+            isGet = false;
+        }
     }
 
     http_request req = createRequest(url);

@@ -24,9 +24,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     {
         function = "echo";
 
-        SECTION("Once") { nExecs = 1; }
+        SECTION("Once")
+        {
+            nExecs = 1;
+        }
 
-        SECTION("Multiple") { nExecs = 5; }
+        SECTION("Multiple")
+        {
+            nExecs = 5;
+        }
     }
 
     // We must also check a function that changes the memory size to check that
@@ -35,9 +41,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     {
         function = "brk";
 
-        SECTION("Once") { nExecs = 1; }
+        SECTION("Once")
+        {
+            nExecs = 1;
+        }
 
-        SECTION("Multiple") { nExecs = 5; }
+        SECTION("Multiple")
+        {
+            nExecs = 5;
+        }
     }
 
     // Set to run WAMR

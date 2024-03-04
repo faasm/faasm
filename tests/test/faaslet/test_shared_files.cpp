@@ -43,9 +43,15 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
 
     // Execute the function
     auto req = setUpContext("demo", "shared_file");
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     executeWithPool(req);
 

@@ -61,8 +61,14 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "[wasm]")
 {
     // Test different WASM VMs
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     wasm::WAVMWasmModule module;
@@ -157,9 +163,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 {
     auto req = setUpContext("demo", "mmap");
 
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     REQUIRE(executeWithPoolGetBooleanResult(req));
 }
@@ -168,9 +180,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test big mmap", "[wasm]")
 {
     auto req = setUpContext("demo", "mmap_big");
 
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     executeWithPool(req);
 }
@@ -185,9 +203,15 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     std::shared_ptr<wasm::WasmModule> module = nullptr;
 
     std::string expectedMessage = "Memory growth exceeding max";
-    SECTION("WAVM") { module = std::make_shared<wasm::WAVMWasmModule>(); }
+    SECTION("WAVM")
+    {
+        module = std::make_shared<wasm::WAVMWasmModule>();
+    }
 
-    SECTION("WAMR") { module = std::make_shared<wasm::WAMRWasmModule>(); }
+    SECTION("WAMR")
+    {
+        module = std::make_shared<wasm::WAMRWasmModule>();
+    }
 
     module->bindToFunction(call);
 

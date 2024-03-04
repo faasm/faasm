@@ -13,9 +13,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 {
     auto req = setUpContext("demo", "getenv");
 
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     executeWithPool(req);
 }
@@ -33,9 +39,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test exit", "[faaslet]")
 {
     auto req = setUpContext("demo", "exit");
 
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     executeWithPool(req);
 }
@@ -91,9 +103,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     faabric::Message& msg = req->mutable_messages()->at(0);
     msg.set_cmdline("alpha B_eta G$mma d3-lt4");
 
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     /* 04/03/2023 - This test is failing in hardware mode
     #ifndef FAASM_SGX_DISABLED_MODE

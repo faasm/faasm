@@ -10,4 +10,16 @@ AlwaysBreakAfterReturnType: None
 
 IndentWidth: 4
 DerivePointerAlignment: false
+
+# Precise control over braces alignment
+BreakBeforeBraces: Custom
+BraceWrapping:
+    AfterClass: true
+    AfterEnum: true
+    AfterExternBlock: true
+    AfterFunction: true
+    AfterStruct: true
+    AfterUnion: true
+    SplitEmptyFunction: false
+    SplitEmptyRecord: false
 ---

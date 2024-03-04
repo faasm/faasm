@@ -217,7 +217,8 @@ IR::Module& IRModuleCache::getMainModule(const std::string& user,
             }
             */
             if (!module.memories.defs.empty()) {
-                module.memories.defs[0].type.size.max = (U64)MAX_WASM_MEMORY_PAGES;
+                module.memories.defs[0].type.size.max =
+                  (U64)MAX_WASM_MEMORY_PAGES;
             }
 
             // Typescript modules don't seem to define a table

@@ -66,7 +66,10 @@ TEST_CASE_METHOD(
         expectedNumNodes = 4;
     }
 
-    SECTION("Recording off (default)") { expectedNumNodes = 1; }
+    SECTION("Recording off (default)")
+    {
+        expectedNumNodes = 1;
+    }
 
     plannerCli.callFunctions(req);
     auto chainedMessageIds = waitForChainedCalls(req, 4);
@@ -99,7 +102,10 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
         expectedNumNodes = mpiWorldSize;
     }
 
-    SECTION("Recording off (default)") { expectedNumNodes = 1; }
+    SECTION("Recording off (default)")
+    {
+        expectedNumNodes = 1;
+    }
 
     plannerCli.callFunctions(req);
     auto chainedMessageIds = waitForChainedCalls(req, mpiWorldSize);

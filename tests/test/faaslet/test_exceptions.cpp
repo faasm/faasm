@@ -9,9 +9,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test exceptions are propagated from handler to runtime",
                  "[faaslet]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("demo", "exception", 1);

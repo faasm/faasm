@@ -218,8 +218,8 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other,
           Runtime::remapToClonedCompartment(other.envModule, compartment);
         wasiModule =
           Runtime::remapToClonedCompartment(other.wasiModule, compartment);
-        wasiThreadsModule =
-          Runtime::remapToClonedCompartment(other.wasiThreadsModule, compartment);
+        wasiThreadsModule = Runtime::remapToClonedCompartment(
+          other.wasiThreadsModule, compartment);
         moduleInstance =
           Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
 
@@ -586,7 +586,8 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         wasiModule = Runtime::cloneInstance(getWasiModule(), compartment);
 
         // WASI Threads
-        wasiThreadsModule = Runtime::cloneInstance(getWasiThreadsModule(), compartment);
+        wasiThreadsModule =
+          Runtime::cloneInstance(getWasiThreadsModule(), compartment);
 
         // Make sure the stack top is as expected
         IR::GlobalDef stackDef = irModule.globals.getDef(0);
