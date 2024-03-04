@@ -70,6 +70,8 @@ void doOpenMPForStaticInit8(int32_t loc,
 
 void doOpenMPForStaticFini(int32_t loc, int32_t globalTid);
 
+int32_t doOpenMPGetMaxThreads();
+
 int32_t doOpenMPGetNumThreads();
 
 int32_t doOpenMPGetThreadNum();
@@ -85,4 +87,16 @@ void doOpenMPEndMaster(int32_t loc, int32_t globalTid);
 void doOpenMPPushNumThreads(int32_t loc, int32_t globalTid, int32_t numThreads);
 
 void doOpenMPSetNumThreads(int32_t numThreads);
+
+int32_t doOpenMPSingle(int32_t loc, int32_t globalTid);
+
+void doOpenMPEndSingle(int32_t loc, int32_t globalTid);
+
+void doOpenMPStartReduceCritical(faabric::Message* msg,
+                                 std::shared_ptr<threads::Level> level,
+                                 int32_t numReduceVars,
+                                 int32_t reduceVarPtrs,
+                                 int32_t reduceVarsSize);
+
+void doOpenMPEndReduceCritical(faabric::Message* msg, bool barrier);
 }
