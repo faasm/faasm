@@ -82,5 +82,7 @@ int32_t doOpenMPMaster(int32_t loc, int32_t globalTid);
 
 void doOpenMPEndMaster(int32_t loc, int32_t globalTid);
 
+void doOpenMPPushNumThreads(int32_t loc, int32_t globalTid, int32_t numThreads);
+
 void doOpenMPSetNumThreads(int32_t numThreads);
 }

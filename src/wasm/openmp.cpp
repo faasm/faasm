@@ -567,6 +567,16 @@ int32_t doOpenMPMaster(int32_t loc, int32_t globalTid)
     return localThreadNum == 0;
 }
 
+void doOpenMPPushNumThreads(int32_t loc, int32_t globalTid, int32_t numThreads)
+{
+    OMP_FUNC_ARGS(
+      "__kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
+
+    if (numThreads > 0) {
+        level->pushedThreads = numThreads;
+    }
+}
+
 void doOpenMPEndMaster(int32_t loc, int32_t globalTid)
 {
     OMP_FUNC_ARGS("__kmpc_end_master {} {}", loc, globalTid);

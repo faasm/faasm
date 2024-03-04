@@ -2,6 +2,7 @@
 
 #include <wamr/WAMRModuleMixin.h>
 #include <wasm/WasmModule.h>
+
 #include <wasm_runtime_common.h>
 
 #include <setjmp.h>
@@ -54,6 +55,10 @@ class WAMRWasmModule final
 
     int32_t executeFunction(faabric::Message& msg) override;
 
+    int32_t executeOMPThread(int threadPoolIdx,
+                             uint32_t stackTop,
+                             faabric::Message& msg) override;
+
     // ----- Exception handling -----
     void doThrowException(std::exception& e) override;
 
@@ -91,14 +96,23 @@ class WAMRWasmModule final
     std::vector<uint8_t> wasmBytes;
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
+    // WAMR's execution environments are not thread-safe. Thus, we create an
+    // array of them at the beginning, each thread will access a different
+    // position in the array, so we do not need a mutex
+    // TODO: decide if we need a lock or not!
+    std::shared_mutex execEnvsMx;
+    // TODO: maybe make this uniqueptrs with a destructor
+    std::vector<WASMExecEnv*> execEnvs;
 
     jmp_buf wamrExceptionJmpBuf;
 
-    int executeWasmFunction(const std::string& funcName);
+    int executeWasmFunction(int threadPoolIdx, const std::string& funcName);
 
-    int executeWasmFunctionFromPointer(faabric::Message& msg);
+    int executeWasmFunctionFromPointer(int threadPoolIdx,
+                                       faabric::Message& msg);
 
-    bool executeCatchException(WASMFunctionInstanceCommon* func,
+    bool executeCatchException(int threadPoolIdx,
+                               WASMFunctionInstanceCommon* func,
                                int wasmFuncPtr,
                                int argc,
                                std::vector<uint32_t>& argv);
