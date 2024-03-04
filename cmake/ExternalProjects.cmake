@@ -27,13 +27,6 @@ if(NOT "${RET_CODE}" STREQUAL "0")
     message(FATAL_ERROR "Error setting revisions for Conan: '${RET_CODE}'")
 endif()
 
-# Use our settings.yaml with up-to-date compiler versions
-execute_process(COMMAND ${CONAN_CMD} config install ${CMAKE_CURRENT_LIST_DIR}/../faabric/conan/settings.yml
-                RESULT_VARIABLE RET_CODE)
-if(NOT "${RET_CODE}" STREQUAL "0")
-    message(FATAL_ERROR "Error installing settings file: '${RET_CODE}'")
-endif()
-
 conan_cmake_configure(
     REQUIRES
         "catch2/2.13.9@#8793d3e6287d3684201418de556d98fe"
@@ -60,8 +53,8 @@ conan_cmake_install(PATH_OR_REFERENCE .
                     BUILD outdated
                     UPDATE
                     REMOTE conancenter
-                    PROFILE_HOST ${CMAKE_CURRENT_LIST_DIR}/../faabric/conan/profile.txt
-                    PROFILE_BUILD ${CMAKE_CURRENT_LIST_DIR}/../faabric/conan/profile.txt
+                    PROFILE_HOST ${CMAKE_CURRENT_LIST_DIR}/../faabric/conan-profile.txt
+                    PROFILE_BUILD ${CMAKE_CURRENT_LIST_DIR}/../faabric/conan-profile.txt
                     SETTINGS ${FAABRIC_CONAN_SETTINGS}
 )
 
