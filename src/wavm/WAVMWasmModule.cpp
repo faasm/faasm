@@ -975,6 +975,9 @@ int32_t WAVMWasmModule::executePthread(int threadPoolIdx,
     executeWasmFunction(threadContext, funcInstance, invokeArgs, returnValue);
     msg.set_returnvalue(returnValue.i32);
 
+    SPDLOG_DEBUG(
+      "WAVM module finished executing pthread {} for {} (ret: {})", threadPoolIdx, funcStr, returnValue.i32);
+
     return returnValue.i32;
 }
 
@@ -998,6 +1001,7 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     std::vector<IR::UntaggedValue> invokeArgs = { msg.appidx(), argc };
     for (int argIdx = 0; argIdx < argc; argIdx++) {
         invokeArgs.emplace_back(ompLevel->sharedVarOffsets[argIdx]);
+        SPDLOG_WARN("Thread {} setting shared var offset: {}", threadPoolIdx, ompLevel->sharedVarOffsets[argIdx]);
     }
 
     Runtime::ContextRuntimeData* contextRuntimeData =

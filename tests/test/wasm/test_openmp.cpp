@@ -28,7 +28,7 @@ class OpenMPTestFixture
     OpenMPTestFixture()
     {
         faabric::HostResources res;
-        res.set_slots(30);
+        res.set_slots(5);
         sch.setThisHostResources(res);
     }
 
@@ -65,14 +65,12 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     doOmpTestLocal("header_api_support");
 }
 
-/*
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test OpenMP general conformance",
                  "[wasm][openmp]")
 {
     doOmpTestLocal("omp_checks");
 }
-*/
 
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test OpenMP barrier pragma",
@@ -104,6 +102,11 @@ TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test a mix of OpenMP constructs",
                  "[wasm][openmp]")
 {
+    faabric::HostResources res;
+    res.set_slots(10);
+    sch.setThisHostResources(res);
+
+    // Function requires 10 slots
     doOmpTestLocal("reduction_integral");
 }
 
@@ -114,27 +117,28 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     doOmpTestLocal("simple_critical");
 }
 
-/* TODO(FIXME): openmp failure
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test OpenMP single section",
                  "[wasm][openmp]")
 {
     faabric::HostResources res;
-    res.set_slots(200);
+    res.set_slots(100);
     sch.setThisHostResources(res);
 
     doOmpTestLocal("simple_single");
 }
-*/
 
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test custom OpenMP reduction function",
                  "[wasm][openmp]")
 {
+    faabric::HostResources res;
+    res.set_slots(10);
+    sch.setThisHostResources(res);
+
     doOmpTestLocal("custom_reduce");
 }
 
-/* TODO(FIXME): openmp failure
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test OpenMP Pi calculation using libfaasm",
                  "[wasm][openmp]")
@@ -144,7 +148,6 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     // Just check Pi to one dp
     REQUIRE(faabric::util::startsWith(output, "Pi estimate: 3.1"));
 }
-*/
 
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test getting and setting number of OpenMP threads",
@@ -162,7 +165,6 @@ TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP wtime", "[wasm][openmp]")
     doOmpTestLocal("wtime");
 }
 
-/* TODO(FIXME): openmp failure
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test single-threaded OpenMP reduction",
                  "[wasm][openmp]")
@@ -181,6 +183,10 @@ TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test repeated OpenMP reductions",
                  "[wasm][openmp]")
 {
+    faabric::HostResources res;
+    res.set_slots(10);
+    sch.setThisHostResources(res);
+
     doOmpTestLocal("repeated_reduce");
 }
 
@@ -192,7 +198,6 @@ TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP atomic", "[wasm][openmp]")
 
     doOmpTestLocal("simple_atomic");
 }
-*/
 
 TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test OpenMP default shared",
@@ -201,35 +206,33 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     doOmpTestLocal("default_shared");
 }
 
-// 23/03/2023 - This test has become very flaky.
-/*
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Run openmp memory stress test",
+                 "Run OpenMP memory stress test",
                  "[wasm][openmp][.]")
 {
     // Overload the local resources
-    int nOmpThreads = 60;
+    int nOmpThreads = 10;
 
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
     faabric::HostResources res;
-    res.set_slots(200);
+    res.set_slots(20);
     sch.setThisHostResources(res);
 
     // Overload the number of cores
     faabric::Message msg = faabric::util::messageFactory("omp", "mem_stress");
     auto req = faabric::util::batchExecFactory("omp", "mem_stress", 1);
-    msg.set_cmdline(std::to_string(nOmpThreads));
+    req->mutable_messages(0)->set_cmdline(std::to_string(nOmpThreads));
+    req->set_singlehosthint(true);
 
-    executeWithPool(req, OMP_TEST_TIMEOUT_MS);
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+
+    auto result = executeWithPool(req, OMP_TEST_TIMEOUT_MS).at(0);
+    REQUIRE(result.returnvalue() == 0);
 }
-*/
 
 TEST_CASE_METHOD(OpenMPTestFixture,
-                 "Test nested openmp explicitly disabled",
+                 "Test nested OpenMP explicitly disabled",
                  "[wasm][openmp]")
 {
-    faabric::scheduler::Scheduler& sch = faabric::scheduler::getScheduler();
-
     // Make sure there's definitely enough slots
     int nSlots = 20;
     faabric::HostResources res;
@@ -238,7 +241,10 @@ TEST_CASE_METHOD(OpenMPTestFixture,
 
     auto req = faabric::util::batchExecFactory("omp", "nested_parallel", 1);
     req->set_singlehosthint(true);
-    faabric::Message result = executeWithPool(req, 1000, false).at(0);
+
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+
+    faabric::Message result = executeWithPool(req, OMP_TEST_TIMEOUT_MS, false).at(0);
 
     // Get result
     REQUIRE(result.returnvalue() > 0);

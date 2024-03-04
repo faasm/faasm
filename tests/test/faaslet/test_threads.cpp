@@ -15,6 +15,7 @@ namespace tests {
 
 class PthreadTestFixture
   : public FunctionExecTestFixture
+  , public FaasmConfTestFixture
   , public ConfFixture
 {
   public:
@@ -27,7 +28,9 @@ class PthreadTestFixture
         std::shared_ptr<faabric::BatchExecuteRequest> req =
           faabric::util::batchExecFactory("threads", function, 1);
 
-        executeWithPool(req);
+        auto results = executeWithPool(req);
+
+        REQUIRE(results.at(0).returnvalue() == 0);
     }
 
   protected:
@@ -36,11 +39,21 @@ class PthreadTestFixture
 
 TEST_CASE_METHOD(PthreadTestFixture, "Test local-only threading", "[threads]")
 {
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+
+    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+
     runTestLocally("threads_local");
 }
 
 TEST_CASE_METHOD(PthreadTestFixture, "Run thread checks locally", "[threads]")
 {
+    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+
+    // TODO(wamr-zygote): zygote functions are not supported in WAMR, and this
+    // test depends on them
+    // SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+
     runTestLocally("threads_check");
 }
 }

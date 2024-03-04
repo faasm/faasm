@@ -11,6 +11,7 @@
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
+#include <wasm/threads.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <WAVM/Platform/Thread.h>
@@ -54,29 +55,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 entryFunc,
                                I32 argsPtr)
 {
-
-    SPDLOG_DEBUG("S - pthread_create - {} {} {} {}",
-                 pthreadPtr,
-                 attrPtr,
-                 entryFunc,
-                 argsPtr);
-
-    // Set the bits we care about on the pthread struct
-    // NOTE - setting the initial pointer is crucial for inter-operation with
-    // existing C code
     WAVMWasmModule* thisModule = getExecutingWAVMModule();
     wasm_pthread* pthreadNative =
       &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
     pthreadNative->selfPtr = pthreadPtr;
 
-    threads::PthreadCall pthreadCall;
-    pthreadCall.pthreadPtr = pthreadPtr;
-    pthreadCall.entryFunc = entryFunc;
-    pthreadCall.argsPtr = argsPtr;
-
-    thisModule->queuePthreadCall(pthreadCall);
-
-    return 0;
+    return wasm::doPthreadCreate(pthreadPtr, attrPtr, entryFunc, argsPtr);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -86,18 +70,14 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 pthreadPtr,
                                I32 resPtrPtr)
 {
-    SPDLOG_DEBUG("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
-
-    faabric::Message* call = &ExecutorContext::get()->getMsg();
-    WasmModule* thisModule = getExecutingModule();
-
-    // Await the result
-    int returnValue = thisModule->awaitPthreadCall(call, pthreadPtr);
+    SPDLOG_INFO("Pthread join {} {}", pthreadPtr, resPtrPtr);
+    // Do the join
+    int returnValue = doPthreadJoin(pthreadPtr);
 
     // This function is passed a pointer to a pointer for the result,
     // so we dereference it once and are writing an integer (i.e. a wasm
     // pointer)
-    auto resPtr = &Runtime::memoryRef<I32>(
+    auto* resPtr = &Runtime::memoryRef<I32>(
       getExecutingWAVMModule()->defaultMemory, resPtrPtr);
     *resPtr = returnValue;
 
@@ -110,7 +90,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                pthread_exit,
                                I32 code)
 {
-    SPDLOG_DEBUG("S - pthread_exit - {}", code);
+    doPthreadExit();
 }
 
 // ----------------------------------------------
@@ -191,42 +171,27 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "pthread_mutex_lock",
                                I32,
                                pthread_mutex_lock,
-                               I32 mx)
+                               I32 mutex)
 {
-    SPDLOG_TRACE("S - pthread_mutex_lock {}", mx);
-    getExecutingModule()->getOrCreatePthreadMutex(mx)->lock();
-
-    return 0;
+    return doPthreadMutexLock(mutex);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "pthread_mutex_trylock",
                                I32,
                                s__pthread_mutex_trylock,
-                               I32 mx)
+                               I32 mutex)
 {
-    SPDLOG_TRACE("S - pthread_mutex_trylock {}", mx);
-
-    bool success =
-      getExecutingModule()->getOrCreatePthreadMutex(mx)->try_lock();
-
-    if (!success) {
-        return EBUSY;
-    }
-
-    return 0;
+    return doPthreadMutexTryLock(mutex);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "pthread_mutex_unlock",
                                I32,
                                pthread_mutex_unlock,
-                               I32 mx)
+                               I32 mutex)
 {
-    SPDLOG_TRACE("S - pthread_mutex_unlock {}", mx);
-    getExecutingModule()->getPthreadMutex(mx)->unlock();
-
-    return 0;
+    return doPthreadMutexUnlock(mutex);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,

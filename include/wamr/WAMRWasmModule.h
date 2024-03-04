@@ -42,6 +42,8 @@ class WAMRWasmModule final
   public:
     static void initialiseWAMRGlobally();
 
+    static void destroyWAMRGlobally();
+
     WAMRWasmModule();
 
     explicit WAMRWasmModule(int threadPoolSizeIn);
@@ -55,9 +57,18 @@ class WAMRWasmModule final
 
     int32_t executeFunction(faabric::Message& msg) override;
 
+    // ----- Threads ------
     int32_t executeOMPThread(int threadPoolIdx,
                              uint32_t stackTop,
                              faabric::Message& msg) override;
+
+    int32_t executePthread(int threadPoolIdx,
+                           uint32_t stackTop,
+                           faabric::Message& msg) override;
+
+    void createThreadsExecEnv(WASMExecEnv* parentExecEnv);
+
+    void destroyThreadsExecEnv(bool destroyMainExecEnv = false);
 
     // ----- Exception handling -----
     void doThrowException(std::exception& e) override;
