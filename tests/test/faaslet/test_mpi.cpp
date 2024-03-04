@@ -44,162 +44,270 @@ class MPIFuncTestFixture : public MultiRuntimeFunctionExecTestFixture
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI allgather", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_allgather");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI allreduce", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_allreduce");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI alltoall", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_alltoall");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI barrier", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_barrier");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI broadcast", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_bcast");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI cartesian create", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_cart_create");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI cartesian coordinates", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_cartesian");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test general MPI functionality", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_checks");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI gather", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_gather");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI message ordering", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_order");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI reduce", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_reduce");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI scan", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_scan");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI scatter", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_scatter");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI sendrecv", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_sendrecv");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI status", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_status");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI type sizes", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_typesize");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI async", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkMpiFunc("mpi_isendrecv");
 }
 
 TEST_CASE_METHOD(MPIFuncTestFixture, "Test MPI Pi", "[mpi]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     faabric::Message result = checkMpiFunc("mpi_pi");
     std::string output = result.outputdata();

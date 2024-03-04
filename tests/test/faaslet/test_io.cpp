@@ -13,9 +13,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     auto& call = req->mutable_messages()->at(0);
     call.set_inputdata("http://www.foobar.com");
 
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     executeWithPool(req);
 }
@@ -29,9 +35,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     std::string inputData = "http://www.testinput/foo.com";
     call.set_inputdata(inputData.c_str());
 
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     const std::string actual = executeWithPool(req).at(0).outputdata();
     REQUIRE(actual == inputData);
@@ -47,9 +59,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     SECTION("Capture off")
     {
-        SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+        SECTION("WAVM")
+        {
+            faasmConf.wasmVm = "wavm";
+        }
 
-        SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+        SECTION("WAMR")
+        {
+            faasmConf.wasmVm = "wamr";
+        }
 
         call.set_inputdata("21");
         faasmConf.captureStdout = "off";
@@ -58,9 +76,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     SECTION("Capture on")
     {
-        SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+        SECTION("WAVM")
+        {
+            faasmConf.wasmVm = "wavm";
+        }
 
-        SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+        SECTION("WAMR")
+        {
+            faasmConf.wasmVm = "wamr";
+        }
 
         call.set_inputdata("23");
         faasmConf.captureStdout = "on";
@@ -85,18 +109,30 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     SECTION("Capture off")
     {
-        SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+        SECTION("WAVM")
+        {
+            faasmConf.wasmVm = "wavm";
+        }
 
-        SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+        SECTION("WAMR")
+        {
+            faasmConf.wasmVm = "wamr";
+        }
 
         faasmConf.captureStdout = "off";
     }
 
     SECTION("Capture on")
     {
-        SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+        SECTION("WAVM")
+        {
+            faasmConf.wasmVm = "wavm";
+        }
 
-        SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+        SECTION("WAMR")
+        {
+            faasmConf.wasmVm = "wamr";
+        }
 
         faasmConf.captureStdout = "on";
         expected = "stdin=0  stdout=1  stderr=2\n"

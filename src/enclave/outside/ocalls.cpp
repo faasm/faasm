@@ -82,7 +82,13 @@ extern "C"
     // Logging
     // ---------------------------------------
 
-    void ocallLogDebug(const char* msg) { SPDLOG_DEBUG("[enclave] {}", msg); }
+    void ocallLogDebug(const char* msg)
+    {
+        SPDLOG_DEBUG("[enclave] {}", msg);
+    }
 
-    void ocallLogError(const char* msg) { SPDLOG_ERROR("[enclave] {}", msg); }
+    void ocallLogError(const char* msg)
+    {
+        SPDLOG_ERROR("[enclave] {}", msg);
+    }
 }

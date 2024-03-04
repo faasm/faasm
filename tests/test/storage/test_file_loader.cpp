@@ -44,9 +44,15 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
     // Use the fileserver loader to load the file both with and without
     // filesystem caching
     bool useFsCache;
-    SECTION("With cache") { useFsCache = true; }
+    SECTION("With cache")
+    {
+        useFsCache = true;
+    }
 
-    SECTION("Without cache") { useFsCache = false; }
+    SECTION("Without cache")
+    {
+        useFsCache = false;
+    }
 
     storage::FileLoader loader(useFsCache);
     loader.clearLocalCache();
@@ -219,8 +225,14 @@ TEST_CASE_METHOD(FileLoaderTestFixture,
 
     faabric::Message msg;
 
-    SECTION("No function set") { msg.set_pythonuser("foo"); }
-    SECTION("No user set") { msg.set_pythonfunction("bar"); }
+    SECTION("No function set")
+    {
+        msg.set_pythonuser("foo");
+    }
+    SECTION("No user set")
+    {
+        msg.set_pythonfunction("bar");
+    }
 
     msg.set_inputdata(contents.data(), contents.size());
 

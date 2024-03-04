@@ -104,9 +104,15 @@ TEST_CASE_METHOD(StateFuncTestFixture, "Test Pi estimate", "[state]")
     conf::FaasmConfig& faasmConf = conf::getFaasmConfig();
     std::string oldWasmVm = faasmConf.wasmVm;
 
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     faabric::Message result = executeWithPool(req, 10000).at(0);
     std::string output = result.outputdata();

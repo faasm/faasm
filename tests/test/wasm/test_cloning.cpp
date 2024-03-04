@@ -214,7 +214,10 @@ TEST_CASE_METHOD(CloneExecTestFixture,
     std::string inputA = "aaa";
     std::string inputB = "bbb";
 
-    SECTION("copy") { checkCopyConstructor(user, func, inputA, inputB, false); }
+    SECTION("copy")
+    {
+        checkCopyConstructor(user, func, inputA, inputB, false);
+    }
 
     SECTION("assignment")
     {
