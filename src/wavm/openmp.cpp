@@ -482,7 +482,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 d)
 {
     OMP_FUNC_ARGS("__atomic_load {} {} {} {}", a, b, c, d);
-    SPDLOG_WARN("hello");
     throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
 }
 

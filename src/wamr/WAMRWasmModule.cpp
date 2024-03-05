@@ -226,7 +226,6 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
     // In WAMR the thread stacks are managed by the runtime, not by us, in
     // a dynamic fashion that also guarantees no overflows. As a consequence,
     // we do not need to use Faasm's home-built thread stack management
-    // createThreadStacks();
     threadStacks = std::vector<uint32_t>(threadPoolSize, 0);
 
     // Create the execution environemnt for all the potential threads
@@ -248,8 +247,6 @@ void WAMRWasmModule::createThreadsExecEnv(WASMExecEnv* parentExecEnv)
         throw std::runtime_error("Creating threads from non-main thread!");
     }
 
-    // SPDLOG_DEBUG("Creating {} WAMR thread execution environments",
-    // threadPoolSize);
     for (int i = 1; i < threadPoolSize; i++) {
         if (execEnvs.at(i) == nullptr) {
             wasm_runtime_set_exec_env_tls(parentExecEnv);
@@ -532,8 +529,7 @@ int WAMRWasmModule::executeWasmFunction(int threadPoolIdx,
 
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
-    // It is fine for the zygote function to not be there
-    if (func == nullptr && funcName != ZYGOTE_FUNC_NAME) {
+    if (func == nullptr) {
         SPDLOG_ERROR("Did not find function {} for module {}/{}",
                      funcName,
                      boundUser,
