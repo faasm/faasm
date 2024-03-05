@@ -7,10 +7,12 @@
 #include <wasm/faasm.h>
 
 namespace wasm {
-static std::shared_ptr<faabric::transport::PointToPointGroup> getPointToPointGroup()
+static std::shared_ptr<faabric::transport::PointToPointGroup>
+getPointToPointGroup()
 {
     faabric::Message msg = faabric::executor::ExecutorContext::get()->getMsg();
-    return faabric::transport::PointToPointGroup::getOrAwaitGroup(msg.groupid());
+    return faabric::transport::PointToPointGroup::getOrAwaitGroup(
+      msg.groupid());
 }
 
 void doFaasmSmCriticalLocal()
@@ -56,7 +58,8 @@ extractSnapshotDataType(int32_t varType)
     }
 }
 
-static faabric::util::SnapshotMergeOperation extractSnapshotMergeOp(int32_t mergeOp)
+static faabric::util::SnapshotMergeOperation extractSnapshotMergeOp(
+  int32_t mergeOp)
 {
     if (faabric::util::SnapshotMergeOperation::Bytewise <= mergeOp &&
         mergeOp <= faabric::util::SnapshotMergeOperation::Min) {
@@ -67,7 +70,10 @@ static faabric::util::SnapshotMergeOperation extractSnapshotMergeOp(int32_t merg
     throw std::runtime_error("Unrecognised merge operation");
 }
 
-void doFaasmSmReduce(int32_t varPtr, int32_t varType, int32_t reduceOp, int32_t currentBatch)
+void doFaasmSmReduce(int32_t varPtr,
+                     int32_t varType,
+                     int32_t reduceOp,
+                     int32_t currentBatch)
 {
     // Here we have two scenarios, the second of which differs in behaviour when
     // we're in single host mode:
@@ -82,7 +88,9 @@ void doFaasmSmReduce(int32_t varPtr, int32_t varType, int32_t reduceOp, int32_t 
     // be any snapshotting at all, otherwise we add it to the snapshot.
 
     bool isCurrentBatch = currentBatch == 1;
-    bool isSingleHost = faabric::executor::ExecutorContext::get()->getBatchRequest()->singlehost();
+    bool isSingleHost = faabric::executor::ExecutorContext::get()
+                          ->getBatchRequest()
+                          ->singlehost();
 
     // Here we can ignore if we're in the current batch, and it's in single host
     // mode.
@@ -102,7 +110,8 @@ void doFaasmSmReduce(int32_t varPtr, int32_t varType, int32_t reduceOp, int32_t 
     faabric::util::SnapshotMergeOperation mergeOp =
       extractSnapshotMergeOp(reduceOp);
 
-    faabric::Message* msg = &faabric::executor::ExecutorContext::get()->getMsg();
+    faabric::Message* msg =
+      &faabric::executor::ExecutorContext::get()->getMsg();
     SPDLOG_DEBUG("Registering reduction variable {}-{} for {} {}",
                  varPtr,
                  varPtr + dataType.first,
@@ -110,7 +119,8 @@ void doFaasmSmReduce(int32_t varPtr, int32_t varType, int32_t reduceOp, int32_t 
                  isCurrentBatch ? "this batch" : "next batch");
 
     if (isCurrentBatch) {
-        faabric::executor::Executor* executor = faabric::executor::ExecutorContext::get()->getExecutor();
+        faabric::executor::Executor* executor =
+          faabric::executor::ExecutorContext::get()->getExecutor();
         auto snap = executor->getMainThreadSnapshot(*msg, false);
         snap->addMergeRegion(varPtr, dataType.first, dataType.second, mergeOp);
     } else {

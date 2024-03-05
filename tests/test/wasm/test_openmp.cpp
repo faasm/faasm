@@ -42,7 +42,10 @@ class OpenMPTestFixture
 
         // SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-        SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+        SECTION("WAMR")
+        {
+            faasmConf.wasmVm = "wamr";
+        }
 
         faabric::Message result =
           executeWithPool(req, OMP_TEST_TIMEOUT_MS).at(0);
@@ -223,7 +226,10 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     req->mutable_messages(0)->set_cmdline(std::to_string(nOmpThreads));
     req->set_singlehosthint(true);
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     auto result = executeWithPool(req, OMP_TEST_TIMEOUT_MS).at(0);
     REQUIRE(result.returnvalue() == 0);
@@ -242,9 +248,13 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     auto req = faabric::util::batchExecFactory("omp", "nested_parallel", 1);
     req->set_singlehosthint(true);
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
-    faabric::Message result = executeWithPool(req, OMP_TEST_TIMEOUT_MS, false).at(0);
+    faabric::Message result =
+      executeWithPool(req, OMP_TEST_TIMEOUT_MS, false).at(0);
 
     // Get result
     REQUIRE(result.returnvalue() > 0);

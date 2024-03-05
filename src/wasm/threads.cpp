@@ -5,7 +5,10 @@
 #include <wasm/threads.h>
 
 namespace wasm {
-int32_t doPthreadCreate(int32_t pthreadPtr, int32_t attrPtr, int32_t entryFunc, int32_t argsPtr)
+int32_t doPthreadCreate(int32_t pthreadPtr,
+                        int32_t attrPtr,
+                        int32_t entryFunc,
+                        int32_t argsPtr)
 {
     SPDLOG_DEBUG("S - pthread_create - {} {} {} {}",
                  pthreadPtr,
@@ -35,7 +38,8 @@ int32_t doPthreadJoin(int32_t pthreadPtr)
 {
     SPDLOG_DEBUG("S - pthread_join - {}", pthreadPtr);
 
-    faabric::Message* call = &faabric::executor::ExecutorContext::get()->getMsg();
+    faabric::Message* call =
+      &faabric::executor::ExecutorContext::get()->getMsg();
     WasmModule* thisModule = getExecutingModule();
 
     // Await the result

@@ -16,8 +16,8 @@
 #include <sys/mman.h>
 
 #include <aot_runtime.h>
-#include <wasm_runtime_common.h>
 #include <wasm_export.h>
+#include <wasm_runtime_common.h>
 
 #define FAASM_WAMR_NUM_MAX_THREADS 200
 #define NO_WASM_FUNC_PTR -1
@@ -46,14 +46,17 @@ static std::mutex wamrGlobalsMutex;
 class WAMRThreadEnv
 {
   public:
-    WAMRThreadEnv() {
-        if (!wasm_runtime_thread_env_inited() && !wasm_runtime_init_thread_env()) {
+    WAMRThreadEnv()
+    {
+        if (!wasm_runtime_thread_env_inited() &&
+            !wasm_runtime_init_thread_env()) {
             SPDLOG_ERROR("Error intialisining thread env. for main thread");
             throw std::runtime_error("Error intiialising thread environment!");
         }
     }
 
-    ~WAMRThreadEnv() {
+    ~WAMRThreadEnv()
+    {
         if (wasm_runtime_thread_env_inited()) {
             wasm_runtime_destroy_thread_env();
         }
@@ -240,11 +243,13 @@ void WAMRWasmModule::bindInternal(faabric::Message& msg)
 void WAMRWasmModule::createThreadsExecEnv(WASMExecEnv* parentExecEnv)
 {
     if (parentExecEnv != execEnvs.at(0)) {
-        SPDLOG_ERROR("Creating thread's execution environment from non-main thread!");
+        SPDLOG_ERROR(
+          "Creating thread's execution environment from non-main thread!");
         throw std::runtime_error("Creating threads from non-main thread!");
     }
 
-    // SPDLOG_DEBUG("Creating {} WAMR thread execution environments", threadPoolSize);
+    // SPDLOG_DEBUG("Creating {} WAMR thread execution environments",
+    // threadPoolSize);
     for (int i = 1; i < threadPoolSize; i++) {
         if (execEnvs.at(i) == nullptr) {
             wasm_runtime_set_exec_env_tls(parentExecEnv);
@@ -360,8 +365,8 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
     // - A pointer to each of the non-global shared variables
     int argc = 2 + ompLevel->nSharedVarOffsets;
     std::vector<uint32_t> argv(argc);
-    argv[0] = { (uint32_t) msg.appidx() };
-    argv[1] = { (uint32_t) ompLevel->nSharedVarOffsets };
+    argv[0] = { (uint32_t)msg.appidx() };
+    argv[1] = { (uint32_t)ompLevel->nSharedVarOffsets };
 
     // The rest of the arguments are the ones corresponding to OpenMP
     for (int i = 0; i < ompLevel->nSharedVarOffsets; i++) {
@@ -416,7 +421,7 @@ int32_t WAMRWasmModule::executePthread(int threadPoolIdx,
     auto* wasmModule = wasm_runtime_get_module(moduleInstance);
 
     int argsPtr = std::stoi(msg.inputdata());
-    std::vector<uint32_t> argv = { (uint32_t) argsPtr };
+    std::vector<uint32_t> argv = { (uint32_t)argsPtr };
 
     // Work-out if the function reutrns a value or returns void
     AOTFuncType* funcType =
@@ -424,8 +429,8 @@ int32_t WAMRWasmModule::executePthread(int threadPoolIdx,
     bool returnsVoid = funcType->result_count == 0;
 
     auto originalArgv = argv;
-    bool success =
-      executeCatchException(threadPoolIdx, nullptr, wasmFuncPtr, argv.size(), argv);
+    bool success = executeCatchException(
+      threadPoolIdx, nullptr, wasmFuncPtr, argv.size(), argv);
 
     if (!success) {
         SPDLOG_ERROR("Error executing Pthread func {}: {}",
@@ -442,8 +447,10 @@ int32_t WAMRWasmModule::executePthread(int threadPoolIdx,
         returnValue = !(argv[0] == originalArgv[0]);
     }
 
-    SPDLOG_DEBUG(
-      "WAMR finished executing Pthread thread {} for {} (ret: {})", threadPoolIdx, funcStr, returnValue);
+    SPDLOG_DEBUG("WAMR finished executing Pthread thread {} for {} (ret: {})",
+                 threadPoolIdx,
+                 funcStr,
+                 returnValue);
     return returnValue;
 }
 

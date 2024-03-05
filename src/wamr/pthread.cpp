@@ -18,7 +18,8 @@ static int32_t pthread_create_wrapper(wasm_exec_env_t execEnv,
 
     // Set-up the wasm_pthread pointer
     wamrModule->validateWasmOffset(pthreadPtr, sizeof(wasm_pthread));
-    wasm_pthread* nativePthreadPtr = (wasm_pthread*) wamrModule->wasmOffsetToNativePointer(pthreadPtr);
+    wasm_pthread* nativePthreadPtr =
+      (wasm_pthread*)wamrModule->wasmOffsetToNativePointer(pthreadPtr);
     nativePthreadPtr->selfPtr = pthreadPtr;
 
     return wasm::doPthreadCreate(pthreadPtr, attrPtr, entryFunc, argsPtr);
@@ -69,12 +70,14 @@ static int32_t pthread_mutex_init_wrapper(wasm_exec_env_t execEnv,
     return 0;
 }
 
-static int32_t pthread_mutex_lock_wrapper(wasm_exec_env_t execEnv, int32_t mutex)
+static int32_t pthread_mutex_lock_wrapper(wasm_exec_env_t execEnv,
+                                          int32_t mutex)
 {
     return doPthreadMutexLock(mutex);
 }
 
-static int32_t pthread_mutex_unlock_wrapper(wasm_exec_env_t execEnv, int32_t mutex)
+static int32_t pthread_mutex_unlock_wrapper(wasm_exec_env_t execEnv,
+                                            int32_t mutex)
 {
     return doPthreadMutexUnlock(mutex);
 }

@@ -39,16 +39,25 @@ class PthreadTestFixture
 
 TEST_CASE_METHOD(PthreadTestFixture, "Test local-only threading", "[threads]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     runTestLocally("threads_local");
 }
 
 TEST_CASE_METHOD(PthreadTestFixture, "Run thread checks locally", "[threads]")
 {
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
     // TODO(wamr-zygote): zygote functions are not supported in WAMR, and this
     // test depends on them

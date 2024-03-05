@@ -10,9 +10,9 @@
 #include <faabric/util/macros.h>
 #include <faabric/util/state.h>
 #include <wasm/chaining.h>
+#include <wasm/faasm.h>
 #include <wasm/host_interface_test.h>
 #include <wasm/migration.h>
-#include <wasm/faasm.h>
 #include <wavm/WAVMWasmModule.h>
 
 #include <WAVM/Platform/Diagnostics.h>

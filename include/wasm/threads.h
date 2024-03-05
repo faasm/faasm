@@ -16,7 +16,10 @@ struct wasm_pthread
     int32_t selfPtr;
 };
 
-int32_t doPthreadCreate(int32_t pthreadPtr, int32_t attrPtr, int32_t entryFunc, int32_t argsPtr);
+int32_t doPthreadCreate(int32_t pthreadPtr,
+                        int32_t attrPtr,
+                        int32_t entryFunc,
+                        int32_t argsPtr);
 
 void doPthreadExit();
 

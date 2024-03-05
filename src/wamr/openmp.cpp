@@ -1,5 +1,5 @@
-#include <wasm/openmp.h>
 #include <wamr/WAMRWasmModule.h>
+#include <wasm/openmp.h>
 
 #include <wamr/native.h>
 #include <wasm_export.h>
@@ -112,8 +112,10 @@ static void __kmpc_fork_call_wrapper(wasm_exec_env_t execEnv,
 {
     // Set-up shared variables
     auto* wamrModule = wasm::getExecutingWAMRModule();
-    wamrModule->validateWasmOffset(sharedVarsPtr, nSharedVars * sizeof(int32_t));
-    uint32_t* nativeSharedVarsPtr = (uint32_t*) wamrModule->wasmOffsetToNativePointer(sharedVarsPtr);
+    wamrModule->validateWasmOffset(sharedVarsPtr,
+                                   nSharedVars * sizeof(int32_t));
+    uint32_t* nativeSharedVarsPtr =
+      (uint32_t*)wamrModule->wasmOffsetToNativePointer(sharedVarsPtr);
 
     // Create child thread's execution environments
     wamrModule->createThreadsExecEnv(execEnv);
