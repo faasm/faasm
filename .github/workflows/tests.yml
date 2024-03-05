@@ -126,10 +126,7 @@ jobs:
         with:
           submodules: recursive
       - name: "Build C++ functions"
-        run: ./bin/inv_wrapper.sh func.local
-        working-directory: ${{ github.workspace }}/clients/cpp
-      - name: "Build libfake"
-        run: ./bin/inv_wrapper.sh libfake
+        run: ./bin/inv_wrapper.sh func.local --clean
         working-directory: ${{ github.workspace }}/clients/cpp
       - name: "Build libfake"
         run: ./bin/inv_wrapper.sh libfake
