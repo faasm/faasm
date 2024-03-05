@@ -378,7 +378,8 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
       executeCatchException(threadPoolIdx, nullptr, wasmFuncPtr, argc, argv);
 
     if (!success) {
-        SPDLOG_ERROR("Error executing OpenMP func {}: {}",
+        SPDLOG_ERROR("Error executing OpenMP thread {} func {}: {}",
+                     threadPoolIdx,
                      wasmFuncPtr,
                      wasm_runtime_get_exception(moduleInstance));
         throw std::runtime_error(

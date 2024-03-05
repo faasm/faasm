@@ -9,18 +9,13 @@ namespace tests {
 
 TEST_CASE_METHOD(DistTestsFixture, "Test pthreads across hosts", "[scheduler]")
 {
-    // TODO(wamr-omp)
-    if (faasmConf.wasmVm == "wamr") {
-        return;
-    }
-
     // Set this host up to ensure the main thread and one child thread execute
     // on this host, but one executes remotely
     int nLocalSlots = 2;
     int nThreads = 3;
     setLocalRemoteSlots(nLocalSlots + 1, nThreads - nLocalSlots, 0, 0);
 
-    std::string user = "demo";
+    std::string user = "threads";
     std::string function = "threads_memory";
 
     // Set up the message
