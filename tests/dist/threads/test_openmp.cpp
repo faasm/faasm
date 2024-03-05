@@ -13,7 +13,8 @@ TEST_CASE_METHOD(DistTestsFixture,
                  "Test OpenMP across hosts",
                  "[threads][openmp]")
 {
-    // TODO(wamr-omp)
+    // TODO(wamr-omp-dist): distributed shared memory with OpenMP is not
+    // supported in WAMR
     if (faasmConf.wasmVm == "wamr") {
         return;
     }
