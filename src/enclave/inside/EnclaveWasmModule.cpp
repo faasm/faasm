@@ -78,7 +78,6 @@ bool EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
     // Set dummy argv to capture return value
     std::vector<uint32_t> argv = { 0 };
     bool success = wasm_runtime_call_wasm(execEnv, func, 0, argv.data());
-    uint32_t returnValue = argv[0];
 
     if (success) {
         ocallLogDebug("Success calling WASM function");
