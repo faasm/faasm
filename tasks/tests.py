@@ -62,6 +62,7 @@ def tests(
     from_file=None,
     abort=False,
     debug=False,
+    trace=False,
     random=False,
     repeats=1,
 ):
@@ -87,6 +88,9 @@ def tests(
 
     if debug:
         TEST_ENV["LOG_LEVEL"] = "debug"
+
+    if trace:
+        TEST_ENV["LOG_LEVEL"] = "trace"
 
     if test_case:
         tests_cmd.append("'{}'".format(test_case))
