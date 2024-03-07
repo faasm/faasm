@@ -190,23 +190,42 @@ jobs:
           path: /usr/local/faasm/wasm/python
           key: wasm-py-${{ steps.submodule-commit.outputs.py-commit }}
 
-  conan-cache:
+  image-cache:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    container:
-      image: faasm.azurecr.io/cli:0.21.2
-      credentials:
-        username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
-        password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Check-out code"
         uses: actions/checkout@v4
         with:
           submodules: true
+      - name: "Install faasmctl"
+        run: pip3 install faasmctl==0.30.2
+      - uses: faasm/image-cache-action@main
+        with:
+          faasm-version: 0.21.2
+
+  conan-cache:
+    if: github.event.pull_request.draft == false
+    needs: [image-cache]
+    runs-on: ubuntu-latest
+    env:
+      CONAN_CACHE_MOUNT_SOURCE: ~/.conan
+    steps:
+      - name: "Check-out code"
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: "Install faasmctl"
+        run: pip3 install faasmctl==0.30.2
+      - uses: faasm/image-cache-action@main
+        with:
+          faasm-version: 0.21.2
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v3
+      - name: "Start a worker-less Faasm cluster to run unit tests"
+        run: faasmctl deploy.compose --mount-source . --workers=0
       - name: "Build Conan dependencies to be shared by all runs"
-        run: ./bin/inv_wrapper.sh dev.cmake --build Debug --clean
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --build Debug --clean"
 
   code-coverage:
     needs: [cpp-funcs, py-funcs, conan-cache]
@@ -216,6 +235,7 @@ jobs:
       always() &&
       !cancelled() &&
       github.event.pull_request.draft == false &&
+      needs.conan-cache.result == 'success' &&
       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: ubuntu-latest
@@ -318,6 +338,7 @@ jobs:
       always() &&
       !cancelled() &&
       github.event.pull_request.draft == false &&
+      needs.conan-cache.result == 'success' &&
       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: ubuntu-latest
@@ -360,7 +381,7 @@ jobs:
           echo "cpp-commit=$(git submodule status ./clients/cpp | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
           echo "py-commit=$(git submodule status ./clients/python | cut '-d ' -f 2)" >> $GITHUB_OUTPUT
       - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.29.0
+        run: pip3 install faasmctl==0.30.2
       - name: "Start a worker-less Faasm cluster to run unit tests"
         run: faasmctl deploy.compose --mount-source . --workers=0
       - name: "Get Cpp WASM cache"
@@ -437,6 +458,7 @@ jobs:
       always() &&
       !cancelled() &&
       github.event.pull_request.draft == false &&
+      needs.conan-cache.result == 'success' &&
       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: self-hosted
@@ -558,7 +580,7 @@ jobs:
         with:
           submodules: true
       - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.29.0
+        run: pip3 install faasmctl==0.30.2
       # Cache contains architecture-specific machine code
       - name: "Get CPU model name"
         run: echo "CPU_MODEL=$(./bin/print_cpu.sh)" >> $GITHUB_ENV
@@ -592,6 +614,7 @@ jobs:
 
   e2e-tests:
     if: github.event.pull_request.draft == false
+    needs: [image-cache]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
