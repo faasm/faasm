@@ -221,7 +221,7 @@ jobs:
       - name: "Conan cache"
         uses: faasm/conan-cache-action@v3
       - name: "Start a worker-less Faasm cluster to run unit tests"
-        run: faasmctl deploy.compose --mount-source . --workers=0
+        run: faasmctl deploy.compose --mount-source $GITHUB_WORKSPACE --workers=0
       - name: "Build Conan dependencies to be shared by all runs"
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --build Debug --clean"
 
