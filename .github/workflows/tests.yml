@@ -190,28 +190,11 @@ jobs:
           path: /usr/local/faasm/wasm/python
           key: wasm-py-${{ steps.submodule-commit.outputs.py-commit }}
 
+  # Run once the cache, to guarantee that downstream jobs see a cache hit
   image-cache:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      # TODO: consider calling inside the action
-      - name: "Maximize build space"
-        uses: easimon/maximize-build-space@master
-        with:
-          # Leave 25 GB for the / partition for docker images (stored under
-          # /var/lib/docker)
-          root-reserve-mb: 25600
-          remove-android: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'true'
-          remove-dotnet: 'true'
-          remove-haskell: 'true'
-      - name: "Check-out code"
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: "Install faasmctl"
-        run: pip3 install faasmctl==0.30.2
       - uses: faasm/image-cache-action@main
         with:
           faasm-version: 0.21.2
