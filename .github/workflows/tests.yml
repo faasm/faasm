@@ -198,6 +198,7 @@ jobs:
       - uses: faasm/image-cache-action@main
         with:
           faasm-version: 0.21.2
+          faabric-version: 0.14.0
       - name: "Check directory"
         run: ls -lart /tmp/
 
@@ -209,9 +210,12 @@ jobs:
       CONAN_CACHE_MOUNT_SOURCE: ~/.conan
     steps:
       # Fetch the images from the cache
-      - uses: faasm/image-cache-action@main
+      - name: "Image cache (must run as first step!)"
+        uses: faasm/image-cache-action@main
         with:
           faasm-version: 0.21.2
+          faabric-version: 0.14.0
+          read-only: 'true'
       - name: "Check-out code"
         uses: actions/checkout@v4
         with:
@@ -353,6 +357,10 @@ jobs:
     steps:
       - name: "Image cache (must run as first step!)"
         uses: faasm/image-cache-action@main
+        with:
+          faasm-version: 0.21.2
+          faabric-version: 0.14.0
+          read-only: 'true'
       - uses: csegarragonz/set-compose-version-action@main
         with:
           compose-version: "2.22.0"
@@ -569,8 +577,12 @@ jobs:
       FAASM_VERSION: 0.21.2
       FAASM_WASM_VM: ${{ matrix.wasm_vm }}
     steps:
-      - name: "Image cache"
+      - name: "Image cache (must run as first step!)"
         uses: faasm/image-cache-action@main
+        with:
+          faasm-version: 0.21.2
+          faabric-version: 0.14.0
+          read-only: 'true'
       - name: "Checkout code"
         uses: actions/checkout@v4
         with:
