@@ -216,7 +216,7 @@ jobs:
         with:
           faasm-version: 0.21.2
       - name: "Check directory"
-        run: ls -lart /tmp/faasm-docker-images
+        run: ls -lart /tmp/
 
   conan-cache:
     if: github.event.pull_request.draft == false
