@@ -207,7 +207,7 @@ jobs:
     needs: [image-cache]
     runs-on: ubuntu-latest
     env:
-      CONAN_CACHE_MOUNT_SOURCE: ~/.conan
+      CONAN_CACHE_MOUNT_SOURCE: .conan
       FAASM_INI_FILE: ./faasm.ini
       FAASM_VERSION: 0.21.2
     steps:
@@ -366,7 +366,7 @@ jobs:
         # mix to benefit from GHAs parallelism
         sanitiser: [None, Thread, Undefined, Coverage]
     env:
-      CONAN_CACHE_MOUNT_SOURCE: ~/.conan
+      CONAN_CACHE_MOUNT_SOURCE: .conan
       FAASM_INI_FILE: ./faasm.ini
       FAASM_VERSION: 0.21.2
     steps:
@@ -587,7 +587,7 @@ jobs:
       matrix:
         wasm_vm: [wamr, wavm]
     env:
-      CONAN_CACHE_MOUNT_SOURCE: ~/.conan
+      CONAN_CACHE_MOUNT_SOURCE: .conan
       FAASM_INI_FILE: ./faasm.ini
       FAASM_VERSION: 0.21.2
       FAASM_WASM_VM: ${{ matrix.wasm_vm }}
