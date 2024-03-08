@@ -1,7 +1,6 @@
 #include <catch2/catch.hpp>
 
 #include "faasm_fixtures.h"
-#include "utils.h"
 
 #include <conf/FaasmConfig.h>
 #include <faabric/util/config.h>
@@ -60,7 +59,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
       faabric::util::batchExecFactory("demo", function, 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
     faabric::executor::ExecutorContext::set(nullptr, req, 0);
-    faaslet::Faaslet f(msg);
+    faaslet::Faaslet faaslet(msg);
 
     // Execute the function using another message
     for (int i = 0; i < nExecs; i++) {
@@ -72,7 +71,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         std::string inputData = fmt::format("hello there {}", i);
         msg.set_inputdata(inputData);
 
-        int returnValue = f.executeTask(0, 0, req);
+        int returnValue = faaslet.executeTask(0, 0, req);
         REQUIRE(returnValue == 0);
 
         REQUIRE(msg.returnvalue() == 0);
@@ -82,10 +81,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
             REQUIRE(outputData == inputData);
         }
 
-        f.reset(msg);
+        faaslet.reset(msg);
     }
 
-    f.shutdown();
+    faaslet.shutdown();
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture, "Test WAMR sbrk", "[wamr]")
@@ -148,20 +147,23 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     std::string inputData = "hello there";
     call.set_inputdata(inputData);
 
-    wasm_runtime_init_thread_env();
     wasm::WAMRWasmModule module;
     module.bindToFunction(call);
+
+    // Given that we don't execute the function, we need to set the thread
+    // environment so that the internal malloc call succeeds
+    wasm_runtime_init_thread_env();
 
     std::vector<int> nums = { 1, 2, 3 };
     void* nativePtr = nullptr;
     uint32_t wasmOffset = module.wasmModuleMalloc(3 * sizeof(int), &nativePtr);
     REQUIRE(wasmOffset != 0);
 
+    wasm_runtime_destroy_thread_env();
+
     SPDLOG_INFO("WASM offset: {}", wasmOffset);
     if (wasmOffset == 0) {
         SPDLOG_ERROR("WASM module malloc failed!");
     }
-
-    wasm_runtime_destroy_thread_env();
 }
 }
