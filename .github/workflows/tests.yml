@@ -63,7 +63,9 @@ jobs:
         with:
           submodules: true
       - name: "Build docs"
-        run: ./bin/inv_wrapper.sh docs
+        run: |
+          sudo apt install -y doxygen
+          ./bin/inv_wrapper.sh docs
 
   # Work out if we need to re-cross-compile the WASM functions used in the
   # tests. We need to run `cpp-funcs` if there's a change in the `clients/cpp`
