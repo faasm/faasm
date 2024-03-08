@@ -53,7 +53,9 @@ struct WAMRModuleMixin
 
         // Catch error but not throw exception from inside the mixin
         if (wasmOffset == 0) {
-            SPDLOG_ERROR("WASM module malloc failed: {}", wasm_runtime_get_exception(this->underlying().getModuleInstance()));
+            SPDLOG_ERROR("WASM module malloc failed: {}",
+                         wasm_runtime_get_exception(
+                           this->underlying().getModuleInstance()));
         }
 
         return wasmOffset;
