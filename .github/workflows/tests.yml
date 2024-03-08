@@ -19,9 +19,9 @@ concurrency:
 # Top-level env. vars shared by most jobs
 env:
   CONAN_CACHE_MOUNT_SOURCE: .conan
-  FAABRIC_VERSION: 0.14.0
+  FAABRIC_VERSION: 0.15.0
   FAASM_INI_FILE: ./faasm.ini
-  FAASM_VERSION: 0.21.2
+  FAASM_VERSION: 0.22.0
   FAASMCTL_VERSION: 0.30.3
 
 jobs:
@@ -251,7 +251,7 @@ jobs:
       needs.conan-cache.result == 'success' &&
       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
