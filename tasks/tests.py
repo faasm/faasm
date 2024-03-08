@@ -18,8 +18,11 @@ TEST_ENV = {
     "NETNS_MODE": "off",
     "PLANNER_HOST": "localhost",
     "PLANNER_PORT": "8080" if IS_CI else "8081",
-    "REDIS_QUEUE_HOST": "redis" if IS_CI else "redis-queue",
-    "REDIS_STATE_HOST": "redis" if IS_CI else "redis-state",
+    # faasmctl needs this
+    "REDIS_QUEUE_HOST": "redis-queue",
+    "REDIS_STATE_HOST": "redis-state",
+    # "REDIS_QUEUE_HOST": "redis" if IS_CI else "redis-queue",
+    # "REDIS_STATE_HOST": "redis" if IS_CI else "redis-state",
     "TERM": "xterm-256color",
     "FAASM_WASM_VM": "wavm",
     # Sanitiser env. variables

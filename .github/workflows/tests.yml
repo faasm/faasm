@@ -411,10 +411,6 @@ jobs:
           path: /usr/local/faasm/wasm/python
           key: wasm-py-${{ steps.submodule-commit.outputs.py-commit }}
       # Move libfake and pyfuncs that are misplaced to only use one cache
-      - name: "Delete me"
-        run: |
-          ls -lart ./dev/faasm-local
-          ls -lart ./dev/faasm-local/wasm || true
       - name: "Post-WASM cache"
         run: |
           # For some reason, non-docker runners resolve /usr into ../../../usr
@@ -457,31 +453,32 @@ jobs:
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh python.clear-runtime-pyc"
       # Tests build (Debug required for tests)
       - name: "Re-run CMake with sanitiser set"
-        if: ${{ matrix.sanitiser }} != 'Coverage'
+        if: ${{ matrix.sanitiser != 'Coverage' }}
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sanitiser ${{ matrix.sanitiser }}"
       - name: "Re-run CMake with coverage"
-        if: ${{ matrix.sanitiser }} == 'Coverage'
+        if: ${{ matrix.sanitiser == 'Coverage' }}
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --build Debug --coverage"
       - name: "Build only the tests target"
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cc tests"
       # Run tests
       - name: "Run the tests"
-        if: ${{ matrix.sanitiser }} != 'Coverage'
+        if: ${{ matrix.sanitiser != 'Coverage' }}
         run: faasmctl cli.faasm --env HOST_TYPE=ci --cmd "./bin/inv_wrapper.sh tests"
       - name: "Run the tests and fetch coverage report"
-        if: ${{ matrix.sanitiser }} == 'Coverage'
+        if: ${{ matrix.sanitiser == 'Coverage' }}
         run: faasmctl cli.faasm --env HOST_TYPE=ci,LLVM_PROFILE_FILE=faasm.profraw --cmd "./bin/inv_wrapper.sh tests" --cp-out faasm.profraw:/tmp/faasm.profraw
       - name: "Generate code coverage report"
-        if: ${{ matrix.sanitiser }} == 'Coverage'
+        if: ${{ matrix.sanitiser == 'Coverage' }}
         run: ./bin/inv_wrapper.sh dev.coverage-report --file-in /tmp/faasm.profraw --file-out coverage.txt
       - name: "Upload coverage report to CodeCov"
-        if: ${{ matrix.sanitiser }} == 'Coverage'
+        if: ${{ matrix.sanitiser == 'Coverage' }}
         uses: codecov/codecov-action@v4
         with:
           # Note that this secret is specific to this repository
           token: ${{ secrets.CODECOV_TOKEN }}
 
-
+  # TODO(faasmctl-sgx): merge with main tests workflow when faasmctl supports
+  # deploying SGX clusters
   sgx-tests:
     needs: [cpp-funcs, py-funcs, conan-cache]
     # Run the tests both if the dependencies have succeeded or have been
@@ -653,17 +650,12 @@ jobs:
       - uses: csegarragonz/set-compose-version-action@main
         with:
           compose-version: "2.22.0"
-      - name: "Maximize build space"
-        uses: easimon/maximize-build-space@master
+      - name: "Image cache (must run as first step!)"
+        uses: faasm/image-cache-action@main
         with:
-          # Leave 25 GB for the / partition for docker images (stored under
-          # /var/lib/docker)
-          root-reserve-mb: 25600
-          remove-android: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'true'
-          remove-dotnet: 'true'
-          remove-haskell: 'true'
+          faasm-version: 0.21.2
+          faabric-version: 0.14.0
+          read-only: 'true'
       - name: "Checkout code"
         uses: actions/checkout@v4
         with:
