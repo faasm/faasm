@@ -48,7 +48,10 @@ TEST_CASE_METHOD(ErrorCheckFixture,
         faasmConf.wasmVm = "wavm";
     }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     checkError("ret_one", "Call failed (return value=1)");
 }
