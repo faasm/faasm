@@ -40,6 +40,9 @@ class OpenMPTestFixture
         auto req = faabric::util::batchExecFactory("omp", function, 1);
         req->set_singlehosthint(true);
 
+        // 08/03/2024 - Some local OpenMP tests stopped working with WAVM
+        // after upgrade to LLVM 17 due to WAVM's incorrect handling of
+        // atomics
         // SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
         SECTION("WAMR")
