@@ -531,8 +531,8 @@ jobs:
       - name: "Image cache (must run as first step!)"
         uses: faasm/image-cache-action@main
         with:
-          faasm-version: 0.21.2
-          faabric-version: 0.14.0
+          faasm-version: ${{ env.FAASM_VERSION }}
+          faabric-version: ${{ env.FAABRIC_VERSION }}
           read-only: 'true'
       - name: "Checkout code"
         uses: actions/checkout@v4
