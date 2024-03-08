@@ -27,5 +27,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 
     REQUIRE_THROWS_AS(f.executeTask(0, 0, req),
                       faabric::util::FunctionMigratedException);
+
+    f.shutdown();
 }
 }

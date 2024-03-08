@@ -130,6 +130,8 @@ def wamr(ctx, clean=False):
     env.update({"FAASM_WASM_VM": "wamr"})
     _do_codegen_user("demo", clean)
     _do_codegen_user("mpi", clean)
+    _do_codegen_user("omp", clean)
+    _do_codegen_user("threads", clean)
 
 
 @task

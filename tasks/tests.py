@@ -74,7 +74,7 @@ def tests(
     When running this task with no arguments, the whole test suite will be
     executed. You can specify the name of the test to run by passing the
     --test-case variable. Additionally, you may also specify a filename to
-    run (--filename) or a directory (--directory)
+    run (--test-file) or a directory (--test-dir)
     """
     tests_cmd = [
         join(FAASM_BUILD_DIR, "bin", "tests"),

@@ -274,6 +274,8 @@ void WAMRWasmModule::destroyThreadsExecEnv(bool destroyMainExecEnv)
 
     if (destroyMainExecEnv && execEnvs.at(0) != nullptr) {
         wasm_runtime_destroy_exec_env(execEnvs.at(0));
+        execEnvs.at(0) = nullptr;
+        wasm_runtime_set_exec_env_tls(nullptr);
     }
 }
 
