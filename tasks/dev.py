@@ -150,7 +150,7 @@ def coverage_report(ctx, file_in, file_out):
 
     # First, merge in the raw profiling data
     llvm_cmd = [
-        "llvm-profdata-13",
+        "llvm-profdata-{}".format(LLVM_MAJOR_VERSION),
         "merge -sparse {}".format(file_in),
         "-o {}".format(tmp_file),
     ]
@@ -159,7 +159,7 @@ def coverage_report(ctx, file_in, file_out):
 
     # Second, generate the coverage report
     llvm_cmd = [
-        "llvm-cov-13 show",
+        "llvm-cov-{} show".format(LLVM_MAJOR_VERSION),
         "--ignore-filename-regex=/usr/local/code/faasm/tests/*",
         join(FAASM_BUILD_DIR, "bin", "tests"),
         "-instr-profile={}".format(tmp_file),
