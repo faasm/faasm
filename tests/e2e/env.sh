@@ -10,3 +10,6 @@ export FAASM_INI_FILE=${E2E_TESTS_ROOT}/faasm.ini
 
 # Python vars
 export VENV_DIR=${E2E_TESTS_ROOT}/venv-e2e-tests
+
+# Point the conan cache source mount to the right directory
+export CONAN_CACHE_MOUNT_SOURCE=${PROJ_ROOT}/.conan
