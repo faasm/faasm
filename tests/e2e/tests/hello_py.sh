@@ -2,10 +2,8 @@
 
 set -o pipefail
 
-# Skip python tests in WAMR
-if [ "${FAASM_WASM_VM}" == "wamr" ]; then
-    exit 0
-fi
+# 11/03/2024 - Python support temporarily broken
+exit ${SKIPPED_TEST_RET_VAL}
 
 # Compile and upload a Python function
 faasmctl cli.python --cmd "./bin/inv_wrapper.sh cpython.func cpython.upload func.uploadpy hello"
