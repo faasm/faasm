@@ -325,7 +325,7 @@ jobs:
       # `clients/python` have changed, or (ii) `cpp` and `python` have not
       # changed, but we have a cache miss (i.e. new CPU).
       - name: "Run codegen for the tests"
-        if: ${{ (needs.wasm-funcs-cache.outputs.cpp == 'true') || (needs.wasm-funcs-cache.outputs.python == 'true') || (steps.machine-code-cache.outputs.cache-hit != 'true') }}
+        if: always() || ${{ (needs.wasm-funcs-cache.outputs.cpp == 'true') || (needs.wasm-funcs-cache.outputs.python == 'true') || (steps.machine-code-cache.outputs.cache-hit != 'true') }}
         run: |
           faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake dev.cc codegen_func dev.cc codegen_shared_obj"
           faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh codegen.tests"
