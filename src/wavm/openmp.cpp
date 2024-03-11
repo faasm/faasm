@@ -187,10 +187,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_flush", void, __kmpc_flush, I32 loc)
 {
-    OMP_FUNC_ARGS("__kmpc_flush {}", loc);
-
-    // Full memory fence, a bit overkill maybe for Wasm
-    __sync_synchronize();
+    wasm::doOpenMPFlush(loc);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,

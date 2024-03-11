@@ -60,6 +60,11 @@ static void __kmpc_end_single_wrapper(wasm_exec_env_t execEnv,
     wasm::doOpenMPEndSingle(loc, globalTid);
 }
 
+static void __kmpc_flush_wrapper(wasm_exec_env_t execEnv, int32_t loc)
+{
+    wasm::doOpenMPFlush(loc);
+}
+
 static int32_t __kmpc_single_wrapper(wasm_exec_env_t execEnv,
                                      int32_t loc,
                                      int32_t globalTid)
@@ -97,8 +102,8 @@ static void __kmpc_for_static_init_8_wrapper(wasm_exec_env_t execEnv,
                                              int64_t* lower,
                                              int64_t* upper,
                                              int64_t* stride,
-                                             int32_t incr,
-                                             int32_t chunk)
+                                             int64_t incr,
+                                             int64_t chunk)
 {
     wasm::doOpenMPForStaticInit8(
       loc, gtid, schedule, lastIter, lower, upper, stride, incr, chunk);
@@ -227,9 +232,10 @@ static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__kmpc_end_reduce, "(iii)"),
     REG_NATIVE_FUNC(__kmpc_end_reduce_nowait, "(iii)"),
     REG_NATIVE_FUNC(__kmpc_end_single, "(ii)"),
+    REG_NATIVE_FUNC(__kmpc_flush, "(i)"),
     REG_NATIVE_FUNC(__kmpc_for_static_fini, "(ii)"),
     REG_NATIVE_FUNC(__kmpc_for_static_init_4, "(iii****ii)"),
-    REG_NATIVE_FUNC(__kmpc_for_static_init_8, "(iii****ii)"),
+    REG_NATIVE_FUNC(__kmpc_for_static_init_8, "(iii****II)"),
     REG_NATIVE_FUNC(__kmpc_fork_call, "(iiii)"),
     REG_NATIVE_FUNC(__kmpc_global_thread_num, "(i)i"),
     REG_NATIVE_FUNC(__kmpc_master, "(ii)i"),

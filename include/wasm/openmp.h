@@ -43,6 +43,8 @@ void doOpenMPCritical(int32_t loc, int32_t globalTid, int32_t crit);
 
 void doOpenMPEndCritical(int32_t loc, int32_t globalTid, int32_t crit);
 
+void doOpenMPFlush(int32_t loc);
+
 void doOpenMPFork(int32_t loc,
                   int32_t nSharedVars,
                   int32_t microTask,

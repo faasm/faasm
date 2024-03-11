@@ -73,6 +73,14 @@ void doOpenMPEndCritical(int32_t loc, int32_t globalTid, int32_t crit)
     }
 }
 
+void doOpenMPFlush(int32_t loc)
+{
+    OMP_FUNC_ARGS("__kmpc_flush {}", loc);
+
+    // Full memory fence, a bit overkill maybe for Wasm
+    __sync_synchronize();
+}
+
 // ----------------------------------------------------
 // FORKING
 // ----------------------------------------------------
