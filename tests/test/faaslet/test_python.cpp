@@ -13,7 +13,7 @@
 
 namespace tests {
 
-class PythonFuncTestFixture : public FunctionExecTestFixture
+class PythonFuncTestFixture : public MultiRuntimeFunctionExecTestFixture
 {
   public:
     std::shared_ptr<faabric::BatchExecuteRequest> setUpPythonContext(
@@ -31,6 +31,8 @@ class PythonFuncTestFixture : public FunctionExecTestFixture
     void checkPythonFunction(const std::string& funcName, bool withPool)
     {
         auto req = setUpPythonContext("python", funcName);
+
+        faasmConf.wasmVm = "wamr";
 
         if (withPool) {
             // Note - some of the python checks can take a while to run
