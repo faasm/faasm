@@ -1003,9 +1003,6 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     std::vector<IR::UntaggedValue> invokeArgs = { msg.appidx(), argc };
     for (int argIdx = 0; argIdx < argc; argIdx++) {
         invokeArgs.emplace_back(ompLevel->sharedVarOffsets[argIdx]);
-        SPDLOG_WARN("Thread {} setting shared var offset: {}",
-                    threadPoolIdx,
-                    ompLevel->sharedVarOffsets[argIdx]);
     }
 
     Runtime::ContextRuntimeData* contextRuntimeData =

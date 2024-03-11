@@ -10,12 +10,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test function chaining by pointer",
                  "[faaslet]")
 {
-    /* 11/03/2024 - This test is broken on GHA
     SECTION("WAVM")
     {
         faasmConf.wasmVm = "wavm";
     }
-    */
 
     SECTION("WAMR")
     {
@@ -30,12 +28,10 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
                  "Test function chaining by name",
                  "[faaslet]")
 {
-    /* 11/03/2024 - This test is broken on GHA
     SECTION("WAVM")
     {
         faasmConf.wasmVm = "wavm";
     }
-    */
 
     SECTION("WAMR")
     {
