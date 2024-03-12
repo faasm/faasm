@@ -16,11 +16,25 @@ concurrency:
 
 jobs:
   build-dep-free-images:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         image: [redis, minio, base]
     steps:
+      # Make more space to build images
+      - name: "Maximize build space"
+        uses: easimon/maximize-build-space@master
+        if: ${{ (steps.docker-image-cache-probe.outputs.cache-hit != 'true') || (inputs.read-only != 'false') }}
+        with:
+          # Leave 35 GB for the / partition for docker images (stored under
+          # /var/lib/docker)
+          root-reserve-mb: 35600
+          remove-android: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'false'
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+
       - name: "Get the code"
         uses: actions/checkout@v4
       - name: "Get tag version"
@@ -35,6 +49,7 @@ jobs:
           registry: faasm.azurecr.io
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
+
       - name: "Build container image"
         uses: docker/build-push-action@v5
         with:
@@ -46,11 +61,25 @@ jobs:
 
   build-dep-on-base-images:
     needs: build-dep-free-images
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         image: [cli, upload, worker]
     steps:
+      # Make more space to build images
+      - name: "Maximize build space"
+        uses: easimon/maximize-build-space@master
+        if: ${{ (steps.docker-image-cache-probe.outputs.cache-hit != 'true') || (inputs.read-only != 'false') }}
+        with:
+          # Leave 35 GB for the / partition for docker images (stored under
+          # /var/lib/docker)
+          root-reserve-mb: 35600
+          remove-android: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'false'
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+
       - name: "Get the code"
         uses: actions/checkout@v4
       - name: "Get tag version"
@@ -65,6 +94,7 @@ jobs:
           registry: faasm.azurecr.io
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
+
       - name: "Build container image"
         uses: docker/build-push-action@v5
         with:
@@ -78,11 +108,25 @@ jobs:
 
   build-base-sgx:
     needs: build-dep-free-images
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         sgx-mode: [[-sgx, Hardware], [-sgx-sim, Simulation]]
     steps:
+      # Make more space to build images
+      - name: "Maximize build space"
+        uses: easimon/maximize-build-space@master
+        if: ${{ (steps.docker-image-cache-probe.outputs.cache-hit != 'true') || (inputs.read-only != 'false') }}
+        with:
+          # Leave 35 GB for the / partition for docker images (stored under
+          # /var/lib/docker)
+          root-reserve-mb: 35600
+          remove-android: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'false'
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+
       - name: "Get the code"
         uses: actions/checkout@v4
       - name: "Get tag version"
@@ -97,6 +141,7 @@ jobs:
           registry: faasm.azurecr.io
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
+
       - name: "Build container image"
         uses: docker/build-push-action@v5
         with:
@@ -110,12 +155,26 @@ jobs:
 
   build-worker-cli-sgx:
     needs: build-base-sgx
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         image: [worker, cli]
         sgx-mode: [[-sgx, Hardware], [-sgx-sim, Simulation]]
     steps:
+      # Make more space to build images
+      - name: "Maximize build space"
+        uses: easimon/maximize-build-space@master
+        if: ${{ (steps.docker-image-cache-probe.outputs.cache-hit != 'true') || (inputs.read-only != 'false') }}
+        with:
+          # Leave 35 GB for the / partition for docker images (stored under
+          # /var/lib/docker)
+          root-reserve-mb: 35600
+          remove-android: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'false'
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+
       - name: "Get the code"
         uses: actions/checkout@v4
       - name: "Get tag version"
@@ -132,6 +191,7 @@ jobs:
           registry: faasm.azurecr.io
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
+
       - name: "Build container image"
         uses: docker/build-push-action@v5
         with:
