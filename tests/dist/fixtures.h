@@ -82,6 +82,33 @@ class DistTestsFixture
         sch.addHostToGlobalSet(getDistTestWorkerIp(), remoteResources);
     }
 
+    std::shared_ptr<faabric::BatchExecuteRequestStatus> waitForBatchResults(
+      std::shared_ptr<faabric::BatchExecuteRequest> req,
+      int numExpectedMessages)
+    {
+        // First, poll untill all messages are ready
+        int pollSleepSecs = 2;
+        auto batchResults = plannerCli.getBatchResults(req);
+        int maxRetries = 20;
+        int numRetries = 0;
+        while (batchResults->messageresults_size() != numExpectedMessages) {
+            if (numRetries >= maxRetries) {
+                SPDLOG_ERROR("Timed-out waiting for batch messages results for "
+                             "app {} ({}/{})",
+                             req->appid(),
+                             batchResults->messageresults_size(),
+                             numExpectedMessages);
+                throw std::runtime_error("Timed-out waiting for batch messges");
+            }
+
+            SLEEP_MS(pollSleepSecs * 1000);
+            batchResults = plannerCli.getBatchResults(req);
+            numRetries += 1;
+        }
+
+        return batchResults;
+    }
+
   protected:
     faabric::redis::Redis& redis;
     faabric::scheduler::Scheduler& sch;
@@ -103,24 +130,7 @@ class MpiDistTestsFixture : public DistTestsFixture
     {
         int expectedWorldSize = req->messages(0).mpiworldsize();
 
-        // First, poll untill all messages are ready
-        int pollSleepSecs = 2;
-        auto batchResults = plannerCli.getBatchResults(req);
-        int maxRetries = 20;
-        int numRetries = 0;
-        while (batchResults->messageresults_size() != expectedWorldSize) {
-            if (numRetries >= maxRetries) {
-                SPDLOG_ERROR(
-                  "Timed-out waiting for MPI messages results ({}/{})",
-                  batchResults->messageresults_size(),
-                  expectedWorldSize);
-                throw std::runtime_error("Timed-out waiting for MPI messges");
-            }
-
-            SLEEP_MS(pollSleepSecs * 1000);
-            batchResults = plannerCli.getBatchResults(req);
-            numRetries += 1;
-        }
+        auto batchResults = waitForBatchResults(req, expectedWorldSize);
 
         for (const auto& msg : batchResults->messageresults()) {
             REQUIRE(msg.returnvalue() == 0);
