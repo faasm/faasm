@@ -11,6 +11,7 @@ pip3 install faasmctl==${FAASMCTL_VERSION}
 # Start Faasm cluster and silence the output to make it easier to read the logs
 if [ "${FAASM_MOUNT_SOURCE}" == "on" ]; then
     faasmctl deploy.compose --mount-source ${FAASM_SOURCE}
+    ls ${CONAN_CACHE_MOUNT_SOURCE}/data
     faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.tools --build Release"
     faasmctl restart -s upload -s worker
 else

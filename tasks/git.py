@@ -200,7 +200,7 @@ def bump_dep(ctx, faasmctl=None, python=False, cpp=False, faabric=False):
     if faasmctl is not None:
         new_ver = faasmctl
         old_ver = get_version("faasmctl")
-        strings_to_check = ["faasmctl=="]
+        strings_to_check = ["faasmctl==", "FAASMCTL_VERSION: "]
         for f in VERSIONED_FILES["faasmctl"]:
             for string in strings_to_check:
                 sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
