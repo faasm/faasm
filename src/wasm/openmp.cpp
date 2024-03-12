@@ -547,7 +547,7 @@ int32_t doOpenMPGetNumThreads()
 
 int32_t doOpenMPGetThreadNum()
 {
-    OMP_FUNC("omp_get_thread_num")
+    OMP_FUNC_TRACE("omp_get_thread_num")
     return localThreadNum;
 }
 

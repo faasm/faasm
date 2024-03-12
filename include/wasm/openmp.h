@@ -21,6 +21,18 @@
     UNUSED(globalThreadNum);                                                   \
     SPDLOG_DEBUG("OMP {} ({}): " str, localThreadNum, globalThreadNum);
 
+#define OMP_FUNC_TRACE(str)                                                    \
+    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
+    faabric::Message* msg =                                                    \
+      &faabric::executor::ExecutorContext::get()->getMsg();                    \
+    int32_t localThreadNum = level->getLocalThreadNum(msg);                    \
+    int32_t globalThreadNum = level->getGlobalThreadNum(msg);                  \
+    UNUSED(level);                                                             \
+    UNUSED(msg);                                                               \
+    UNUSED(localThreadNum);                                                    \
+    UNUSED(globalThreadNum);                                                   \
+    SPDLOG_TRACE("OMP {} ({}): " str, localThreadNum, globalThreadNum);
+
 #define OMP_FUNC_ARGS(formatStr, ...)                                          \
     std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();  \
     faabric::Message* msg =                                                    \
