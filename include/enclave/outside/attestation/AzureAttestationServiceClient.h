@@ -2,7 +2,7 @@
 
 #include <enclave/outside/attestation/EnclaveInfo.h>
 
-#include <jwt-cpp/jwt.h>
+#include <jwt-cpp/traits/kazuho-picojson/defaults.h>
 #include <string>
 
 namespace sgx {

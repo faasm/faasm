@@ -67,8 +67,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32,
                                omp_get_max_threads)
 {
-    OMP_FUNC("omp_get_max_threads");
-    return level->getMaxThreadsAtNextLevel();
+    return wasm::doOpenMPGetMaxThreads();
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_level", I32, omp_get_level)
@@ -110,12 +109,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 globalTid,
                                I32 numThreads)
 {
-    OMP_FUNC_ARGS(
-      "__kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
-
-    if (numThreads > 0) {
-        level->pushedThreads = numThreads;
-    }
+    wasm::doOpenMPPushNumThreads(loc, globalTid, numThreads);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -193,10 +187,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
  */
 WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_flush", void, __kmpc_flush, I32 loc)
 {
-    OMP_FUNC_ARGS("__kmpc_flush {}", loc);
-
-    // Full memory fence, a bit overkill maybe for Wasm
-    __sync_synchronize();
+    wasm::doOpenMPFlush(loc);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -241,9 +232,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 loc,
                                I32 globalTid)
 {
-    OMP_FUNC_ARGS("__kmpc_single {} {}", loc, globalTid);
-
-    return localThreadNum == 0;
+    return wasm::doOpenMPSingle(loc, globalTid);
 }
 
 /**
@@ -256,11 +245,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 loc,
                                I32 globalTid)
 {
-    OMP_FUNC_ARGS("__kmpc_end_single {} {}", loc, globalTid);
-
-    if (localThreadNum != 0) {
-        throw std::runtime_error("Calling _kmpc_end_single from non-master");
-    }
+    wasm::doOpenMPEndSingle(loc, globalTid);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -280,6 +265,9 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     if (nSharedVars > 0) {
         sharedVarsPtr = Runtime::memoryArrayPtr<uint32_t>(
           memoryPtr, sharedVarPtrs, nSharedVars);
+    }
+    for (int i = 0; i < nSharedVars; i++) {
+        SPDLOG_INFO("Shared var offset: {}", sharedVarsPtr[i]);
     }
 
     wasm::doOpenMPFork(locPtr, nSharedVars, microtaskPtr, sharedVarsPtr);
@@ -346,57 +334,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     wasm::doOpenMPForStaticFini(loc, gtid);
 }
 
-// ---------------------------------------------------
-// REDUCTION
-// ---------------------------------------------------
-
-/**
- * Called to start a reduction.
- */
-void startReduceCritical(faabric::Message* msg,
-                         std::shared_ptr<threads::Level> level,
-                         int32_t numReduceVars,
-                         int32_t reduceVarPtrs,
-                         int32_t reduceVarsSize)
-
-{
-    // This function synchronises updates to shared reduce variables.
-    // Each host will have its own copy of these variables, which will be merged
-    // at the end of the parallel section via Faasm shared memory.
-    // This means we only need to synchronise local accesses here, so we only
-    // need a local lock.
-    SPDLOG_TRACE("Entering reduce critical section for group {}",
-                 msg->groupid());
-
-    std::shared_ptr<faabric::transport::PointToPointGroup> group =
-      faabric::transport::PointToPointGroup::getOrAwaitGroup(msg->groupid());
-    group->localLock();
-}
-
-/**
- * Called to finish off a reduction.
- */
-void endReduceCritical(faabric::Message* msg, bool barrier)
-{
-    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
-    int localThreadNum = level->getLocalThreadNum(msg);
-
-    // Unlock the critical section
-    std::shared_ptr<faabric::transport::PointToPointGroup> group =
-      faabric::transport::PointToPointGroup::getGroup(msg->groupid());
-    group->localUnlock();
-
-    // Master must make sure all other threads are done
-    group->notify(localThreadNum);
-
-    // Everyone waits if there's a barrier
-    if (barrier) {
-        PROF_START(FinaliseReduceBarrier)
-        group->barrier(localThreadNum);
-        PROF_END(FinaliseReduceBarrier)
-    }
-}
-
 /**
  * This function is called to start the critical section required to perform the
  * reduction operation by each thread. It will then call __kmpc_end_reduce (and
@@ -435,7 +372,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceFunc,
                   lockPtr);
 
-    startReduceCritical(
+    wasm::doOpenMPStartReduceCritical(
       msg, level, numReduceVars, reduceVarPtrs, reduceVarsSize);
     return 1;
 }
@@ -464,7 +401,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                   reduceFunc,
                   lockPtr);
 
-    startReduceCritical(
+    wasm::doOpenMPStartReduceCritical(
       msg, level, numReduceVars, reduceVarPtrs, reduceVarsSize);
     return 1;
 }
@@ -481,7 +418,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce {} {} {}", loc, gtid, lck);
-    endReduceCritical(msg, true);
+    wasm::doOpenMPEndReduceCritical(msg, true);
 }
 
 /**
@@ -496,7 +433,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                I32 lck)
 {
     OMP_FUNC_ARGS("__kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
-    endReduceCritical(msg, false);
+    wasm::doOpenMPEndReduceCritical(msg, false);
 }
 
 // ----------------------------------------------

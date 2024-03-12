@@ -4,10 +4,11 @@ from os import makedirs
 from os.path import exists, join
 from subprocess import run
 from tasks.util.env import (
-    PROJ_ROOT,
     FAASM_BUILD_DIR,
     FAASM_INSTALL_DIR,
     FAASM_SGX_MODE_DISABLED,
+    LLVM_MAJOR_VERSION,
+    PROJ_ROOT,
 )
 
 DEV_TARGETS = [
@@ -54,11 +55,12 @@ def cmake(
         "cmake",
         "-GNinja",
         "-DCMAKE_BUILD_TYPE={}".format(build),
-        "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-13",
-        "-DCMAKE_C_COMPILER=/usr/bin/clang-13",
+        "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-{}".format(LLVM_MAJOR_VERSION),
+        "-DCMAKE_C_COMPILER=/usr/bin/clang-{}".format(LLVM_MAJOR_VERSION),
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
         "-DFAASM_PERF_PROFILING=ON" if perf else "",
         "-DFAASM_CODE_COVERAGE=ON" if coverage else "",
+        "-DFAASM_LLVM_MAJOR_VERSION={}".format(LLVM_MAJOR_VERSION),
         "-DFAASM_SELF_TRACING=ON" if prof else "",
         "-DFAABRIC_SELF_TRACING=ON" if prof else "",
         "-DFAASM_USE_SANITISER={}".format(sanitiser),
@@ -148,7 +150,7 @@ def coverage_report(ctx, file_in, file_out):
 
     # First, merge in the raw profiling data
     llvm_cmd = [
-        "llvm-profdata-13",
+        "llvm-profdata-{}".format(LLVM_MAJOR_VERSION),
         "merge -sparse {}".format(file_in),
         "-o {}".format(tmp_file),
     ]
@@ -157,7 +159,7 @@ def coverage_report(ctx, file_in, file_out):
 
     # Second, generate the coverage report
     llvm_cmd = [
-        "llvm-cov-13 show",
+        "llvm-cov-{} show".format(LLVM_MAJOR_VERSION),
         "--ignore-filename-regex=/usr/local/code/faasm/tests/*",
         join(FAASM_BUILD_DIR, "bin", "tests"),
         "-instr-profile={}".format(tmp_file),

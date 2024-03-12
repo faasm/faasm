@@ -18,8 +18,14 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
 
     auto req = setUpContext("demo", "dynlink");
 
-    SECTION("Single execution") { executeWithPool(req); }
+    SECTION("Single execution")
+    {
+        executeWithPool(req);
+    }
 
-    SECTION("Multiple execution") { executeWithPoolMultipleTimes(req, 3); }
+    SECTION("Multiple execution")
+    {
+        executeWithPoolMultipleTimes(req, 3);
+    }
 }
 }

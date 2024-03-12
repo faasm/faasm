@@ -176,18 +176,6 @@ struct wasm_winsize
     uint16_t ws_ypixel;
 };
 
-/**
- * Found in pthread_impl.h
- * The "real" pthread struct has a lot of stuff in it. We only
- * care about a subset of the fields that appear at the start,
- * _especially_ the pointer to itself, which allows references to
- * be treated like pointers.
- */
-struct wasm_pthread
-{
-    int32_t selfPtr;
-};
-
 // Sockets/ network
 enum SocketCalls : uint32_t
 {

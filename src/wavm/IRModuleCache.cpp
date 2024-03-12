@@ -166,9 +166,10 @@ Runtime::ModuleRef IRModuleCache::getCompiledSharedModule(
 
 static void setModuleSpecFeatures(IR::Module& module)
 {
-    module.featureSpec.simd = true;
+    module.featureSpec.atomics = true;
     module.featureSpec.extendedNameSection = true;
     module.featureSpec.nonTrappingFloatToInt = true;
+    module.featureSpec.simd = true;
 }
 
 IR::Module& IRModuleCache::getMainModule(const std::string& user,
@@ -207,13 +208,10 @@ IR::Module& IRModuleCache::getMainModule(const std::string& user,
             }
 
             // Force maximum size
-            if (module.memories.defs.empty()) {
-                SPDLOG_ERROR("WASM module ({}) does not define any memories",
-                             key);
-                throw std::runtime_error(
-                  "WASM module does not define any memories");
+            if (!module.memories.defs.empty()) {
+                module.memories.defs[0].type.size.max =
+                  (U64)MAX_WASM_MEMORY_PAGES;
             }
-            module.memories.defs[0].type.size.max = (U64)MAX_WASM_MEMORY_PAGES;
 
             // Typescript modules don't seem to define a table
             if (!module.tables.defs.empty()) {

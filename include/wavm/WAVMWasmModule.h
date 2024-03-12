@@ -18,6 +18,8 @@ WAVM_DECLARE_INTRINSIC_MODULE(env)
 
 WAVM_DECLARE_INTRINSIC_MODULE(wasi)
 
+WAVM_DECLARE_INTRINSIC_MODULE(wasiThreads)
+
 std::vector<uint8_t> wavmCodegen(std::vector<uint8_t>& wasmBytes);
 
 template<class T>
@@ -170,6 +172,7 @@ class WAVMWasmModule final
     std::shared_mutex resetMx;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> envModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiModule;
+    WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> wasiThreadsModule;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> moduleInstance;
 
     // Map of dynamically loaded modules
@@ -192,6 +195,8 @@ class WAVMWasmModule final
     static WAVM::Runtime::Instance* getEnvModule();
 
     static WAVM::Runtime::Instance* getWasiModule();
+
+    static WAVM::Runtime::Instance* getWasiThreadsModule();
 
     void doBindToFunctionInternal(faabric::Message& msg,
                                   bool executeZygote,

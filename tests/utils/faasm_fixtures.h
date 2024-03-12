@@ -110,10 +110,15 @@ class FunctionExecTestFixture
       : fac(std::make_shared<faaslet::FaasletFactory>())
       , m(fac)
     {
+        wasm::WAMRWasmModule::initialiseWAMRGlobally();
         m.startRunner();
     }
 
-    ~FunctionExecTestFixture() { m.shutdown(); }
+    ~FunctionExecTestFixture()
+    {
+        m.shutdown();
+        wasm::WAMRWasmModule::destroyWAMRGlobally();
+    }
 
   protected:
     std::shared_ptr<faaslet::FaasletFactory> fac;

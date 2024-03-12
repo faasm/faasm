@@ -23,6 +23,8 @@ WAVM_DEFINE_INTRINSIC_MODULE(env)
 
 WAVM_DEFINE_INTRINSIC_MODULE(wasi)
 
+WAVM_DEFINE_INTRINSIC_MODULE(wasiThreads)
+
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                                "syscall",
                                I32,

@@ -21,13 +21,15 @@ set(WAMR_BUILD_LIBC_BUILTIN 1)
 set(WAMR_BUILD_LIBC_WASI 1)
 set(WAMR_BUILD_LIB_PTHREAD 0)
 
+# Enable APIs to manage low-level thread-local state
+set(WAMR_BUILD_THREAD_MGR 1)
+set(WAMR_BUILD_SHARED_MEMORY 1)
+
 # WAMR features
 set(WAMR_BUILD_SIMD 1)
 
 set(WAMR_BUILD_MULTI_MODULE 1)
-# If bulk memory set, WAMR allocates one single page, breaking our brk memory
-# management model
-set(WAMR_BUILD_BULK_MEMORY 0)
+set(WAMR_BUILD_BULK_MEMORY 1)
 
 # We must enable WAMR hardware bounds check here, otherwise WAMR uses malloc to
 # allocate memory, which is not page-aligned. This seems like a blunt instrument
@@ -84,6 +86,7 @@ faasm_private_lib(wamrmodule
     memory.cpp
     mpi.cpp
     native.cpp
+    openmp.cpp
     process.cpp
     pthread.cpp
     signals.cpp

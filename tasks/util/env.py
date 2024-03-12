@@ -34,6 +34,9 @@ FAASM_SGX_MODE_DISABLED = "Disabled"
 FAASM_SGX_MODE_SIM = "Simulation"
 FAASM_SGX_MODE_HARDWARE = "Hardware"
 
+# TODO: this variable is duplicated in faabric
+LLVM_MAJOR_VERSION = 17
+
 
 def get_wasm_func_path(user, func_name):
     func_dir = join(WASM_DIR, user, func_name)

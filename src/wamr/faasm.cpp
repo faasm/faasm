@@ -8,6 +8,7 @@
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm/chaining.h>
+#include <wasm/faasm.h>
 #include <wasm/host_interface_test.h>
 #include <wasm/migration.h>
 
@@ -166,6 +167,25 @@ static int32_t __faasm_read_input_wrapper(wasm_exec_env_t exec_env,
     return inputSize;
 }
 
+static void __faasm_sm_critical_local_wrapper(wasm_exec_env_t execEnv)
+{
+    wasm::doFaasmSmCriticalLocal();
+}
+
+static void __faasm_sm_critical_local_end_wrapper(wasm_exec_env_t execEnv)
+{
+    wasm::doFaasmSmCriticalLocalEnd();
+}
+
+static void __faasm_sm_reduce_wrapper(wasm_exec_env_t execEnv,
+                                      int32_t varPtr,
+                                      int32_t varType,
+                                      int32_t reduceOp,
+                                      int32_t currentBatch)
+{
+    wasm::doFaasmSmReduce(varPtr, varType, reduceOp, currentBatch);
+}
+
 /**
  * Set the function output
  */
@@ -190,6 +210,9 @@ static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__faasm_push_state, "(*)"),
     REG_NATIVE_FUNC(__faasm_read_appended_state, "(**ii)"),
     REG_NATIVE_FUNC(__faasm_read_input, "($i)i"),
+    REG_NATIVE_FUNC(__faasm_sm_critical_local, "()"),
+    REG_NATIVE_FUNC(__faasm_sm_critical_local_end, "()"),
+    REG_NATIVE_FUNC(__faasm_sm_reduce, "(iiii)"),
     REG_NATIVE_FUNC(__faasm_write_output, "($i)"),
 };
 

@@ -13,8 +13,14 @@ TEST_CASE_METHOD(DistTestsFixture,
                  "Test OpenMP across hosts",
                  "[threads][openmp]")
 {
-    // TODO(wamr-omp)
+    // TODO(wamr-omp-dist): distributed shared memory with OpenMP is not
+    // supported in WAMR
     if (faasmConf.wasmVm == "wamr") {
+        return;
+    }
+
+    // 11/03/2024 - OpenMP does not work with WAVM anymore
+    if (faasmConf.wasmVm == "wavm") {
         return;
     }
 
@@ -27,9 +33,15 @@ TEST_CASE_METHOD(DistTestsFixture,
     setLocalRemoteSlots(nLocalSlots + 1, nThreads - nLocalSlots, 0, 0);
 
     std::string function;
-    SECTION("Not using shared memory") { function = "hellomp"; }
+    SECTION("Not using shared memory")
+    {
+        function = "hellomp";
+    }
 
-    SECTION("Using shared memory") { function = "omp_checks"; }
+    SECTION("Using shared memory")
+    {
+        function = "omp_checks";
+    }
 
     // TODO(thread-opt): we decrease the number of reduce operations, as remote
     // threads are much less performant now. Undo when optimisations are put
@@ -42,7 +54,10 @@ TEST_CASE_METHOD(DistTestsFixture,
         function = "repeated_reduce";
     }
 
-    SECTION("Pi estimation") { function = PI_FUNCTION; }
+    SECTION("Pi estimation")
+    {
+        function = PI_FUNCTION;
+    }
 
     // Set up the message
     std::shared_ptr<faabric::BatchExecuteRequest> req =

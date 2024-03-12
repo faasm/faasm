@@ -1,6 +1,3 @@
-# Ignore ZeroMQ races
-race:zmq::*
-race:xsputn
 # Config only changes in tests, and in places where being slightly racy doesn't matter
 race:faabric::util::SystemConfig::*
 race:conf::FaasmConfig::*
@@ -21,3 +18,7 @@ race:wasm::startReduceCritical
 
 # TODO: Remove: There's something weird going on with MPI code I don't understand
 race:faabric::mpi::MpiWorld::*
+
+# False positive in WAMR's OS thread initialisation
+race:os_thread_signal_init
+race:aot_memmove

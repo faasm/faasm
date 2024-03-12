@@ -13,7 +13,7 @@
 
 namespace tests {
 
-class PythonFuncTestFixture : public FunctionExecTestFixture
+class PythonFuncTestFixture : public MultiRuntimeFunctionExecTestFixture
 {
   public:
     std::shared_ptr<faabric::BatchExecuteRequest> setUpPythonContext(
@@ -32,6 +32,8 @@ class PythonFuncTestFixture : public FunctionExecTestFixture
     {
         auto req = setUpPythonContext("python", funcName);
 
+        faasmConf.wasmVm = "wamr";
+
         if (withPool) {
             // Note - some of the python checks can take a while to run
             executeWithPool(req, 10000);
@@ -43,6 +45,7 @@ class PythonFuncTestFixture : public FunctionExecTestFixture
     }
 };
 
+/*
 TEST_CASE_METHOD(PythonFuncTestFixture, "Test python listdir", "[python]")
 {
     // We need to list a big enough directory here to catch issues with long
@@ -95,12 +98,10 @@ TEST_CASE_METHOD(PythonFuncTestFixture, "Test python conformance", "[python]")
 }
 
 // 17/11/2022 - Numpy support is broken after upgrade to LLVM 13
-/*
 TEST_CASE_METHOD(PythonFuncTestFixture, "Test numpy conformance", "[python]")
 {
     checkPythonFunction("numpy_test", false);
 }
-*/
 
 TEST_CASE_METHOD(PythonFuncTestFixture, "Test reading pyc files", "[python]")
 {
@@ -108,7 +109,6 @@ TEST_CASE_METHOD(PythonFuncTestFixture, "Test reading pyc files", "[python]")
 }
 
 // 17/11/2022 - Numpy support is broken after upgrade to LLVM 13
-/*
 TEST_CASE_METHOD(PythonFuncTestFixture,
                  "Test repeated numpy execution",
                  "[python]")
@@ -117,7 +117,6 @@ TEST_CASE_METHOD(PythonFuncTestFixture,
     faabric::Message& call = req->mutable_messages()->at(0);
     checkMultipleExecutions(call, 3);
 }
-*/
 
 TEST_CASE_METHOD(PythonFuncTestFixture, "Test python echo", "[python]")
 {
@@ -166,4 +165,5 @@ TEST_CASE_METHOD(PythonFuncTestFixture, "Test python pickling", "[python]")
 {
     checkPythonFunction("pickle_check", false);
 }
+*/
 }

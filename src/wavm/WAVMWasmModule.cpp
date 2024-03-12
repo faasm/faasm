@@ -37,6 +37,7 @@ using namespace WAVM;
 namespace wasm {
 static Runtime::Instance* baseEnvModule = nullptr;
 static Runtime::Instance* baseWasiModule = nullptr;
+static Runtime::Instance* baseWasiThreadsModule = nullptr;
 
 std::mutex baseModuleMx;
 
@@ -65,6 +66,9 @@ static void instantiateBaseModules()
     baseWasiModule = Intrinsics::instantiateModule(
       compartment, { WAVM_INTRINSIC_MODULE_REF(wasi) }, "env");
     PROF_END(BaseWasiModule)
+
+    baseWasiThreadsModule = Intrinsics::instantiateModule(
+      compartment, { WAVM_INTRINSIC_MODULE_REF(wasiThreads) }, "env");
 }
 
 void WAVMWasmModule::clearCaches()
@@ -117,6 +121,12 @@ Runtime::Instance* WAVMWasmModule::getWasiModule()
 {
     instantiateBaseModules();
     return baseWasiModule;
+}
+
+Runtime::Instance* WAVMWasmModule::getWasiThreadsModule()
+{
+    instantiateBaseModules();
+    return baseWasiThreadsModule;
 }
 
 WAVMWasmModule* getExecutingWAVMModule()
@@ -208,6 +218,8 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other,
           Runtime::remapToClonedCompartment(other.envModule, compartment);
         wasiModule =
           Runtime::remapToClonedCompartment(other.wasiModule, compartment);
+        wasiThreadsModule = Runtime::remapToClonedCompartment(
+          other.wasiThreadsModule, compartment);
         moduleInstance =
           Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
 
@@ -275,6 +287,7 @@ void WAVMWasmModule::doWAVMGarbageCollection()
 
     envModule = nullptr;
     wasiModule = nullptr;
+    wasiThreadsModule = nullptr;
 
     executionContext = nullptr;
 
@@ -571,6 +584,10 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
 
         // WASI
         wasiModule = Runtime::cloneInstance(getWasiModule(), compartment);
+
+        // WASI Threads
+        wasiThreadsModule =
+          Runtime::cloneInstance(getWasiThreadsModule(), compartment);
 
         // Make sure the stack top is as expected
         IR::GlobalDef stackDef = irModule.globals.getDef(0);
@@ -958,6 +975,11 @@ int32_t WAVMWasmModule::executePthread(int threadPoolIdx,
     executeWasmFunction(threadContext, funcInstance, invokeArgs, returnValue);
     msg.set_returnvalue(returnValue.i32);
 
+    SPDLOG_DEBUG("WAVM module finished executing pthread {} for {} (ret: {})",
+                 threadPoolIdx,
+                 funcStr,
+                 returnValue.i32);
+
     return returnValue.i32;
 }
 
@@ -969,7 +991,7 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     Runtime::Function* funcInstance = getFunctionFromPtr(msg.funcptr());
 
     std::string funcStr = faabric::util::funcToString(msg, false);
-    SPDLOG_DEBUG("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
+    SPDLOG_INFO("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
 
     // Set up function args
     // NOTE: an OpenMP microtask takes the following arguments:
@@ -997,6 +1019,10 @@ int32_t WAVMWasmModule::executeOMPThread(int threadPoolIdx,
     executeWasmFunction(ctx, funcInstance, invokeArgs, returnValue);
     msg.set_returnvalue(returnValue.i32);
 
+    SPDLOG_INFO("Finished OpenMP thread {} for {} (ret: {})",
+                threadPoolIdx,
+                funcStr,
+                returnValue.i32);
     return returnValue.i32;
 }
 
@@ -1105,12 +1131,13 @@ bool WAVMWasmModule::resolve(const std::string& moduleName,
                              IR::ExternType type,
                              Runtime::Object*& resolved)
 {
-
     bool isMainModule = moduleInstance == nullptr;
 
     Runtime::Instance* modulePtr = nullptr;
     if (moduleName == "wasi_snapshot_preview1") {
         modulePtr = wasiModule;
+    } else if (moduleName == "wasi") {
+        modulePtr = wasiThreadsModule;
     } else {
         // Default to env module
         modulePtr = envModule;

@@ -4,6 +4,7 @@
 #include <faabric/util/batch.h>
 #include <faabric/util/func.h>
 #include <faabric/util/testing.h>
+#include <faabric/util/timing.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/WasmModule.h>
 #include <wasm/openmp.h>
@@ -70,6 +71,14 @@ void doOpenMPEndCritical(int32_t loc, int32_t globalTid, int32_t crit)
     if (level->numThreads > 1) {
         getExecutingPointToPointGroup()->unlock(msg->groupidx(), true);
     }
+}
+
+void doOpenMPFlush(int32_t loc)
+{
+    OMP_FUNC_ARGS("__kmpc_flush {}", loc);
+
+    // Full memory fence, a bit overkill maybe for Wasm
+    __sync_synchronize();
 }
 
 // ----------------------------------------------------
@@ -524,6 +533,12 @@ void doOpenMPForStaticFini(int32_t loc, int32_t globalTid)
     OMP_FUNC_ARGS("__kmpc_for_static_fini {} {}", loc, globalTid);
 }
 
+int32_t doOpenMPGetMaxThreads()
+{
+    OMP_FUNC("omp_get_max_threads");
+    return level->getMaxThreadsAtNextLevel();
+}
+
 int32_t doOpenMPGetNumThreads()
 {
     OMP_FUNC("omp_get_num_threads")
@@ -532,7 +547,7 @@ int32_t doOpenMPGetNumThreads()
 
 int32_t doOpenMPGetThreadNum()
 {
-    OMP_FUNC("omp_get_thread_num")
+    OMP_FUNC_TRACE("omp_get_thread_num")
     return localThreadNum;
 }
 
@@ -567,6 +582,16 @@ int32_t doOpenMPMaster(int32_t loc, int32_t globalTid)
     return localThreadNum == 0;
 }
 
+void doOpenMPPushNumThreads(int32_t loc, int32_t globalTid, int32_t numThreads)
+{
+    OMP_FUNC_ARGS(
+      "__kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
+
+    if (numThreads > 0) {
+        level->pushedThreads = numThreads;
+    }
+}
+
 void doOpenMPEndMaster(int32_t loc, int32_t globalTid)
 {
     OMP_FUNC_ARGS("__kmpc_end_master {} {}", loc, globalTid);
@@ -582,6 +607,72 @@ void doOpenMPSetNumThreads(int32_t numThreads)
 
     if (numThreads > 0) {
         level->wantedThreads = numThreads;
+    }
+}
+
+int32_t doOpenMPSingle(int32_t loc, int32_t globalTid)
+{
+    OMP_FUNC_ARGS("__kmpc_single {} {}", loc, globalTid);
+
+    return localThreadNum == 0;
+}
+
+void doOpenMPEndSingle(int32_t loc, int32_t globalTid)
+{
+    OMP_FUNC_ARGS("__kmpc_end_single {} {}", loc, globalTid);
+
+    if (localThreadNum != 0) {
+        throw std::runtime_error("Calling _kmpc_end_single from non-master");
+    }
+}
+
+// ---------------------------------------------------
+// REDUCTION
+// ---------------------------------------------------
+
+/**
+ * Called to start a reduction.
+ */
+void doOpenMPStartReduceCritical(faabric::Message* msg,
+                                 std::shared_ptr<threads::Level> level,
+                                 int32_t numReduceVars,
+                                 int32_t reduceVarPtrs,
+                                 int32_t reduceVarsSize)
+{
+    // This function synchronises updates to shared reduce variables.
+    // Each host will have its own copy of these variables, which will be merged
+    // at the end of the parallel section via Faasm shared memory.
+    // This means we only need to synchronise local accesses here, so we only
+    // need a local lock.
+    SPDLOG_TRACE("Entering reduce critical section for group {}",
+                 msg->groupid());
+
+    std::shared_ptr<faabric::transport::PointToPointGroup> group =
+      faabric::transport::PointToPointGroup::getOrAwaitGroup(msg->groupid());
+    group->localLock();
+}
+
+/**
+ * Called to finish off a reduction.
+ */
+void doOpenMPEndReduceCritical(faabric::Message* msg, bool barrier)
+{
+    std::shared_ptr<threads::Level> level = threads::getCurrentOpenMPLevel();
+    int localThreadNum = level->getLocalThreadNum(msg);
+
+    // Unlock the critical section
+    std::shared_ptr<faabric::transport::PointToPointGroup> group =
+      faabric::transport::PointToPointGroup::getGroup(msg->groupid());
+    group->localUnlock();
+
+    // Master must make sure all other threads are done
+    group->notify(localThreadNum);
+
+    // Everyone waits if there's a barrier
+    if (barrier) {
+        PROF_START(FinaliseReduceBarrier)
+        group->barrier(localThreadNum);
+        PROF_END(FinaliseReduceBarrier)
     }
 }
 }

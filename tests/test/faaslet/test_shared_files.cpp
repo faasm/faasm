@@ -43,9 +43,15 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
 
     // Execute the function
     auto req = setUpContext("demo", "shared_file");
-    SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
 
-    SECTION("WAMR") { faasmConf.wasmVm = "wamr"; }
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
 
     executeWithPool(req);
 
@@ -79,7 +85,6 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
     {
         conf.wasmVm = "wamr";
 
-        wasm_runtime_init_thread_env();
         wasm::WAMRWasmModule module;
         module.bindToFunction(call);
         int returnValue = module.executeFunction(call);
@@ -92,7 +97,6 @@ TEST_CASE_METHOD(SharedFilesExecTestFixture,
 
         REQUIRE(returnValue == 0);
         REQUIRE(call.returnvalue() == 0);
-        wasm_runtime_destroy_thread_env();
     }
 
     SECTION("WAVM")

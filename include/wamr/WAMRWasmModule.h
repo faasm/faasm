@@ -2,6 +2,7 @@
 
 #include <wamr/WAMRModuleMixin.h>
 #include <wasm/WasmModule.h>
+
 #include <wasm_runtime_common.h>
 
 #include <setjmp.h>
@@ -41,6 +42,8 @@ class WAMRWasmModule final
   public:
     static void initialiseWAMRGlobally();
 
+    static void destroyWAMRGlobally();
+
     WAMRWasmModule();
 
     explicit WAMRWasmModule(int threadPoolSizeIn);
@@ -53,6 +56,19 @@ class WAMRWasmModule final
     void doBindToFunction(faabric::Message& msg, bool cache) override;
 
     int32_t executeFunction(faabric::Message& msg) override;
+
+    // ----- Threads ------
+    int32_t executeOMPThread(int threadPoolIdx,
+                             uint32_t stackTop,
+                             faabric::Message& msg) override;
+
+    int32_t executePthread(int threadPoolIdx,
+                           uint32_t stackTop,
+                           faabric::Message& msg) override;
+
+    void createThreadsExecEnv(WASMExecEnv* parentExecEnv);
+
+    void destroyThreadsExecEnv(bool destroyMainExecEnv = false);
 
     // ----- Exception handling -----
     void doThrowException(std::exception& e) override;
@@ -91,14 +107,20 @@ class WAMRWasmModule final
     std::vector<uint8_t> wasmBytes;
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
+    // WAMR's execution environments are not thread-safe. Thus, we create an
+    // array of them at the beginning, each thread will access a different
+    // position in the array, so we do not need a mutex
+    std::vector<WASMExecEnv*> execEnvs;
 
     jmp_buf wamrExceptionJmpBuf;
 
-    int executeWasmFunction(const std::string& funcName);
+    int executeWasmFunction(int threadPoolIdx, const std::string& funcName);
 
-    int executeWasmFunctionFromPointer(faabric::Message& msg);
+    int executeWasmFunctionFromPointer(int threadPoolIdx,
+                                       faabric::Message& msg);
 
-    bool executeCatchException(WASMFunctionInstanceCommon* func,
+    bool executeCatchException(int threadPoolIdx,
+                               WASMFunctionInstanceCommon* func,
                                int wasmFuncPtr,
                                int argc,
                                std::vector<uint32_t>& argv);

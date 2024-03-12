@@ -251,7 +251,6 @@ I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen)
     int nativeBufLen = 80;
 
     U32 wasmBytesRead = 0;
-    int wasmDirentCount = 0;
 
     std::vector<std::byte> nativeBuf(nativeBufLen, std::byte(0));
     // Here we will iterate getting native dirents until we've filled up the
@@ -305,7 +304,6 @@ I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen)
                 nativeOffset += d->d_reclen;
 
                 wasmBytesRead += wasmDirentSize;
-                wasmDirentCount++;
             }
         }
     }

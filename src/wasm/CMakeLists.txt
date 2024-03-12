@@ -3,9 +3,11 @@ faasm_private_lib(wasm
     WasmExecutionContext.cpp
     WasmModule.cpp
     chaining_util.cpp
+    faasm.cpp
     host_interface_test.cpp
     migration.cpp
     openmp.cpp
+    threads.cpp
 )
 
 # Shared variables with the cross-compilation toolchain
