@@ -233,8 +233,11 @@ void doOpenMPFork(int32_t loc,
 
         // Sanity-check decision
         if (decision == NOT_ENOUGH_SLOTS_DECISION) {
-            SPDLOG_ERROR("Failed to fork OpenMP, not enough slots (requested: {})", req->messages_size());
-            auto exc = faabric::util::FaabricException("Failed to fork OpenMP, not enough slots!");
+            SPDLOG_ERROR(
+              "Failed to fork OpenMP, not enough slots (requested: {})",
+              req->messages_size());
+            auto exc = faabric::util::FaabricException(
+              "Failed to fork OpenMP, not enough slots!");
             getExecutingModule()->doThrowException(exc);
         }
     } else {
