@@ -19,6 +19,16 @@ spec:
         role: worker
     spec:
       affinity:
+        # Require all worker pods to be scheduled in worker nodes
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: faasm.io/role
+                operator: In
+                values:
+                - worker
+        # If possible, give each pod a worker node in isolation
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - podAffinityTerm:

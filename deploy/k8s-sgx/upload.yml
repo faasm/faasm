@@ -9,6 +9,15 @@ metadata:
     app: faasm
     role: upload
 spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: faasm.io/role
+            operator: In
+            values:
+            - control
   containers:
     - name: upload
       image: faasm.azurecr.io/upload:0.22.0
