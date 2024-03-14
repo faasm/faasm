@@ -1,3 +1,4 @@
+#include <faabric/batch-scheduler/BatchScheduler.h>
 #include <faabric/executor/ExecutorContext.h>
 #include <faabric/planner/PlannerClient.h>
 #include <faabric/transport/PointToPointBroker.h>
@@ -229,6 +230,16 @@ void doOpenMPFork(int32_t loc,
     faabric::batch_scheduler::SchedulingDecision decision(req->appid(), 0);
     if (req->messages_size() > 0) {
         decision = faabric::planner::getPlannerClient().callFunctions(req);
+
+        // Sanity-check decision
+        if (decision == NOT_ENOUGH_SLOTS_DECISION) {
+            SPDLOG_ERROR(
+              "Failed to fork OpenMP, not enough slots (requested: {})",
+              req->messages_size());
+            auto exc = faabric::util::FaabricException(
+              "Failed to fork OpenMP, not enough slots!");
+            getExecutingModule()->doThrowException(exc);
+        }
     } else {
         // In a one-thread OpenMP loop, we manually create a communication
         // group of size one

@@ -96,7 +96,7 @@ services:
       - PLANNER_PORT=8081
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
-      - OVERRIDE_CPU_COUNT=4
+      - OVERRIDE_CPU_COUNT=${FAASM_OVERRIDE_CPU_COUNT:-8}
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
       - FAASM_WASM_VM=${FAASM_WASM_VM:-wavm}
       - SGX_AESM_ADDR=1
