@@ -21,15 +21,15 @@ env:
   CONAN_CACHE_MOUNT_SOURCE: .conan
   FAABRIC_VERSION: 0.15.0
   FAASM_INI_FILE: ./faasm.ini
-  FAASM_VERSION: 0.22.0
-  FAASMCTL_VERSION: 0.33.1
+  FAASM_VERSION: 0.23.0
+  FAASMCTL_VERSION: 0.34.0
 
 jobs:
   checks:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.22.0
+      image: faasm.azurecr.io/cli:0.23.0
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
@@ -395,18 +395,18 @@ jobs:
       HOST_TYPE: ci
       IS_SGX_CI: true
     container:
-      image: faasm.azurecr.io/cli-sgx-sim:0.22.0
+      image: faasm.azurecr.io/cli-sgx-sim:0.23.0
       credentials:
         username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
         password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     services:
       redis:
-        image: faasm.azurecr.io/redis:0.22.0
+        image: faasm.azurecr.io/redis:0.23.0
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
       minio:
-        image: faasm.azurecr.io/minio:0.22.0
+        image: faasm.azurecr.io/minio:0.23.0
         credentials:
           username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}

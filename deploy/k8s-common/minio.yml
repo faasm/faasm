@@ -9,9 +9,18 @@ metadata:
     app: faasm
     role: minio
 spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: faasm.io/role
+            operator: In
+            values:
+            - control
   containers:
     - name: minio-main
-      image: faasm.azurecr.io/minio:0.22.0
+      image: faasm.azurecr.io/minio:0.23.0
       env:
         - name: MINIO_ROOT_USER
           value: "minio"

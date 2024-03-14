@@ -9,9 +9,18 @@ metadata:
     app: faasm
     role: redis-queue
 spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: faasm.io/role
+            operator: In
+            values:
+            - control
   containers:
     - name: master
-      image: faasm.azurecr.io/redis:0.22.0
+      image: faasm.azurecr.io/redis:0.23.0
       ports:
         - containerPort: 6379
 
@@ -26,9 +35,18 @@ metadata:
     app: faasm
     role: redis-state
 spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: faasm.io/role
+            operator: In
+            values:
+            - control
   containers:
     - name: master
-      image: faasm.azurecr.io/redis:0.22.0
+      image: faasm.azurecr.io/redis:0.23.0
       ports:
         - containerPort: 6379
 
