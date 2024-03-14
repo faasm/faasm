@@ -259,6 +259,9 @@ jobs:
       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: ubuntu-latest
+    # This timeout should be long enough to let slow tests (w/ sanitisers)
+    # build and run, but still kill the GHA if something goes wrong
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -391,6 +394,9 @@ jobs:
       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
     runs-on: self-hosted
+    # This timeout should be long enough to let slow tests (w/ SGX)
+    # build and run, but still kill the GHA if something goes wrong
+    timeout-minutes: 40
     env:
       HOST_TYPE: ci
       IS_SGX_CI: true
