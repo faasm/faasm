@@ -10,8 +10,6 @@ from tasks.util.env import (
 # Depending on whether we run the tests on GHA or locally, some env. variables
 # related to service names, or ports, need to change
 IS_CI = "HOST_TYPE" in environ and environ["HOST_TYPE"] == "ci"
-# TODO(faasmctl-sgx): remove when we can unify sgx-tests and tests in CI
-IS_SGX_CI = "IS_SGX_CI" in environ and environ["IS_SGX_CI"] == "true"
 
 TEST_ENV = {
     "CGROUP_MODE": "off" if IS_CI else "on",
@@ -20,8 +18,8 @@ TEST_ENV = {
     "NETNS_MODE": "off",
     "PLANNER_HOST": "localhost",
     "PLANNER_PORT": "8080" if IS_CI else "8081",
-    "REDIS_QUEUE_HOST": "redis" if IS_SGX_CI else "redis-queue",
-    "REDIS_STATE_HOST": "redis" if IS_SGX_CI else "redis-state",
+    "REDIS_QUEUE_HOST": "redis-queue",
+    "REDIS_STATE_HOST": "redis-state",
     "TERM": "xterm-256color",
     "FAASM_WASM_VM": "wavm",
     # Sanitiser env. variables
