@@ -365,7 +365,7 @@ jobs:
       # ----- Build the tests -----
       # Tests build (Debug required for tests)
       - name: "Re-run CMake with sanitiser set"
-        if: ${{ (matrix.sanitiser != 'Coverage') || (matrix.sanitiser != 'Sgx') }}
+        if: ${{ (matrix.sanitiser != 'Coverage') && (matrix.sanitiser != 'Sgx') }}
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sanitiser ${{ matrix.sanitiser }}"
       - name: "Re-run CMake with coverage"
         if: ${{ matrix.sanitiser == 'Coverage' }}
