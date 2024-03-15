@@ -22,7 +22,7 @@ env:
   FAABRIC_VERSION: 0.15.0
   FAASM_INI_FILE: ./faasm.ini
   FAASM_VERSION: 0.23.0
-  FAASMCTL_VERSION: 0.34.0
+  FAASMCTL_VERSION: 0.36.1
 
 jobs:
   checks:
@@ -308,7 +308,7 @@ jobs:
       - name: "Start a worker-less (SGX) Faasm cluster to run unit tests"
         run: faasmctl deploy.compose --mount-source . --workers=0
         env:
-          FAASM_WASM_VM: sgx
+          FAASM_WASM_VM: sgx-sim
         if: ${{ matrix.sanitiser == 'Sgx' }}
 
       - name: "Get Cpp WASM cache"
