@@ -30,9 +30,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: faasm.azurecr.io/cli:0.23.0
-      credentials:
-        username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
-        password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
@@ -117,9 +114,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: faasm.azurecr.io/cpp-sysroot:0.4.0
-      credentials:
-        username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
-        password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
@@ -162,9 +156,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: faasm.azurecr.io/cpython:0.4.0
-      credentials:
-        username: ${{ secrets.ACR_SERVICE_PRINCIPAL_ID }}
-        password: ${{ secrets.ACR_SERVICE_PRINCIPAL_PASSWORD }}
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
