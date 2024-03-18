@@ -366,6 +366,11 @@ jobs:
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sgx Simulation"
       - name: "Build only the tests target"
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cc tests"
+      # Until we bump to LLVM >= 18.1.0, TSAN comes with bug with ASLR
+      # https://stackoverflow.com/questions/77850769/fatal-threadsanitizer-unexpected-memory-mapping-when-running-on-linux-kernels
+      - name: "Workaround TSAN ASLR bug with LLVM 17"
+        run: sudo sysctl vm.mmap_rnd_bits=28
+        if: ${{ matrix.sanitiser == 'Thread' }}
       # Run tests
       - name: "Run the tests"
         if: ${{ matrix.sanitiser != 'Coverage' }}
