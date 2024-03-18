@@ -634,13 +634,14 @@ static int32_t MPI_Init_wrapper(wasm_exec_env_t execEnv, int32_t a, int32_t b)
 {
     faabric::Message* call =
       &faabric::executor::ExecutorContext::get()->getMsg();
+    auto req = faabric::executor::ExecutorContext::get()->getBatchRequest();
+    bool isMigration = req->type() == faabric::BatchExecuteRequest::MIGRATION;
 
     // Note - only want to initialise the world on rank zero (or when rank isn't
     // set yet)
     if (call->mpirank() <= 0) {
-        // If we are rank 0 and the world already exists, it means we are being
-        // migrated
-        if (getMpiWorldRegistry().worldExists(call->mpiworldid())) {
+        // If we are being migrated, we always join an existing world
+        if (isMigration) {
             SPDLOG_DEBUG("MPI - MPI_Init (join)");
             executingContext.joinWorld(*call);
         } else {
