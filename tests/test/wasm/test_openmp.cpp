@@ -267,6 +267,8 @@ TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test running out of slots throws exception",
                  "[wasm][openmp]")
 {
+// FIXME: the setjmp/longjmp mechanism is creating a TSAN race in this test
+#if !(__has_feature(thread_sanitizer))
     faabric::HostResources res;
     res.set_slots(1);
     sch.setThisHostResources(res);
@@ -285,5 +287,6 @@ TEST_CASE_METHOD(OpenMPTestFixture,
       executeWithPool(req, OMP_TEST_TIMEOUT_MS, false).at(0);
 
     REQUIRE(result.returnvalue() > 0);
+#endif
 }
 }
