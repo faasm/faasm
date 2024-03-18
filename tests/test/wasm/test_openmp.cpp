@@ -34,11 +34,13 @@ class OpenMPTestFixture
 
     ~OpenMPTestFixture() {}
 
-    std::string doOmpTestLocal(const std::string& function)
+    std::string doOmpTestLocal(const std::string& function, int numThreads = -1)
     {
-        faabric::Message msg = faabric::util::messageFactory("omp", function);
         auto req = faabric::util::batchExecFactory("omp", function, 1);
         req->set_singlehosthint(true);
+        if (numThreads > 0) {
+            req->mutable_messages(0)->set_inputdata(std::to_string(numThreads));
+        }
 
         // 08/03/2024 - Some local OpenMP tests stopped working with WAVM
         // after upgrade to LLVM 17 due to WAVM's incorrect handling of
@@ -193,7 +195,7 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     res.set_slots(10);
     sch.setThisHostResources(res);
 
-    doOmpTestLocal("repeated_reduce");
+    doOmpTestLocal("repeated_reduce", 10);
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP atomic", "[wasm][openmp]")
@@ -261,6 +263,50 @@ TEST_CASE_METHOD(OpenMPTestFixture,
 
     // Get result
     REQUIRE(result.returnvalue() > 0);
+}
+
+TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test elastically scaling OpenMP execution",
+                 "[wasm][openmp]")
+{
+    int numThreads = 5;
+    int numSlots = 10;
+    int numLoops = 10;
+
+    faabric::HostResources res;
+    res.set_slots(numSlots);
+    sch.setThisHostResources(res);
+    faasmConf.wasmVm = "wamr";
+
+    // The function does 10 loops, and we invoke it with 5 threads, so in
+    // total we should have (5 - 1) * 10 + 1 = 41 message results. This is
+    // because we fork with (n - 1) threads, and persist the main thread.
+    // If we preload one scheduling decision, and then scale up, we should have
+    // 4 + (10 - 1) * 9 + 1 = 86 message results
+    auto req = faabric::util::batchExecFactory("omp", "repeated_reduce", 1);
+    req->set_singlehosthint(true);
+    req->mutable_messages(0)->set_inputdata(std::to_string(numThreads));
+    int expectedMessageresults = 0;
+
+    SECTION("Elastically scale")
+    {
+        req->set_elasticscalehint(true);
+        // TODO: pre-load scheduling decision here
+        expectedMessageresults = (numThreads - 1) + (numSlots - 1) * (numLoops - 1) + 1;
+    }
+
+    SECTION("Do not elastically scale")
+    {
+        req->set_elasticscalehint(false);
+        expectedMessageresults = (numThreads - 1) * numLoops + 1;
+    }
+
+    // TODO: wait for the right number of messages
+    executeWithPool(req, OMP_TEST_TIMEOUT_MS, false);
+    auto results = waitForBatchResults(req, expectedMessageresults);
+
+    REQUIRE(results->messageresults().at(0).returnvalue() == 0);
+    REQUIRE(results->messageresults_size() == expectedMessageresults);
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,

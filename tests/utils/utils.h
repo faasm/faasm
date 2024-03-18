@@ -15,6 +15,10 @@ std::vector<faabric::Message> waitForBatchResults(bool isThreads,
                                                   int timeoutMs,
                                                   bool requireSuccess);
 
+std::shared_ptr<faabric::BatchExecuteRequestStatus> waitForBatchResults(
+  std::shared_ptr<faabric::BatchExecuteRequest> req,
+  int numExpectedMessages);
+
 std::vector<faabric::Message> executeWithPool(
   std::shared_ptr<faabric::BatchExecuteRequest> req,
   int timeoutMs = EXECUTE_POOL_TIMEOUT_MS,

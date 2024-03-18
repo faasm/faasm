@@ -155,26 +155,29 @@ void doOpenMPFork(int32_t loc,
     // Propagate the single-host hint. The single host flag can be used to hint
     // that we do not need to preemptively distribute snapshots
     req->set_singlehosthint(parentReq->singlehosthint());
+    // Propagate the elastic scaling hint. This host flag can be used to
+    // request forking requests to take up as many local resources available
+    req->set_elasticscalehint(parentReq->elasticscalehint());
     // Serialise the level so that it is available in the request
     std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
     req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
     // Configure the mesages
     for (int i = 0; i < req->messages_size(); i++) {
-        faabric::Message& m = req->mutable_messages()->at(i);
+        faabric::Message& thisMsg = req->mutable_messages()->at(i);
 
         // Function pointer in the WASM sense (so just an integer to the
         // function table)
-        m.set_funcptr(microTask);
+        thisMsg.set_funcptr(microTask);
 
         // OpenMP thread number
         int threadNum = nextLevel->getGlobalThreadNum(i + 1);
-        m.set_appidx(threadNum);
+        thisMsg.set_appidx(threadNum);
 
         // Group setup for distributed coordination. Note that the group index
         // is just within this function group, and not the global OpenMP
         // thread number
-        m.set_groupidx(i + 1);
+        thisMsg.set_groupidx(i + 1);
     }
 
     // Do snapshotting if not on a single host. Note that, from the caller
@@ -240,6 +243,19 @@ void doOpenMPFork(int32_t loc,
               "Failed to fork OpenMP, not enough slots!");
             getExecutingModule()->doThrowException(exc);
         }
+
+        // We have elastically scaled-up if the number of messages returned
+        // by the decision is greater than the original number of messages
+        // requested
+        if (req->elasticscalehint()) {
+            if (decision.hosts.size() > req->messages_size()) {
+                SPDLOG_INFO("Elastically scaling OpenMP fork {} -> {}",
+                            req->messages_size() + 1,
+                            decision.hosts.size() + 1);
+                nextLevel->numThreads = decision.hosts.size();
+                serialisedLevel = nextLevel->serialise();
+            }
+        }
     } else {
         // In a one-thread OpenMP loop, we manually create a communication
         // group of size one
@@ -285,8 +301,8 @@ void doOpenMPFork(int32_t loc,
     }
 
     // Wait for all other threads to finish
-    for (int i = 0; i < req->messages_size(); i++) {
-        uint32_t messageId = req->messages().at(i).id();
+    for (int i = 0; i < decision.messageIds.size(); i++) {
+        uint32_t messageId = decision.messageIds.at(i);
 
         auto msgResult = faabric::planner::getPlannerClient().getMessageResult(
           req->appid(),
