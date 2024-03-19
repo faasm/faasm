@@ -154,7 +154,7 @@ void WAMRWasmModule::reset(faabric::Message& msg,
     std::string funcStr = faabric::util::funcToString(msg, true);
     SPDLOG_DEBUG("WAMR resetting after {} (snap key {})", funcStr, snapshotKey);
 
-    wasm_runtime_destroy_exec_env(execEnvs.at(0));
+    destroyThreadsExecEnv(true);
     wasm_runtime_deinstantiate(moduleInstance);
     bindInternal(msg);
 }

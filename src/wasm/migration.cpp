@@ -88,10 +88,12 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
             msg.set_recordexecgraph(true);
         }
 
-        SPDLOG_INFO("Migrating {}/{} {} to {}",
+        SPDLOG_INFO("Migrating {}/{} {}:{}:{} to {}",
                     msg.user(),
                     msg.function(),
-                    call->id(),
+                    call->appid(),
+                    call->groupid(),
+                    call->groupidx(),
                     hostToMigrateTo);
 
         faabric::scheduler::getFunctionCallClient(hostToMigrateTo)
