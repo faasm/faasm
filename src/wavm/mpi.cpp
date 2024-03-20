@@ -684,7 +684,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
                          inputs,
                          hostDtype,
                          count,
-                         faabric::mpi::MPIMessage::BROADCAST);
+                         faabric::mpi::MpiMessageType::BROADCAST);
 
     return MPI_SUCCESS;
 }

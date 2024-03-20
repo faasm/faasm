@@ -341,7 +341,7 @@ static int32_t MPI_Bcast_wrapper(wasm_exec_env_t execEnv,
                            reinterpret_cast<uint8_t*>(buffer),
                            hostDtype,
                            count,
-                           MPIMessage::BROADCAST))
+                           MpiMessageType::BROADCAST))
 
     return MPI_SUCCESS;
 }
