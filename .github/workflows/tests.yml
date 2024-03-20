@@ -300,6 +300,7 @@ jobs:
         run: |
           # First remove unnecessary images
           docker rmi faasm.azurecr.io/cli:${{ env.FAASM_VERSION }}
+          docker rmi faasm.azurecr.io/upload:${{ env.FAASM_VERSION }}
           docker rmi faasm.azurecr.io/worker:${{ env.FAASM_VERSION }}
           faasmctl deploy.compose --mount-source . --workers=0
         env:
