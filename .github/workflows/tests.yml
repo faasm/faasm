@@ -113,7 +113,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-cpp-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cpp-sysroot:0.4.0
+      image: faasm.azurecr.io/cpp-sysroot:0.5.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
