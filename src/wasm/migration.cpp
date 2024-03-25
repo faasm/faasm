@@ -37,7 +37,7 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
 
         auto& mpiWorld =
           faabric::mpi::getMpiWorldRegistry().getWorld(call->mpiworldid());
-        mpiWorld.prepareMigration(call->mpirank());
+        mpiWorld.prepareMigration(call->mpirank(), funcMustMigrate);
     }
 
     // Do actual migration
