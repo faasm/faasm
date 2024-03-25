@@ -77,9 +77,6 @@ spec:
               value: "eth0"
             - name: FAASM_WASM_VM
               value: "wamr"
-            # See faasm/faabric#335
-            - name: POINT_TO_POINT_SERVER_THREADS
-              value: "12"
 
 ---
 
