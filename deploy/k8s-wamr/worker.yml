@@ -42,7 +42,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm.azurecr.io/worker:0.23.1
+        - image: faasm.azurecr.io/worker:0.24.0
           name: faasm-worker
           ports:
             - containerPort: 8080
@@ -77,9 +77,6 @@ spec:
               value: "eth0"
             - name: FAASM_WASM_VM
               value: "wamr"
-            # See faasm/faabric#335
-            - name: POINT_TO_POINT_SERVER_THREADS
-              value: "12"
 
 ---
 

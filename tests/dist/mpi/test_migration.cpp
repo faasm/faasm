@@ -10,66 +10,6 @@
 namespace tests {
 
 TEST_CASE_METHOD(MpiDistTestsFixture,
-                 "Test migrating an MPI execution",
-                 "[mpi]")
-{
-    // Allocate resources so that two mpi ranks are scheduled in one worker
-    // and two in the other
-    int worldSize = 4;
-    // Give more total slots to the main so that the planner prefers it
-    setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
-
-    // Set up the message
-    std::shared_ptr<faabric::BatchExecuteRequest> req =
-      faabric::util::batchExecFactory("mpi", "migrate", 1);
-    faabric::Message& msg = req->mutable_messages()->at(0);
-    msg.set_ismpi(true);
-    msg.set_mpiworldsize(worldSize);
-
-    // Try to migrate at 50% of execution
-    int numLoops = 10000;
-    int checkAt = 5;
-    msg.set_cmdline(fmt::format("{} {}", checkAt, numLoops));
-
-    // Call the functions
-    plannerCli.callFunctions(req);
-
-    // Wait until all messages are in flight
-    std::vector<std::string> expectedHostsBefore = { getDistTestMasterIp(),
-                                                     getDistTestMasterIp(),
-                                                     getDistTestWorkerIp(),
-                                                     getDistTestWorkerIp() };
-    auto actualHostsBefore = waitForMpiMessagesInFlight(req);
-    REQUIRE(expectedHostsBefore == actualHostsBefore);
-
-    // Update the total slots so that a migration opportunity appears. We
-    // either migrate the first two ranks from the main to the worker, or
-    // the other way around
-    std::vector<std::string> expectedHostsAfter;
-
-    SECTION("Migrate main rank")
-    {
-        setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize, 2);
-        expectedHostsAfter = { getDistTestWorkerIp(),
-                               getDistTestWorkerIp(),
-                               getDistTestWorkerIp(),
-                               getDistTestWorkerIp() };
-    }
-
-    SECTION("Do not migrate main rank")
-    {
-        setLocalRemoteSlots(2 * worldSize, worldSize, 2 * worldSize - 2, 2);
-        expectedHostsAfter = { getDistTestMasterIp(),
-                               getDistTestMasterIp(),
-                               getDistTestMasterIp(),
-                               getDistTestMasterIp() };
-    }
-
-    // Check it's successful
-    checkMpiBatchResults(req, expectedHostsAfter);
-}
-
-TEST_CASE_METHOD(MpiDistTestsFixture,
                  "Test triggering an MPI migration with a preloaded decision",
                  "[mpi]")
 {

@@ -20,7 +20,7 @@ spec:
             - control
   containers:
     - name: upload
-      image: faasm.azurecr.io/upload:0.23.1
+      image: faasm.azurecr.io/upload:0.24.0
       ports:
         - containerPort: 8002
         - containerPort: 5000

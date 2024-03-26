@@ -1,7 +1,6 @@
 #include <faabric/util/files.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
-#include <faabric/util/memory.h>
 #include <faabric/util/string_tools.h>
 #include <storage/FileLoader.h>
 #include <wamr/WAMRWasmModule.h>
