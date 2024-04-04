@@ -14,8 +14,9 @@ RUN cd /usr/local/code/faasm \
 
 WORKDIR /build/faasm
 
-# Install hoststats
-RUN pip3 install hoststats==0.1.0
+# Install worker-specific deps
+RUN apt update && apt install -y dnsutils \
+    && pip3 install hoststats==0.1.0
 
 # Set up entrypoint (for cgroups, namespaces etc.)
 COPY bin/entrypoint_codegen.sh /entrypoint_codegen.sh

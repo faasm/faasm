@@ -22,7 +22,7 @@ env:
   FAABRIC_VERSION: 0.15.0
   FAASM_INI_FILE: ./faasm.ini
   FAASM_VERSION: 0.24.0
-  FAASMCTL_VERSION: 0.36.1
+  FAASMCTL_VERSION: 0.39.0
 
 jobs:
   checks:
@@ -249,6 +249,8 @@ jobs:
       needs.conan-cache.result == 'success' &&
       (needs.cpp-funcs.result == 'success' || needs.cpp-funcs.result == 'skipped') &&
       (needs.py-funcs.result == 'success' || needs.py-funcs.result == 'skipped')
+    env:
+      FAASM_DEPLOYMENT_TYPE: gha-ci
     runs-on: ubuntu-latest
     # This timeout should be long enough to let slow tests (w/ sanitisers)
     # build and run, but still kill the GHA if something goes wrong
@@ -402,6 +404,7 @@ jobs:
       matrix:
         wasm_vm: [wamr, wavm]
     env:
+      FAASM_DEPLOYMENT_TYPE: gha-ci
       FAASM_WASM_VM: ${{ matrix.wasm_vm }}
     steps:
       - name: "Image cache (must run as first step!)"
@@ -459,6 +462,7 @@ jobs:
         faasm_wasm_vm: [wamr, wavm]
         mount_source: [on, off]
     env:
+      FAASM_DEPLOYMENT_TYPE: gha-ci
       FAASM_MOUNT_SOURCE: ${{ matrix.mount_source }}
       FAASM_WASM_VM: ${{ matrix.faasm_wasm_vm }}
     steps:

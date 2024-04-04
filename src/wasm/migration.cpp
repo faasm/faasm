@@ -110,8 +110,7 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
 
     // Hit the post-migration hook if not migrated (but someone has)
     if (appMustMigrate) {
-        faabric::transport::getPointToPointBroker().postMigrationHook(
-          call->groupid(), call->groupidx());
+        faabric::transport::getPointToPointBroker().postMigrationHook(*call);
     }
 }
 }
