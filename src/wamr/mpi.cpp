@@ -636,6 +636,7 @@ static int32_t MPI_Init_wrapper(wasm_exec_env_t execEnv, int32_t a, int32_t b)
       &faabric::executor::ExecutorContext::get()->getMsg();
     auto req = faabric::executor::ExecutorContext::get()->getBatchRequest();
     bool isMigration = req->type() == faabric::BatchExecuteRequest::MIGRATION;
+    auto* wamrModule = wasm::getExecutingWAMRModule();
 
     // Note - only want to initialise the world on rank zero (or when rank isn't
     // set yet)
@@ -643,19 +644,31 @@ static int32_t MPI_Init_wrapper(wasm_exec_env_t execEnv, int32_t a, int32_t b)
         // If we are being migrated, we always join an existing world
         if (isMigration) {
             SPDLOG_DEBUG("MPI - MPI_Init (join)");
-            executingContext.joinWorld(*call);
+            try {
+                executingContext.joinWorld(*call);
+            } catch (std::exception& exc) {
+                wamrModule->doThrowException(exc);
+            }
         } else {
             SPDLOG_DEBUG("MPI_Init (create)");
 
             // Initialise the world
-            int worldId = executingContext.createWorld(*call);
-            call->set_mpiworldid(worldId);
+            try {
+                int worldId = executingContext.createWorld(*call);
+                call->set_mpiworldid(worldId);
+            } catch (std::exception& exc) {
+                wamrModule->doThrowException(exc);
+            }
         }
     } else {
         SPDLOG_DEBUG("MPI_Init (join)");
 
         // Join the world
-        executingContext.joinWorld(*call);
+        try {
+            executingContext.joinWorld(*call);
+        } catch (std::exception& exc) {
+            wamrModule->doThrowException(exc);
+        }
     }
 
     ctx = std::make_unique<WamrMpiContextWrapper>();
