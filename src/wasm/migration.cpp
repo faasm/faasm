@@ -108,9 +108,22 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
         getExecutingModule()->doThrowException(ex);
     }
 
-    // Hit the post-migration hook if not migrated (but someone has)
+    // Hit the post-migration hook if not migrated (but someone has). Be
+    // careful to catch exceptions that occur during migration
     if (appMustMigrate) {
-        faabric::transport::getPointToPointBroker().postMigrationHook(*call);
+        try {
+            faabric::transport::getPointToPointBroker().postMigrationHook(
+              *call);
+        } catch (std::exception& exc) {
+            SPDLOG_ERROR(
+              "{}:{}:{} caught exception during post-migration hook!",
+              call->appid(),
+              call->groupid(),
+              call->mpirank());
+
+            // This exception will be caught by the executor
+            getExecutingModule()->doThrowException(exc);
+        }
     }
 }
 }
