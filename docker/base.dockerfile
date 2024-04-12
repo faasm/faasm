@@ -39,5 +39,6 @@ RUN cd /usr/local/code/faasm \
     && source venv/bin/activate \
     && inv dev.tools \
         --clean \
+        --disable-spinlock \
         --build Release \
         --sgx Disabled

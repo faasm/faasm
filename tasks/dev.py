@@ -38,6 +38,7 @@ def cmake(
     sanitiser=SANITISER_NONE,
     sgx=FAASM_SGX_MODE_DISABLED,
     cpu=None,
+    disable_spinlock=False,
 ):
     """
     Configures the CMake build
@@ -65,6 +66,7 @@ def cmake(
         "-DFAABRIC_SELF_TRACING=ON" if prof else "",
         "-DFAASM_USE_SANITISER={}".format(sanitiser),
         "-DFAABRIC_USE_SANITISER={}".format(sanitiser),
+        "-DFAABRIC_USE_SPINLOCK={}".format("OFF" if disable_spinlock else "ON"),
         "-DFAASM_SGX_MODE={}".format(sgx),
         "-DFAASM_TARGET_CPU={}".format(cpu) if cpu else "",
         get_dict_as_cmake_vars(FAASM_RUNTIME_ENV_DICT),
@@ -86,6 +88,7 @@ def tools(
     sanitiser=SANITISER_NONE,
     sgx=FAASM_SGX_MODE_DISABLED,
     coverage=False,
+    disable_spinlock=False,
 ):
     """
     Builds all the targets commonly used for development
@@ -100,6 +103,7 @@ def tools(
         sanitiser=sanitiser,
         sgx=sgx,
         coverage=coverage,
+        disable_spinlock=disable_spinlock,
     )
 
     targets = " ".join(DEV_TARGETS)
