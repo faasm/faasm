@@ -188,6 +188,7 @@ def bump_dep(ctx, faasmctl=None, python=False, cpp=False, faabric=False):
         strings_to_check = [
             r"{}\/planner:".format(ACR_NAME),
             "FAABRIC_VERSION=",
+            "FAABRIC_VERSION: ",
         ]
         for f in VERSIONED_FILES["faabric"]:
             for string in strings_to_check:
