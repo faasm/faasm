@@ -6,6 +6,10 @@ cmake-build-debug
 cmake-build-release
 .idea
 
+# Python
+venv
+venv-bm
+
 # Builds
 build
 dev
@@ -13,6 +17,7 @@ clients
 
 # Clang
 .clangd
+.cache
 
 # Git
 .git

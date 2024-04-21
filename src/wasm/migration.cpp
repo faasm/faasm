@@ -18,7 +18,18 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
     auto& sch = faabric::scheduler::getScheduler();
 
     // Detect if there is a pending migration for the current app
-    auto migration = sch.checkForMigrationOpportunities(*call);
+    std::shared_ptr<faabric::PendingMigration> migration = nullptr;
+    try {
+        migration = sch.checkForMigrationOpportunities(*call);
+    } catch (std::exception& e) {
+        SPDLOG_ERROR(
+          "{}:{}:{} Error checking for migration opportunities (this host: {})",
+          call->appid(),
+          call->groupid(),
+          call->groupidx(),
+          faabric::util::getSystemConfig().endpointHost);
+        getExecutingModule()->doThrowException(e);
+    }
     bool appMustMigrate = migration != nullptr;
 
     // Detect if this particular function needs to be migrated or not
@@ -37,7 +48,8 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
 
         auto& mpiWorld =
           faabric::mpi::getMpiWorldRegistry().getWorld(call->mpiworldid());
-        mpiWorld.prepareMigration(call->mpirank(), funcMustMigrate);
+        mpiWorld.prepareMigration(
+          call->groupid(), call->mpirank(), funcMustMigrate);
     }
 
     // Do actual migration

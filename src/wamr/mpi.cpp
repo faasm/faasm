@@ -138,7 +138,12 @@ static thread_local std::unique_ptr<WamrMpiContextWrapper> ctx = nullptr;
 static int terminateMpi()
 {
     // Destroy the MPI world
-    CALL_MPI_WORLD_CATCH_EXCEPTION_NO_RETURN(ctx->world.destroy())
+    bool mustClear;
+    CALL_MPI_WORLD_CATCH_EXCEPTION(mustClear, ctx->world.destroy())
+
+    if (mustClear) {
+        getMpiWorldRegistry().clearWorld(executingContext.getWorldId());
+    }
 
     // Null-out the context
     ctx = nullptr;
