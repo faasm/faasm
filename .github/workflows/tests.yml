@@ -364,13 +364,13 @@ jobs:
       # Tests build (Debug required for tests)
       - name: "Re-run CMake with sanitiser set"
         if: ${{ (matrix.sanitiser != 'Coverage') && (matrix.sanitiser != 'Sgx') }}
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sanitiser ${{ matrix.sanitiser }}"
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --disable-spinlock --build Debug --sanitiser ${{ matrix.sanitiser }}"
       - name: "Re-run CMake with coverage"
         if: ${{ matrix.sanitiser == 'Coverage' }}
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --build Debug --coverage"
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --disable-spinlock --build Debug --coverage"
       - name: "Re-run CMake with SGX"
         if: ${{ matrix.sanitiser == 'Sgx' }}
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sgx Simulation"
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --disable-spinlock --build Debug --sgx Simulation"
       - name: "Build only the tests target"
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cc tests"
       # Until we bump to LLVM >= 18.1.0, TSAN comes with bug with ASLR
@@ -381,7 +381,7 @@ jobs:
       # Run tests
       - name: "Run the tests"
         if: ${{ matrix.sanitiser != 'Coverage' }}
-        run: faasmctl cli.faasm --env HOST_TYPE=ci --cmd "./bin/inv_wrapper.sh tests"
+        run: faasmctl cli.faasm --env HOST_TYPE=ci --cmd "./bin/inv_wrapper.sh tests --debug"
       - name: "Run the tests and fetch coverage report"
         if: ${{ matrix.sanitiser == 'Coverage' }}
         run: faasmctl cli.faasm --env HOST_TYPE=ci,LLVM_PROFILE_FILE=/tmp/faasm.profraw --cmd "./bin/inv_wrapper.sh tests"
