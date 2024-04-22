@@ -21,7 +21,7 @@ services:
       - ${FAASM_BUILD_DIR}:${FAASM_BUILD_MOUNT}
     environment:
       - LOG_LEVEL=debug
-      - PLANNER_PORT=8080
+      - PLANNER_PORT=${PLANNER_DOCKER_PORT}
 
   minio:
     image: faasm.azurecr.io/minio:${FAASM_VERSION}
@@ -59,7 +59,7 @@ services:
       - DEPLOYMENT_TYPE=${FAASM_DEPLOYMENT_TYPE:-compose}
       - LOG_LEVEL=info
       - PLANNER_HOST=planner
-      - PLANNER_PORT=8081
+      - PLANNER_PORT=${PLANNER_DOCKER_PORT}
       - PYTHON_CODEGEN=${PYTHON_CODEGEN:-off}
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
@@ -99,7 +99,7 @@ services:
       - NETNS_MODE=off
       - OVERRIDE_CPU_COUNT=${FAASM_OVERRIDE_CPU_COUNT:-8}
       - PLANNER_HOST=planner
-      - PLANNER_PORT=8081
+      - PLANNER_PORT=${PLANNER_DOCKER_PORT}
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - SGX_AESM_ADDR=1
@@ -144,7 +144,7 @@ services:
       - LD_LIBRARY_PATH=/build/faasm/third-party/lib:/usr/local/lib
       - LOG_LEVEL=debug
       - PLANNER_HOST=planner
-      - PLANNER_PORT=8080
+      - PLANNER_PORT=${PLANNER_DOCKER_PORT}
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - SGX_AESM_ADDR=1
@@ -192,7 +192,7 @@ services:
       - LOG_LEVEL=debug
       - OVERRIDE_CPU_COUNT=${FAASM_OVERRIDE_CPU_COUNT:-4}
       - PLANNER_HOST=planner
-      - PLANNER_PORT=8080
+      - PLANNER_PORT=${PLANNER_DOCKER_PORT}
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
     command: ./bin/dist_test_server

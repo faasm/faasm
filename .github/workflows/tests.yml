@@ -19,9 +19,9 @@ concurrency:
 # Top-level env. vars shared by most jobs
 env:
   CONAN_CACHE_MOUNT_SOURCE: .conan
-  FAABRIC_VERSION: 0.15.0
+  FAABRIC_VERSION: 0.17.0
   FAASM_INI_FILE: ./faasm.ini
-  FAASM_VERSION: 0.24.0
+  FAASM_VERSION: 0.25.0
   FAASMCTL_VERSION: 0.39.0
 
 jobs:
@@ -29,7 +29,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.24.0
+      image: faasm.azurecr.io/cli:0.25.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
@@ -301,9 +301,9 @@ jobs:
       - name: "Start a worker-less (SGX) Faasm cluster to run unit tests"
         run: |
           # First remove unnecessary images
-          docker rmi faasm.azurecr.io/cli:${{ env.FAASM_VERSION }}
-          docker rmi faasm.azurecr.io/upload:${{ env.FAASM_VERSION }}
-          docker rmi faasm.azurecr.io/worker:${{ env.FAASM_VERSION }}
+          docker rmi -f faasm.azurecr.io/cli:${{ env.FAASM_VERSION }}
+          docker rmi -f faasm.azurecr.io/upload:${{ env.FAASM_VERSION }}
+          docker rmi -f faasm.azurecr.io/worker:${{ env.FAASM_VERSION }}
           faasmctl deploy.compose --mount-source . --workers=0
         env:
           FAASM_WASM_VM: sgx-sim
@@ -364,13 +364,13 @@ jobs:
       # Tests build (Debug required for tests)
       - name: "Re-run CMake with sanitiser set"
         if: ${{ (matrix.sanitiser != 'Coverage') && (matrix.sanitiser != 'Sgx') }}
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sanitiser ${{ matrix.sanitiser }}"
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --disable-spinlock --build Debug --sanitiser ${{ matrix.sanitiser }}"
       - name: "Re-run CMake with coverage"
         if: ${{ matrix.sanitiser == 'Coverage' }}
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --build Debug --coverage"
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --disable-spinlock --build Debug --coverage"
       - name: "Re-run CMake with SGX"
         if: ${{ matrix.sanitiser == 'Sgx' }}
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --build Debug --sgx Simulation"
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --disable-spinlock --build Debug --sgx Simulation"
       - name: "Build only the tests target"
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cc tests"
       # Until we bump to LLVM >= 18.1.0, TSAN comes with bug with ASLR
@@ -381,7 +381,7 @@ jobs:
       # Run tests
       - name: "Run the tests"
         if: ${{ matrix.sanitiser != 'Coverage' }}
-        run: faasmctl cli.faasm --env HOST_TYPE=ci --cmd "./bin/inv_wrapper.sh tests"
+        run: faasmctl cli.faasm --env HOST_TYPE=ci --cmd "./bin/inv_wrapper.sh tests --debug"
       - name: "Run the tests and fetch coverage report"
         if: ${{ matrix.sanitiser == 'Coverage' }}
         run: faasmctl cli.faasm --env HOST_TYPE=ci,LLVM_PROFILE_FILE=/tmp/faasm.profraw --cmd "./bin/inv_wrapper.sh tests"
