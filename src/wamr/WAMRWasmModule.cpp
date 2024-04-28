@@ -180,7 +180,15 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 
         if (wasmModule == nullptr) {
             std::string errorMsg = std::string(errorBuffer);
-            SPDLOG_ERROR("Failed to load WAMR module: \n{}", errorMsg);
+            SPDLOG_ERROR(
+              "{}:{}:{} Failed to load WAMR module {}/{} (size: {}): \n{}",
+              msg.appid(),
+              msg.groupid(),
+              msg.groupidx(),
+              msg.user(),
+              msg.function(),
+              wasmBytes.size(),
+              errorMsg);
             throw std::runtime_error("Failed to load WAMR module");
         }
     }
@@ -615,6 +623,10 @@ bool WAMRWasmModule::executeCatchException(int threadPoolIdx,
                 throw faabric::util::FunctionMigratedException(
                   "Migrating MPI rank");
             }
+            case WAMRExceptionTypes::FunctionFrozenException: {
+                throw faabric::util::FunctionFrozenException(
+                  "Freezing MPI rank");
+            }
             case WAMRExceptionTypes::QueueTimeoutException: {
                 throw std::runtime_error("Timed-out dequeueing!");
             }
@@ -657,6 +669,13 @@ void WAMRWasmModule::doThrowException(std::exception& e)
         e.~exception();
         longjmp(wamrExceptionJmpBuf,
                 WAMRExceptionTypes::FunctionMigratedException);
+    } else if (dynamic_cast<faabric::util::FunctionFrozenException*>(&e) !=
+               nullptr) {
+        // Make sure to explicitly call the exceptions destructor explicitly
+        // to avoid memory leaks when longjmp-ing
+        e.~exception();
+        longjmp(wamrExceptionJmpBuf,
+                WAMRExceptionTypes::FunctionFrozenException);
     } else if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) !=
                nullptr) {
         e.~exception();
