@@ -250,7 +250,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
 
     // Mark the VM as evicted (note that pre-loading takes preference, so we
     // can mark the VM as evicted before scheduling it)
-    setNextEvictedVmIp(evictedVmIp);
+    setNextEvictedVmIp({ evictedVmIp });
 
     // Call the functions
     plannerCli.callFunctions(req);
@@ -539,7 +539,7 @@ TEST_CASE_METHOD(MpiDistTestsFixture,
 
     // Mark the worker VM as evicted
     std::string evictedVmIp = getDistTestWorkerIp();
-    setNextEvictedVmIp(evictedVmIp);
+    setNextEvictedVmIp({ evictedVmIp });
 
     plannerCli.callFunctions(reqB);
 

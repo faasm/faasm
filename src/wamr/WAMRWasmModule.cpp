@@ -170,10 +170,14 @@ void WAMRWasmModule::doBindToFunction(faabric::Message& msg, bool cache)
 
     // Load the wasm file
     storage::FileLoader& functionLoader = storage::getFileLoader();
-    wasmBytes = functionLoader.loadFunctionWamrAotFile(msg);
 
     {
         faabric::util::UniqueLock lock(wamrGlobalsMutex);
+
+        // Must load the WASM file with a lock to prevent some spurious race
+        // conditions when migrating to a new host
+        wasmBytes = functionLoader.loadFunctionWamrAotFile(msg);
+
         SPDLOG_TRACE("WAMR loading {} wasm bytes\n", wasmBytes.size());
         wasmModule = wasm_runtime_load(
           wasmBytes.data(), wasmBytes.size(), errorBuffer, ERROR_BUFFER_SIZE);
