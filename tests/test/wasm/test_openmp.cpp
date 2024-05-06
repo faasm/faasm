@@ -325,6 +325,44 @@ TEST_CASE_METHOD(OpenMPTestFixture,
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test concurrent OpenMP applications",
+                 "[wasm][openmp]")
+{
+    int numThreadsA = 7;
+    int numThreadsB = 3;
+    int numSlots = 10;
+    int numLoops = 10;
+
+    faabric::HostResources res;
+    res.set_slots(numSlots);
+    sch.setThisHostResources(res);
+    faasmConf.wasmVm = "wamr";
+
+    auto reqA = faabric::util::batchExecFactory("omp", "repeated_reduce", 1);
+    reqA->set_singlehosthint(true);
+    reqA->mutable_messages(0)->set_inputdata(std::to_string(numThreadsA));
+
+    auto reqB = faabric::util::batchExecFactory("omp", "repeated_reduce", 1);
+    reqB->set_singlehosthint(true);
+    reqB->mutable_messages(0)->set_inputdata(std::to_string(numThreadsB));
+
+    int expectedMessageresultsA = (numThreadsA - 1) * numLoops + 1;
+    int expectedMessageresultsB = (numThreadsB - 1) * numLoops + 1;
+
+    auto& plannerCli = faabric::planner::getPlannerClient();
+    plannerCli.callFunctions(reqA);
+    plannerCli.callFunctions(reqB);
+
+    auto resultsA = waitForBatchResults(reqA, expectedMessageresultsA);
+    REQUIRE(resultsA->messageresults().at(0).returnvalue() == 0);
+    REQUIRE(resultsA->messageresults_size() == expectedMessageresultsA);
+
+    auto resultsB = waitForBatchResults(reqB, expectedMessageresultsB);
+    REQUIRE(resultsB->messageresults().at(0).returnvalue() == 0);
+    REQUIRE(resultsB->messageresults_size() == expectedMessageresultsB);
+}
+
+TEST_CASE_METHOD(OpenMPTestFixture,
                  "Test running out of slots throws exception",
                  "[wasm][openmp]")
 {
