@@ -1,3 +1,4 @@
+#include <faabric/batch-scheduler/BatchScheduler.h>
 #include <faabric/batch-scheduler/SchedulingDecision.h>
 #include <faabric/executor/ExecutorContext.h>
 #include <faabric/mpi/MpiWorldRegistry.h>
@@ -7,6 +8,7 @@
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/util/ExecGraph.h>
 #include <faabric/util/batch.h>
+#include <faabric/util/network.h>
 #include <wasm/WasmExecutionContext.h>
 #include <wasm/migration.h>
 
@@ -30,7 +32,43 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
           faabric::util::getSystemConfig().endpointHost);
         getExecutingModule()->doThrowException(e);
     }
-    bool appMustMigrate = migration != nullptr;
+
+    bool appMustFreeze =
+      migration != nullptr && migration->appid() == MUST_FREEZE;
+
+    // Short-cut for when all messages need to freeze. We only need to send
+    // a snapshot to the planner, and throw an exception
+    if (appMustFreeze) {
+        std::vector<uint8_t> inputData(entrypointFuncArg.begin(),
+                                       entrypointFuncArg.end());
+        std::string snapKey = "migration_" + std::to_string(call->id());
+
+        call->set_funcptr(entrypointFuncWasmOffset);
+        call->set_inputdata(inputData.data(), inputData.size());
+        call->set_snapshotkey(snapKey);
+
+        auto* exec = faabric::executor::ExecutorContext::get()->getExecutor();
+        auto snap =
+          std::make_shared<faabric::util::SnapshotData>(exec->getMemoryView());
+        auto& reg = faabric::snapshot::getSnapshotRegistry();
+        reg.registerSnapshot(snapKey, snap);
+
+        auto plannerIp = faabric::util::getIPFromHostname(
+          faabric::util::getSystemConfig().plannerHost);
+        faabric::snapshot::getSnapshotClient(plannerIp)->pushSnapshot(snapKey,
+                                                                      snap);
+
+        SPDLOG_INFO("{}:{}:{} Freezing message!",
+                    call->appid(),
+                    call->groupid(),
+                    call->groupidx());
+
+        // Throw an exception to be caught by the executor and terminate
+        auto exc = faabric::util::FunctionFrozenException("Freezing MPI rank");
+        getExecutingModule()->doThrowException(exc);
+    }
+
+    bool appMustMigrate = migration != nullptr && !appMustFreeze;
 
     // Detect if this particular function needs to be migrated or not
     bool funcMustMigrate = false;
@@ -115,9 +153,9 @@ void doMigrationPoint(int32_t entrypointFuncWasmOffset,
             faabric::util::logChainedFunction(*call, msg);
         }
 
-        auto ex =
+        auto exc =
           faabric::util::FunctionMigratedException("Migrating MPI rank");
-        getExecutingModule()->doThrowException(ex);
+        getExecutingModule()->doThrowException(exc);
     }
 
     // Hit the post-migration hook if not migrated (but someone has). Be

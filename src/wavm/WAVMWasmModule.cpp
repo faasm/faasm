@@ -107,6 +107,9 @@ void WAVMWasmModule::doThrowException(std::exception& e)
     if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) != nullptr) {
         throw *dynamic_cast<faabric::util::QueueTimeoutException*>(&e);
     }
+    if (dynamic_cast<faabric::util::FunctionFrozenException*>(&e) != nullptr) {
+        throw *dynamic_cast<faabric::util::FunctionFrozenException*>(&e);
+    }
 
     throw e;
 }

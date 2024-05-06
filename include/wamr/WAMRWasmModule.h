@@ -31,6 +31,7 @@ enum WAMRExceptionTypes
     DefaultException = 1,
     FunctionMigratedException = 2,
     QueueTimeoutException = 3,
+    FunctionFrozenException = 4,
 };
 
 std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx);

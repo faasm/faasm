@@ -142,7 +142,6 @@ TEST_CASE_METHOD(
     plannerCli.preloadSchedulingDecision(preloadDecA);
 
     plannerCli.callFunctions(reqA);
-    waitForMpiMessagesInFlight(reqA);
 
     plannerCli.callFunctions(reqB);
 
