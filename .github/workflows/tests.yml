@@ -113,7 +113,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-cpp-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cpp-sysroot:0.4.0
+      image: faasm.azurecr.io/cpp-sysroot:0.5.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
@@ -239,7 +239,7 @@ jobs:
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --build Debug --clean"
 
   tests:
-    needs: [cpp-funcs, py-funcs, conan-cache]
+    needs: [cpp-funcs, py-funcs, conan-cache, wasm-funcs-cache]
     # Run the tests both if the dependencies have succeeded or have been
     # skipped
     if: |
@@ -353,7 +353,7 @@ jobs:
       # `clients/python` have changed, or (ii) `cpp` and `python` have not
       # changed, but we have a cache miss (i.e. new CPU, or new WAMR/WAVM)
       - name: "Run codegen for the tests"
-        if: ${{ (needs.wasm-funcs-cache.outputs.cpp == 'true') || (needs.wasm-funcs-cache.outputs.python == 'true') || (steps.machine-code-cache.outputs.cache-hit != 'true') }}
+        if: ${{ (needs.wasm-funcs-cache.outputs.needs-cpp-wasm == 'true') || (needs.wasm-funcs-cache.outputs.needs-py-wasm == 'true') || (steps.machine-code-cache.outputs.cache-hit != 'true') }}
         run: |
           faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake dev.cc codegen_func dev.cc codegen_shared_obj"
           faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh codegen.tests"
