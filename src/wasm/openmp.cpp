@@ -301,8 +301,8 @@ void doOpenMPFork(int32_t loc,
     }
 
     // Wait for all other threads to finish
-    for (int i = 0; i < decision.messageIds.size(); i++) {
-        uint32_t messageId = decision.messageIds.at(i);
+    for (int i = 0; i < req->messages_size(); i++) {
+        uint32_t messageId = req->messages(i).id();
 
         auto msgResult = faabric::planner::getPlannerClient().getMessageResult(
           req->appid(),
