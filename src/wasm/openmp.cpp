@@ -252,7 +252,7 @@ void doOpenMPFork(int32_t loc,
                 SPDLOG_INFO("Elastically scaling OpenMP fork {} -> {}",
                             req->messages_size() + 1,
                             decision.hosts.size() + 1);
-                nextLevel->numThreads = decision.hosts.size();
+                nextLevel->numThreads = decision.hosts.size() + 1;
                 serialisedLevel = nextLevel->serialise();
             }
         }

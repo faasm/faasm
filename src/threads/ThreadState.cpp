@@ -42,7 +42,8 @@ void setCurrentOpenMPLevel(
     // more threads than originally expected to)
     if (req->elasticscalehint()) {
         auto& broker = faabric::transport::getPointToPointBroker();
-        int actualGroupSize = broker.getIdxsRegisteredForGroup(req->groupid()).size();
+        int actualGroupSize =
+          broker.getIdxsRegisteredForGroup(req->groupid()).size();
         currentLevel->numThreads = actualGroupSize;
     }
 

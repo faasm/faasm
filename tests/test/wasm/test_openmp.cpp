@@ -287,12 +287,22 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     req->set_singlehosthint(true);
     req->mutable_messages(0)->set_inputdata(std::to_string(numThreads));
     int expectedMessageresults = 0;
+    std::shared_ptr<faabric::batch_scheduler::SchedulingDecision> preloadDec =
+      nullptr;
 
     SECTION("Elastically scale")
     {
         req->set_elasticscalehint(true);
-        // TODO: pre-load scheduling decision here
-        expectedMessageresults = (numThreads - 1) + (numSlots - 1) * (numLoops - 1) + 1;
+
+        // Prepare pre-loaded scheduling decision
+        preloadDec = std::make_shared<batch_scheduler::SchedulingDecision>(
+          req->appid(), req->groupid());
+        for (int i = 0; i < numThreads; i++) {
+            preloadDec->addMessage(conf.endpointHost, 0, 0, i);
+        }
+
+        expectedMessageresults =
+          (numThreads - 1) + (numSlots - 1) * (numLoops - 1) + 1;
     }
 
     SECTION("Do not elastically scale")
@@ -301,7 +311,12 @@ TEST_CASE_METHOD(OpenMPTestFixture,
         expectedMessageresults = (numThreads - 1) * numLoops + 1;
     }
 
-    // TODO: wait for the right number of messages
+    if (preloadDec != nullptr) {
+        // Pre-load scheduling decision so that we do not elastically scale
+        // the first iteration
+        plannerCli.preloadSchedulingDecision(preloadDec);
+    }
+
     executeWithPool(req, OMP_TEST_TIMEOUT_MS, false);
     auto results = waitForBatchResults(req, expectedMessageresults);
 
