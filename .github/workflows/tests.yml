@@ -254,7 +254,7 @@ jobs:
     runs-on: ubuntu-latest
     # This timeout should be long enough to let slow tests (w/ sanitisers)
     # build and run, but still kill the GHA if something goes wrong
-    timeout-minutes: 40
+    timeout-minutes: 50
     strategy:
       fail-fast: false
       matrix:
