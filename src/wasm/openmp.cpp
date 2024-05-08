@@ -180,6 +180,14 @@ void doOpenMPFork(int32_t loc,
         thisMsg.set_groupidx(i + 1);
     }
 
+    // If we are running a fork of size 1 but the elastic scale flag is set,
+    // we will call the planner to check for opportunities to elastically scale
+    // Thus, we take advantage of the group ID field in the BER to pass the
+    // microTaskPtr
+    if (req->messages_size() == 0 && req->elasticscalehint()) {
+        req->set_groupid(microTask);
+    }
+
     // Do snapshotting if not on a single host. Note that, from the caller
     // thread, we cannot know if the request is going to be single host or not.
     // So, by default, we always take a snapshot. We can bypass this by setting
@@ -231,39 +239,28 @@ void doOpenMPFork(int32_t loc,
 
     // Invoke all non-main threads
     faabric::batch_scheduler::SchedulingDecision decision(req->appid(), 0);
-    if (req->messages_size() > 0) {
-        decision = faabric::planner::getPlannerClient().callFunctions(req);
+    decision = faabric::planner::getPlannerClient().callFunctions(req);
 
-        // Sanity-check decision
-        if (decision == NOT_ENOUGH_SLOTS_DECISION) {
-            SPDLOG_ERROR(
-              "Failed to fork OpenMP, not enough slots (requested: {})",
-              req->messages_size());
-            auto exc = faabric::util::FaabricException(
-              "Failed to fork OpenMP, not enough slots!");
-            getExecutingModule()->doThrowException(exc);
-        }
+    // Sanity-check decision
+    if (decision == NOT_ENOUGH_SLOTS_DECISION) {
+        SPDLOG_ERROR("Failed to fork OpenMP, not enough slots (requested: {})",
+                     req->messages_size());
+        auto exc = faabric::util::FaabricException(
+          "Failed to fork OpenMP, not enough slots!");
+        getExecutingModule()->doThrowException(exc);
+    }
 
-        // We have elastically scaled-up if the number of messages returned
-        // by the decision is greater than the original number of messages
-        // requested
-        if (req->elasticscalehint()) {
-            if (decision.hosts.size() > req->messages_size()) {
-                SPDLOG_INFO("Elastically scaling OpenMP fork {} -> {}",
-                            req->messages_size() + 1,
-                            decision.hosts.size() + 1);
-                nextLevel->numThreads = decision.hosts.size() + 1;
-                serialisedLevel = nextLevel->serialise();
-            }
+    // We have elastically scaled-up if the number of messages returned
+    // by the decision is greater than the original number of messages
+    // requested
+    if (req->elasticscalehint()) {
+        if (decision.hosts.size() > req->messages_size()) {
+            SPDLOG_INFO("Elastically scaling OpenMP fork {} -> {}",
+                        req->messages_size() + 1,
+                        decision.hosts.size() + 1);
+            nextLevel->numThreads = decision.hosts.size() + 1;
+            serialisedLevel = nextLevel->serialise();
         }
-    } else {
-        // In a one-thread OpenMP loop, we manually create a communication
-        // group of size one
-        const std::string thisHost =
-          faabric::util::getSystemConfig().endpointHost;
-        decision.addMessage(thisHost, parentCall->id(), 0, 0);
-        faabric::transport::getPointToPointBroker()
-          .setUpLocalMappingsFromSchedulingDecision(decision);
     }
 
     // Invoke the main thread (number zero)

@@ -355,10 +355,11 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
 {
     auto funcStr = faabric::util::funcToString(msg, false);
     int wasmFuncPtr = msg.funcptr();
-    SPDLOG_DEBUG("Executing OpenMP thread {} for {} (app: {})",
+    SPDLOG_DEBUG("Executing OpenMP thread {} for {} (app: {}, funcptr: {}))",
                  threadPoolIdx,
                  funcStr,
-                 msg.appid());
+                 msg.appid(),
+                 wasmFuncPtr);
 
     auto* execEnv = execEnvs.at(threadPoolIdx);
     if (execEnvs.at(threadPoolIdx) == nullptr) {
