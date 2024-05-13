@@ -115,6 +115,7 @@ TEST_CASE_METHOD(
     reqA->mutable_messages(0)->set_ismpi(true);
     reqA->mutable_messages(0)->set_mpiworldsize(mpiWorldSize);
     auto reqB = faabric::util::batchExecFactory("omp", "repeated_reduce", 1);
+    reqB->mutable_messages(0)->set_inputdata(std::to_string(ompNumThreads));
 
     // We need to be careful as OpenMP can only scale up locally
     SECTION("Concurrent")
