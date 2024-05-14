@@ -355,11 +355,18 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
 {
     auto funcStr = faabric::util::funcToString(msg, false);
     int wasmFuncPtr = msg.funcptr();
-    SPDLOG_DEBUG("Executing OpenMP thread {} for {}", threadPoolIdx, funcStr);
+    SPDLOG_DEBUG("Executing OpenMP thread {} for {} (app: {}, funcptr: {}))",
+                 threadPoolIdx,
+                 funcStr,
+                 msg.appid(),
+                 wasmFuncPtr);
 
     auto* execEnv = execEnvs.at(threadPoolIdx);
     if (execEnvs.at(threadPoolIdx) == nullptr) {
-        SPDLOG_ERROR("Exec. env not set for thread: {}!", threadPoolIdx);
+        SPDLOG_ERROR("Exec. env not set for thread: {}:{} (app: {})!",
+                     funcStr,
+                     threadPoolIdx,
+                     msg.appid());
         throw std::runtime_error("Thread execution environment not set!");
     }
 

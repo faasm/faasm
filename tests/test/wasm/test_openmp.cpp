@@ -34,21 +34,22 @@ class OpenMPTestFixture
 
     ~OpenMPTestFixture() {}
 
-    std::string doOmpTestLocal(const std::string& function)
+    std::string doOmpTestLocal(const std::string& function, int numThreads = -1)
     {
-        faabric::Message msg = faabric::util::messageFactory("omp", function);
         auto req = faabric::util::batchExecFactory("omp", function, 1);
         req->set_singlehosthint(true);
+        if (numThreads > 0) {
+            req->mutable_messages(0)->set_isomp(true);
+            req->mutable_messages(0)->set_ompnumthreads(numThreads);
+            req->mutable_messages(0)->set_inputdata(std::to_string(numThreads));
+        }
 
         // 08/03/2024 - Some local OpenMP tests stopped working with WAVM
         // after upgrade to LLVM 17 due to WAVM's incorrect handling of
         // atomics
         // SECTION("WAVM") { faasmConf.wasmVm = "wavm"; }
 
-        SECTION("WAMR")
-        {
-            faasmConf.wasmVm = "wamr";
-        }
+        faasmConf.wasmVm = "wamr";
 
         faabric::Message result =
           executeWithPool(req, OMP_TEST_TIMEOUT_MS).at(0);
@@ -193,7 +194,19 @@ TEST_CASE_METHOD(OpenMPTestFixture,
     res.set_slots(10);
     sch.setThisHostResources(res);
 
-    doOmpTestLocal("repeated_reduce");
+    int nThreads = 0;
+
+    SECTION("Single-threaded")
+    {
+        nThreads = 1;
+    }
+
+    SECTION("Multi-threaded")
+    {
+        nThreads = 10;
+    }
+
+    doOmpTestLocal("repeated_reduce", nThreads);
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture, "Test OpenMP atomic", "[wasm][openmp]")
@@ -261,6 +274,174 @@ TEST_CASE_METHOD(OpenMPTestFixture,
 
     // Get result
     REQUIRE(result.returnvalue() > 0);
+}
+
+TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test elastically scaling OpenMP execution (single-threaded)",
+                 "[wasm][openmp]")
+{
+    int numThreads = 1;
+    int numSlots = 10;
+    int numLoops = 10;
+
+    faabric::HostResources res;
+    res.set_slots(numSlots);
+    sch.setThisHostResources(res);
+    faasmConf.wasmVm = "wamr";
+
+    // The function does 10 loops, and we invoke it with 5 threads, so in
+    // total we should have (5 - 1) * 10 + 1 = 41 message results. This is
+    // because we fork with (n - 1) threads, and persist the main thread.
+    // If we preload one scheduling decision, and then scale up, we should have
+    // 4 + (10 - 1) * 9 + 1 = 86 message results
+    auto req = faabric::util::batchExecFactory("omp", "repeated_reduce", 1);
+    req->set_singlehosthint(true);
+    req->mutable_messages(0)->set_isomp(true);
+    req->mutable_messages(0)->set_ompnumthreads(numThreads);
+    req->mutable_messages(0)->set_inputdata(std::to_string(numThreads));
+    int expectedMessageresults = 0;
+    std::shared_ptr<faabric::batch_scheduler::SchedulingDecision> preloadDec =
+      nullptr;
+
+    SECTION("Elastically scale")
+    {
+        req->set_elasticscalehint(true);
+
+        // Prepare pre-loaded scheduling decision
+        /*
+        preloadDec = std::make_shared<batch_scheduler::SchedulingDecision>(
+          req->appid(), req->groupid());
+        for (int i = 0; i < numThreads; i++) {
+            preloadDec->addMessage(conf.endpointHost, 0, 0, i);
+        }
+        */
+
+        expectedMessageresults =
+          (numThreads - 1) + (numSlots - 1) * (numLoops - 1) + 1;
+    }
+
+    SECTION("Do not elastically scale")
+    {
+        req->set_elasticscalehint(false);
+        expectedMessageresults = (numThreads - 1) * numLoops + 1;
+    }
+
+    /*
+    if (preloadDec != nullptr) {
+        // Pre-load scheduling decision so that we do not elastically scale
+        // the first iteration
+        plannerCli.preloadSchedulingDecision(preloadDec);
+    }
+    */
+
+    executeWithPool(req, OMP_TEST_TIMEOUT_MS, false);
+    auto results = waitForBatchResults(req, expectedMessageresults);
+
+    REQUIRE(results->messageresults().at(0).returnvalue() == 0);
+    REQUIRE(results->messageresults_size() == expectedMessageresults);
+}
+
+TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test elastically scaling OpenMP execution",
+                 "[wasm][openmp]")
+{
+    int numThreads = 5;
+    int numSlots = 10;
+    int numLoops = 10;
+
+    faabric::HostResources res;
+    res.set_slots(numSlots);
+    sch.setThisHostResources(res);
+    faasmConf.wasmVm = "wamr";
+
+    // The function does 10 loops, and we invoke it with 5 threads, so in
+    // total we should have (5 - 1) * 10 + 1 = 41 message results. This is
+    // because we fork with (n - 1) threads, and persist the main thread.
+    // If we preload one scheduling decision, and then scale up, we should have
+    // 4 + (10 - 1) * 9 + 1 = 86 message results
+    auto req = faabric::util::batchExecFactory("omp", "repeated_reduce", 1);
+    req->set_singlehosthint(true);
+    req->mutable_messages(0)->set_isomp(true);
+    req->mutable_messages(0)->set_ompnumthreads(numThreads);
+    req->mutable_messages(0)->set_inputdata(std::to_string(numThreads));
+    int expectedMessageresults = 0;
+    std::shared_ptr<faabric::batch_scheduler::SchedulingDecision> preloadDec =
+      nullptr;
+
+    SECTION("Elastically scale")
+    {
+        req->set_elasticscalehint(true);
+
+        // Prepare pre-loaded scheduling decision
+        /*
+        preloadDec = std::make_shared<batch_scheduler::SchedulingDecision>(
+          req->appid(), req->groupid());
+        for (int i = 0; i < numThreads; i++) {
+            preloadDec->addMessage(conf.endpointHost, 0, 0, i);
+        }
+        */
+
+        expectedMessageresults =
+          (numThreads - 1) + (numSlots - 1) * (numLoops - 1) + 1;
+    }
+
+    SECTION("Do not elastically scale")
+    {
+        req->set_elasticscalehint(false);
+        expectedMessageresults = (numThreads - 1) * numLoops + 1;
+    }
+
+    /*
+    if (preloadDec != nullptr) {
+        // Pre-load scheduling decision so that we do not elastically scale
+        // the first iteration
+        plannerCli.preloadSchedulingDecision(preloadDec);
+    }
+    */
+
+    executeWithPool(req, OMP_TEST_TIMEOUT_MS, false);
+    auto results = waitForBatchResults(req, expectedMessageresults);
+
+    REQUIRE(results->messageresults().at(0).returnvalue() == 0);
+    REQUIRE(results->messageresults_size() == expectedMessageresults);
+}
+
+TEST_CASE_METHOD(OpenMPTestFixture,
+                 "Test concurrent OpenMP applications",
+                 "[wasm][openmp]")
+{
+    int numThreadsA = 7;
+    int numThreadsB = 3;
+    int numSlots = 10;
+    int numLoops = 10;
+
+    faabric::HostResources res;
+    res.set_slots(numSlots);
+    sch.setThisHostResources(res);
+    faasmConf.wasmVm = "wamr";
+
+    auto reqA = faabric::util::batchExecFactory("omp", "repeated_reduce", 1);
+    reqA->set_singlehosthint(true);
+    reqA->mutable_messages(0)->set_inputdata(std::to_string(numThreadsA));
+
+    auto reqB = faabric::util::batchExecFactory("omp", "repeated_reduce", 1);
+    reqB->set_singlehosthint(true);
+    reqB->mutable_messages(0)->set_inputdata(std::to_string(numThreadsB));
+
+    int expectedMessageresultsA = (numThreadsA - 1) * numLoops + 1;
+    int expectedMessageresultsB = (numThreadsB - 1) * numLoops + 1;
+
+    auto& plannerCli = faabric::planner::getPlannerClient();
+    plannerCli.callFunctions(reqA);
+    plannerCli.callFunctions(reqB);
+
+    auto resultsA = waitForBatchResults(reqA, expectedMessageresultsA);
+    REQUIRE(resultsA->messageresults().at(0).returnvalue() == 0);
+    REQUIRE(resultsA->messageresults_size() == expectedMessageresultsA);
+
+    auto resultsB = waitForBatchResults(reqB, expectedMessageresultsB);
+    REQUIRE(resultsB->messageresults().at(0).returnvalue() == 0);
+    REQUIRE(resultsB->messageresults_size() == expectedMessageresultsB);
 }
 
 TEST_CASE_METHOD(OpenMPTestFixture,

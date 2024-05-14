@@ -63,6 +63,7 @@ TEST_CASE_METHOD(DistTestsFixture,
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory("omp", function, 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
+    msg.set_inputdata(std::to_string(nThreads));
 
     // Invoke the function
     plannerCli.callFunctions(req);

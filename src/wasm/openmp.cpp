@@ -140,7 +140,8 @@ void doOpenMPFork(int32_t loc,
 
     if (nextLevel->depth > 1) {
         SPDLOG_ERROR("Nested OpenMP support removed");
-        throw std::runtime_error("Nested OpenMP support removed");
+        auto exc = std::runtime_error("Nested OpenMP support removed");
+        getExecutingModule()->doThrowException(exc);
     }
 
     // Set up the chained calls with thread semantics
@@ -155,26 +156,41 @@ void doOpenMPFork(int32_t loc,
     // Propagate the single-host hint. The single host flag can be used to hint
     // that we do not need to preemptively distribute snapshots
     req->set_singlehosthint(parentReq->singlehosthint());
+    // Propagate the elastic scaling hint. This host flag can be used to
+    // request forking requests to take up as many local resources available
+    req->set_elasticscalehint(parentReq->elasticscalehint());
     // Serialise the level so that it is available in the request
     std::vector<uint8_t> serialisedLevel = nextLevel->serialise();
     req->set_contextdata(serialisedLevel.data(), serialisedLevel.size());
 
     // Configure the mesages
     for (int i = 0; i < req->messages_size(); i++) {
-        faabric::Message& m = req->mutable_messages()->at(i);
+        faabric::Message& thisMsg = req->mutable_messages()->at(i);
+
+        // OpenMP stuff
+        thisMsg.set_isomp(parentCall->isomp());
+        thisMsg.set_ompnumthreads(parentCall->ompnumthreads());
 
         // Function pointer in the WASM sense (so just an integer to the
         // function table)
-        m.set_funcptr(microTask);
+        thisMsg.set_funcptr(microTask);
 
         // OpenMP thread number
         int threadNum = nextLevel->getGlobalThreadNum(i + 1);
-        m.set_appidx(threadNum);
+        thisMsg.set_appidx(threadNum);
 
         // Group setup for distributed coordination. Note that the group index
         // is just within this function group, and not the global OpenMP
         // thread number
-        m.set_groupidx(i + 1);
+        thisMsg.set_groupidx(i + 1);
+    }
+
+    // If we are running a fork of size 1 but the elastic scale flag is set,
+    // we will call the planner to check for opportunities to elastically scale
+    // Thus, we take advantage of the group ID field in the BER to pass the
+    // microTaskPtr
+    if (req->messages_size() == 0 && req->elasticscalehint()) {
+        req->set_groupid(microTask);
     }
 
     // Do snapshotting if not on a single host. Note that, from the caller
@@ -228,26 +244,31 @@ void doOpenMPFork(int32_t loc,
 
     // Invoke all non-main threads
     faabric::batch_scheduler::SchedulingDecision decision(req->appid(), 0);
-    if (req->messages_size() > 0) {
-        decision = faabric::planner::getPlannerClient().callFunctions(req);
+    decision = faabric::planner::getPlannerClient().callFunctions(req);
 
-        // Sanity-check decision
-        if (decision == NOT_ENOUGH_SLOTS_DECISION) {
-            SPDLOG_ERROR(
-              "Failed to fork OpenMP, not enough slots (requested: {})",
-              req->messages_size());
-            auto exc = faabric::util::FaabricException(
-              "Failed to fork OpenMP, not enough slots!");
-            getExecutingModule()->doThrowException(exc);
+    // Sanity-check decision
+    if (decision == NOT_ENOUGH_SLOTS_DECISION) {
+        SPDLOG_ERROR(
+          "Failed to fork OpenMP (app: {}), not enough slots (requested: {})",
+          req->appid(),
+          req->messages_size());
+        auto exc = faabric::util::FaabricException(
+          "Failed to fork OpenMP, not enough slots!");
+        getExecutingModule()->doThrowException(exc);
+    }
+
+    // We have elastically scaled-up if the number of messages returned
+    // by the decision is greater than the original number of messages
+    // requested
+    if (req->elasticscalehint()) {
+        if (decision.hosts.size() > req->messages_size()) {
+            SPDLOG_INFO("App {} elastically scaling OpenMP fork {} -> {}",
+                        req->appid(),
+                        req->messages_size() + 1,
+                        decision.hosts.size() + 1);
+            nextLevel->numThreads = decision.hosts.size() + 1;
+            serialisedLevel = nextLevel->serialise();
         }
-    } else {
-        // In a one-thread OpenMP loop, we manually create a communication
-        // group of size one
-        const std::string thisHost =
-          faabric::util::getSystemConfig().endpointHost;
-        decision.addMessage(thisHost, parentCall->id(), 0, 0);
-        faabric::transport::getPointToPointBroker()
-          .setUpLocalMappingsFromSchedulingDecision(decision);
     }
 
     // Invoke the main thread (number zero)
@@ -273,7 +294,17 @@ void doOpenMPFork(int32_t loc,
         faabric::util::getDirtyTracker()->startThreadLocalTracking(
           parentExecutor->getMemoryView());
     }
-    auto returnValue = parentModule->executeTask(0, 0, thisThreadReq);
+    int returnValue = 0;
+    try {
+        parentModule->executeTask(0, 0, thisThreadReq);
+    } catch (std::exception& exc) {
+        SPDLOG_ERROR(
+          "OpenMP thread (0) failed, result {} on message {} (app: {})",
+          thisThreadReq->messages(0).returnvalue(),
+          thisThreadReq->messages(0).id(),
+          thisThreadReq->messages(0).appid());
+        getExecutingModule()->doThrowException(exc);
+    }
     faabric::executor::ExecutorContext::set(parentExecutor, parentReq, 0);
 
     // Process and set thread result
@@ -281,12 +312,14 @@ void doOpenMPFork(int32_t loc,
         SPDLOG_ERROR("OpenMP thread (0) failed, result {} on message {}",
                      thisThreadReq->messages(0).returnvalue(),
                      thisThreadReq->messages(0).id());
-        throw std::runtime_error("OpenMP threads failed");
+        auto exc = std::runtime_error("OpenMP threads failed");
+        getExecutingModule()->doThrowException(exc);
     }
 
-    // Wait for all other threads to finish
-    for (int i = 0; i < req->messages_size(); i++) {
-        uint32_t messageId = req->messages().at(i).id();
+    // Wait for all other threads to finish. We use the decision, rather than
+    // the request, as we may have elastically scaled-up
+    for (int i = 0; i < decision.messageIds.size(); i++) {
+        uint32_t messageId = decision.messageIds.at(i);
 
         auto msgResult = faabric::planner::getPlannerClient().getMessageResult(
           req->appid(),
@@ -298,7 +331,8 @@ void doOpenMPFork(int32_t loc,
                          i + 1,
                          msgResult.returnvalue(),
                          msgResult.id());
-            throw std::runtime_error("OpenMP threads failed");
+            auto exc = std::runtime_error("OpenMP threads failed");
+            getExecutingModule()->doThrowException(exc);
         }
     }
 

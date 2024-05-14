@@ -37,6 +37,16 @@ void setCurrentOpenMPLevel(
     std::string funcStr = faabric::util::funcToString(req);
 
     currentLevel = levelFromBatchRequest(req);
+
+    // If scaling elastically, check if we are oversubscribed (i.e. we are
+    // more threads than originally expected to)
+    if (req->elasticscalehint()) {
+        auto& broker = faabric::transport::getPointToPointBroker();
+        int actualGroupSize =
+          broker.getIdxsRegisteredForGroup(req->groupid()).size();
+        currentLevel->numThreads = actualGroupSize;
+    }
+
     SPDLOG_TRACE(
       "Deserialised thread-local OpenMP level from {} bytes for {}, {}",
       req->contextdata().size(),

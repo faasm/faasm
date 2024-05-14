@@ -110,6 +110,34 @@ std::vector<faabric::Message> executeWithPool(
     return resultMsgs;
 }
 
+std::shared_ptr<faabric::BatchExecuteRequestStatus> waitForBatchResults(
+  std::shared_ptr<faabric::BatchExecuteRequest> req,
+  int numExpectedMessages)
+{
+    auto& plannerCli = faabric::planner::getPlannerClient();
+    // First, poll untill all messages are ready
+    int pollSleepSecs = 2;
+    auto batchResults = plannerCli.getBatchResults(req);
+    int maxRetries = 20;
+    int numRetries = 0;
+    while (batchResults->messageresults_size() != numExpectedMessages) {
+        if (numRetries >= maxRetries) {
+            SPDLOG_ERROR("Timed-out waiting for batch messages results for "
+                         "app {} ({}/{})",
+                         req->appid(),
+                         batchResults->messageresults_size(),
+                         numExpectedMessages);
+            throw std::runtime_error("Timed-out waiting for batch messges");
+        }
+
+        SLEEP_MS(pollSleepSecs * 1000);
+        batchResults = plannerCli.getBatchResults(req);
+        numRetries += 1;
+    }
+
+    return batchResults;
+}
+
 void executeWithPoolMultipleTimes(
   std::shared_ptr<faabric::BatchExecuteRequest> req,
   int numRepeats)

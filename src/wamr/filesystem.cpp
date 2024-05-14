@@ -1,4 +1,5 @@
 #include <conf/FaasmConfig.h>
+#include <faabric/executor/ExecutorContext.h>
 #include <faabric/util/logging.h>
 #include <storage/FileDescriptor.h>
 #include <wamr/WAMRWasmModule.h>
@@ -6,7 +7,6 @@
 #include <wamr/types.h>
 
 #include <cstring>
-#include <stdexcept>
 #include <string>
 #include <sys/uio.h>
 
@@ -389,7 +389,18 @@ static int32_t wasi_fd_write(wasm_exec_env_t exec_env,
     conf::FaasmConfig& conf = conf::getFaasmConfig();
     bool isStd = fd <= 2;
     if (isStd && conf.captureStdout == "on") {
-        module->captureStdout(ioVecBuffNative.data(), ioVecCountWasm);
+        try {
+            module->captureStdout(ioVecBuffNative.data(), ioVecCountWasm);
+        } catch (std::exception& e) {
+            auto msg = faabric::executor::ExecutorContext::get()->getMsg();
+            SPDLOG_ERROR("{}:{}:{} Failed to capture stdout",
+                         msg.appid(),
+                         msg.groupid(),
+                         msg.groupidx());
+
+            // Re-throw in a WAMR-safe way
+            module->doThrowException(e);
+        }
     }
 
     return __WASI_ESUCCESS;
