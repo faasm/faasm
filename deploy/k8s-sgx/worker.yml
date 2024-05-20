@@ -42,7 +42,7 @@ spec:
               weight: 100
 
       containers:
-        - image: faasm.azurecr.io/worker-sgx:0.27.0
+        - image: faasm.azurecr.io/worker-sgx:0.27.1
           name: faasm-worker
           ports:
             - containerPort: 8080

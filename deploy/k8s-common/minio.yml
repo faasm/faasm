@@ -20,7 +20,7 @@ spec:
             - control
   containers:
     - name: minio-main
-      image: faasm.azurecr.io/minio:0.27.0
+      image: faasm.azurecr.io/minio:0.27.1
       env:
         - name: MINIO_ROOT_USER
           value: "minio"
