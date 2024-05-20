@@ -86,6 +86,7 @@ void WAMRWasmModule::initialiseWAMRGlobally()
 
     bool success = wasm_runtime_full_init(&initArgs);
     if (!success) {
+        SPDLOG_ERROR("Failled to initialise WAMR!");
         throw std::runtime_error("Failed to initialise WAMR");
     }
 
