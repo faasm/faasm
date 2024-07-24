@@ -22,6 +22,7 @@
  *
  * - $ = string
  * - * = pointer
+ * - ~ = pointer length to be used in conjunction with *
  * - F,f = float
  * - I,i = integer
  *
@@ -30,6 +31,7 @@
  * int32_t myFunc(int32_t i, char* s) = "(i$)i"
  * int32_t myBigIntFunc(int64_t i, char* s) = "(I$)i"
  * void fooBar(*int32_t i, char* s, float32_t f) = "(*$f)"
+ * void myBuf(void* buf, int bufLen) = "(*~)"
  * void nothing() = "()"
  *
  * Note that, when using `*`, `~`, or `$`, the WASM runtime checks that the
@@ -62,6 +64,8 @@ uint32_t getFaasmOpenMPApi(NativeSymbol** nativeSymbols);
 uint32_t getFaasmProcessApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmPthreadApi(NativeSymbol** nativeSymbols);
+
+uint32_t getFaasmS3Api(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmSignalApi(NativeSymbol** nativeSymbols);
 
