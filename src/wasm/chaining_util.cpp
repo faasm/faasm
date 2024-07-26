@@ -104,7 +104,7 @@ int makeChainedCall(const std::string& functionName,
     return msg.id();
 }
 
-int awaitChainedCallOutput(unsigned int messageId, char* buffer, int bufferLen)
+faabric::Message awaitChainedCallOutput(unsigned int messageId)
 {
     int callTimeoutMs = conf::getFaasmConfig().chainedCallTimeout;
     auto* exec = faabric::executor::ExecutorContext::get()->getExecutor();
@@ -117,22 +117,13 @@ int awaitChainedCallOutput(unsigned int messageId, char* buffer, int bufferLen)
     } catch (faabric::executor::ChainedCallException& e) {
         SPDLOG_ERROR(
           "Error awaiting for chained call {}: {}", messageId, e.what());
-        return 1;
+        throw std::runtime_error("Error awaiting for chained call");
     }
 
     if (result.type() == faabric::Message_MessageType_EMPTY) {
         SPDLOG_ERROR("Cannot find output for {}", messageId);
     }
 
-    std::string outputData = result.outputdata();
-    strncpy(buffer, outputData.c_str(), outputData.size());
-
-    if (bufferLen < outputData.size()) {
-        SPDLOG_WARN("Undersized output buffer: {} for {} output",
-                    bufferLen,
-                    outputData.size());
-    }
-
-    return result.returnvalue();
+    return result;
 }
 }

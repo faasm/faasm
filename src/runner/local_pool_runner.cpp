@@ -9,7 +9,7 @@
 #include <runner/runner_utils.h>
 #include <storage/S3Wrapper.h>
 
-#define TIMEOUT_MS 60000
+#define TIMEOUT_MS 5 * 60 * 1000
 
 std::vector<faabric::Message> waitForBatchResults(bool isThreads,
                                                   int appId,

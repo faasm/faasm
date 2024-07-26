@@ -66,6 +66,46 @@ static int32_t __faasm_await_call_wrapper(wasm_exec_env_t exec_env,
 }
 
 /**
+ * Await a chained function's completion, and return its output.
+ *
+ * Note that, in reality, bufferPtr is a char** and we need to malloc
+ * the WASM memory from the host.
+ */
+static int32_t __faasm_await_call_output_wrapper(wasm_exec_env_t execEnv,
+                                                 int32_t callId,
+                                                 int32_t* bufferPtr,
+                                                 int32_t* bufferLen)
+{
+    SPDLOG_DEBUG("S - faasm_await_call_output {}", callId);
+    auto* module = getExecutingWAMRModule();
+
+    faabric::Message result;
+    try {
+        result = awaitChainedCallOutput(callId);
+    } catch (std::exception& exc) {
+        module->doThrowException(exc);
+    }
+
+    std::string outputData = result.outputdata();
+
+    // Copy the result into heap-allocated WASM memory
+    void* nativePtr = nullptr;
+    auto wasmOffset = module->wasmModuleMalloc(outputData.size(), &nativePtr);
+    if (wasmOffset == 0 || nativePtr == nullptr) {
+        SPDLOG_ERROR("Error allocating memory in WASM module");
+        auto exc = std::runtime_error("Error allocating memory in module!");
+        module->doThrowException(exc);
+    }
+    std::memcpy(nativePtr, outputData.c_str(), outputData.size());
+
+    // Populate the provided pointers
+    *bufferPtr = wasmOffset;
+    *bufferLen = outputData.size();
+
+    return result.returnvalue();
+}
+
+/**
  * Chain a function by name
  */
 static int32_t __faasm_chain_name_wrapper(wasm_exec_env_t execEnv,
@@ -202,6 +242,7 @@ static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env,
 static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__faasm_append_state, "(**i)"),
     REG_NATIVE_FUNC(__faasm_await_call, "(i)i"),
+    REG_NATIVE_FUNC(__faasm_await_call_output, "(i**)i"),
     REG_NATIVE_FUNC(__faasm_chain_name, "($$i)i"),
     REG_NATIVE_FUNC(__faasm_chain_ptr, "(i$i)i"),
     REG_NATIVE_FUNC(__faasm_host_interface_test, "(i)"),

@@ -83,7 +83,8 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Get number of keys", "[s3]")
     s3cli.addKeyStr(testBucketName, "hello", "world");
     s3cli.addKeyStr(testBucketName, "foo", "bar");
 
-    std::string expectedNumKeys = std::to_string(s3cli.listKeys(testBucketName).size());
+    std::string expectedNumKeys =
+      std::to_string(s3cli.listKeys(testBucketName).size());
     auto result = doS3ExecTest("get_num_keys", testBucketName);
 
     REQUIRE(result.outputdata() == expectedNumKeys);

@@ -32,7 +32,8 @@ static void __faasm_s3_list_buckets_wrapper(wasm_exec_env_t exec_env,
 
         // Second, allocate memory in WASM's heap to copy the buffer name into
         void* nativePtr = nullptr;
-        auto wasmOffset = module->wasmModuleMalloc(bucketList.at(i).size(), &nativePtr);
+        auto wasmOffset =
+          module->wasmModuleMalloc(bucketList.at(i).size(), &nativePtr);
         if (wasmOffset == 0 || nativePtr == nullptr) {
             SPDLOG_ERROR("Error allocating memory in WASM module");
             auto exc = std::runtime_error("Error allocating memory in module!");
@@ -40,7 +41,8 @@ static void __faasm_s3_list_buckets_wrapper(wasm_exec_env_t exec_env,
         }
 
         // Copy the string contents into the newly allocated pointer
-        std::memcpy(nativePtr, bucketList.at(i).c_str(), bucketList.at(i).size());
+        std::memcpy(
+          nativePtr, bucketList.at(i).c_str(), bucketList.at(i).size());
 
         // Store in the i-th entry of the array, a (WASM) pointer to the newly
         // allocated string
@@ -76,7 +78,8 @@ static void __faasm_s3_list_keys_wrapper(wasm_exec_env_t exec_env,
 
         // Second, allocate memory in WASM's heap to copy the buffer name into
         void* nativePtr = nullptr;
-        auto wasmOffset = module->wasmModuleMalloc(keyList.at(i).size(), &nativePtr);
+        auto wasmOffset =
+          module->wasmModuleMalloc(keyList.at(i).size(), &nativePtr);
         if (wasmOffset == 0 || nativePtr == nullptr) {
             SPDLOG_ERROR("Error allocating memory in WASM module");
             auto exc = std::runtime_error("Error allocating memory in module!");
@@ -100,7 +103,7 @@ static int32_t __faasm_s3_add_key_bytes_wrapper(wasm_exec_env_t exec_env,
 {
     storage::S3Wrapper s3cli;
     std::vector<uint8_t> data;
-    data.assign((uint8_t*) keyBuffer, (uint8_t*) keyBuffer + keyBufferLen);
+    data.assign((uint8_t*)keyBuffer, (uint8_t*)keyBuffer + keyBufferLen);
 
     try {
         s3cli.addKeyBytes(bucketName, keyName, data);
