@@ -165,7 +165,7 @@ static NativeSymbol s3_ns[] = {
     REG_NATIVE_FUNC(__faasm_s3_get_key_bytes, "($$**)i"),
 };
 
-uint32_t getFaasmStateApi(NativeSymbol** nativeSymbols)
+uint32_t getFaasmS3Api(NativeSymbol** nativeSymbols)
 {
     *nativeSymbols = s3_ns;
     return sizeof(s3_ns) / sizeof(NativeSymbol);
