@@ -68,7 +68,8 @@ extern "C"
                                            char* buffer,
                                            unsigned int bufferSize)
     {
-        return wasm::awaitChainedCallOutput(callId, buffer, bufferSize);
+        // FIXME: fix functionality when implementing S3 for SGX
+        return wasm::awaitChainedCallOutput(callId).returnvalue();
     }
 
     int32_t ocallSbrk(int32_t increment)

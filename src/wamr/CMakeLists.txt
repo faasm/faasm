@@ -89,6 +89,7 @@ faasm_private_lib(wamrmodule
     openmp.cpp
     process.cpp
     pthread.cpp
+    s3.cpp
     signals.cpp
     state.cpp
     stubs.cpp

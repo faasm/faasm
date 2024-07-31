@@ -39,10 +39,21 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     SPDLOG_DEBUG(
       "S - await_call_output - {} {} {}", messageId, bufferPtr, bufferLen);
 
-    auto buffer = &Runtime::memoryRef<char>(
+    auto* buffer = &Runtime::memoryRef<char>(
       getExecutingWAVMModule()->defaultMemory, bufferPtr);
 
-    return awaitChainedCallOutput(messageId, buffer, bufferLen);
+    auto result = awaitChainedCallOutput(messageId);
+
+    std::string outputData = result.outputdata();
+    strncpy(buffer, outputData.c_str(), outputData.size());
+
+    if (bufferLen < outputData.size()) {
+        SPDLOG_WARN("Undersized output buffer: {} for {} output",
+                    bufferLen,
+                    outputData.size());
+    }
+
+    return result.returnvalue();
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
