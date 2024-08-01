@@ -1,10 +1,15 @@
+#include <enclave/inside/EnclaveWasmModule.h>
 #include <enclave/inside/native.h>
+
+#include <string>
 
 namespace sgx {
 static int32_t faasm_read_input_wrapper(wasm_exec_env_t execEnv,
                                         uint8_t* buffer,
                                         unsigned int bufferSize)
 {
+    SPDLOG_DEBUG_SGX("S - faasm_read_input");
+
     int32_t returnValue;
     sgx_status_t sgxReturnValue;
     if ((sgxReturnValue = ocallFaasmReadInput(
@@ -18,6 +23,9 @@ static void faasm_write_output_wrapper(wasm_exec_env_t execEnv,
                                        char* output,
                                        unsigned int outputSize)
 {
+    std::string outStr(reinterpret_cast<char*>(output), outputSize);
+    SPDLOG_DEBUG_SGX("S - faasm_write_output %s", outStr.c_str());
+
     sgx_status_t sgxReturnValue;
     if ((sgxReturnValue = ocallFaasmWriteOutput(output, outputSize)) !=
         SGX_SUCCESS) {
@@ -30,6 +38,13 @@ static unsigned int faasm_chain_name_wrapper(wasm_exec_env_t execEnv,
                                              const uint8_t* input,
                                              unsigned int inputSize)
 {
+
+    GET_EXECUTING_MODULE_AND_CHECK(execEnv);
+
+    SPDLOG_DEBUG_SGX("S - faasm_chain_name %s -> %s",
+                     module->getBoundFunction().c_str(),
+                     name);
+
     sgx_status_t sgxReturnValue;
     unsigned int returnValue;
     if ((sgxReturnValue = ocallFaasmChainName(

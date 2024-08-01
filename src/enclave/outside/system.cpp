@@ -1,16 +1,19 @@
+#include <conf/FaasmConfig.h>
 #include <enclave/error.h>
 #include <enclave/outside/attestation/attestation.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/getSgxSupport.h>
 #include <enclave/outside/system.h>
+#include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 
 #include <boost/filesystem/operations.hpp>
 #include <sgx_urts.h>
 #include <string>
 
-// Global enclave ID
-sgx_enclave_id_t globalEnclaveId = 0;
+// Global enclave ID and mutex protecting it
+static sgx_enclave_id_t globalEnclaveId = 0;
+static std::mutex enclaveGlobalMutex;
 
 #define ERROR_PRINT_CASE(enumVal)                                              \
     case (enumVal): {                                                          \
@@ -24,13 +27,22 @@ sgx_enclave_id_t getGlobalEnclaveId()
     return globalEnclaveId;
 }
 
-void checkSgxSetup()
+// This method lazily initialises two global resources: the enclave and the
+// WAMR runtime inside the enclave. This method is called every time we
+// instantiate a Faaslet running WASM code inside SGX. We take one conservative
+// lock in the outermost scope, and initialise both resources
+sgx_enclave_id_t checkSgxSetup()
 {
+    faabric::util::UniqueLock lock(enclaveGlobalMutex);
+
+    std::string enclaveIsolationMode =
+      conf::getFaasmConfig().enclaveIsolationMode;
 
     // Skip set-up if enclave already exists
-    if (globalEnclaveId != 0) {
+    if (enclaveIsolationMode == ENCLAVE_ISOLATION_MODE_GLOBAL &&
+        globalEnclaveId != 0) {
         SPDLOG_DEBUG("SGX enclave already exists ({})", globalEnclaveId);
-        return;
+        return globalEnclaveId;
     }
 
     faasm_sgx_status_t returnValue;
@@ -53,29 +65,47 @@ void checkSgxSetup()
     // Create the enclave
     sgx_launch_token_t sgxEnclaveToken = { 0 };
     int sgxEnclaveTokenUpdated = 0;
+    sgx_enclave_id_t enclaveId;
     sgx_status_t sgxReturnValue = sgx_create_enclave(FAASM_ENCLAVE_PATH,
                                                      SGX_DEBUG_FLAG,
                                                      &sgxEnclaveToken,
                                                      &sgxEnclaveTokenUpdated,
-                                                     &globalEnclaveId,
+                                                     &enclaveId,
                                                      nullptr);
-    processECallErrors("Unable to create enclave", sgxReturnValue);
-    SPDLOG_DEBUG("Created SGX enclave: {}", globalEnclaveId);
+    processECallErrors(fmt::format("Unable to create enclave {}: ", enclaveId),
+                       sgxReturnValue);
+    SPDLOG_DEBUG("Created SGX enclave: {}", enclaveId);
 
     // Initialise WebAssembly runtime inside the enclave (WAMR)
-    sgxReturnValue = ecallInitWamr(globalEnclaveId, &returnValue);
+    sgxReturnValue = ecallInitWamr(enclaveId, &returnValue);
     processECallErrors(
       "Unable to initialise WAMR inside enclave", sgxReturnValue, returnValue);
-    SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", globalEnclaveId);
+    SPDLOG_INFO("Initialised WAMR in SGX enclave {}", enclaveId);
 
 #ifdef FAASM_SGX_HARDWARE_MODE
     // Attest enclave only in hardware mode
-    // 06/04/2022 - For the moment, the enclave held data is a dummy placeholder
-    // until we decide if we are going to use it or not.
-    std::vector<uint8_t> enclaveHeldData{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
-    attestEnclave(globalEnclaveId, enclaveHeldData);
-    SPDLOG_DEBUG("Attested SGX enclave: {}", globalEnclaveId);
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    if (conf.attestationProviderUrl == "off") {
+        SPDLOG_INFO("Enclave attestation disabled in the config");
+    } else {
+        // 06/04/2022 - For the moment, the enclave held data is a dummy
+        // placeholder until we decide if we are going to use it or not.
+        std::vector<uint8_t> enclaveHeldData{
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06
+        };
+        attestEnclave(enclaveId, enclaveHeldData);
+        SPDLOG_INFO("Attested SGX enclave: {}", enclaveId);
+    }
 #endif
+
+    // If we only spawn one enclave per host (global isolation mode) we set
+    // the global enclave ID so that other Faaslets don't cretate the enclave
+    // again. Otherwise, we just return the newly created enclave id.
+    if (enclaveIsolationMode == ENCLAVE_ISOLATION_MODE_GLOBAL) {
+        globalEnclaveId = enclaveId;
+    }
+
+    return enclaveId;
 }
 
 void tearDownEnclave()

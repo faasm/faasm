@@ -44,6 +44,7 @@ void FaasmConfig::initialise()
     s3Password = getEnvVar("S3_PASSWORD", "minio123");
 
     attestationProviderUrl = getEnvVar("AZ_ATTESTATION_PROVIDER_URL", "");
+    enclaveIsolationMode = getEnvVar("ENCLAVE_ISOLATION_MODE", "global");
 }
 
 int FaasmConfig::getIntParam(const char* name, const char* defaultValue)
