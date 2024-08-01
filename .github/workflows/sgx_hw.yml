@@ -54,7 +54,7 @@ jobs:
         run: |
           ./bin/inv_wrapper.sh vm.create --sgx --region eastus2 --name ${{ env.VM_NAME }}
           ./bin/inv_wrapper.sh vm.inventory --prefix ${{ env.VM_NAME }}
-          ./bin/inv_wrapper.sh vm.setup
+          ./bin/inv_wrapper.sh vm.setup --sgx
       - name: "Fetch the branch code if necessary"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
