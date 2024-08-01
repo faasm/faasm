@@ -62,4 +62,21 @@ extern "C"
 
     extern sgx_status_t SGX_CDECL ocallSbrk(int32_t* returnValue,
                                             int32_t increment);
+
+    // ----- WASI Filesystem Calls -----
+
+    extern sgx_status_t SGX_CDECL
+    ocallWasiFdFdstatGet(int32_t* returnValue,
+                         int32_t wasmFd,
+                         uint8_t* wasiFileType,
+                         uint64_t* rightsBase,
+                         uint64_t* rightsInheriting);
+
+    extern sgx_status_t SGX_CDECL ocallWasiFdWrite(int32_t* returnValue,
+                                                   int32_t wasmFd,
+                                                   uint8_t* ioVecBases,
+                                                   int32_t ioVecBasesSize,
+                                                   int32_t* ioVecOffsets,
+                                                   int32_t ioVecCount,
+                                                   int32_t* bytesWritten);
 }

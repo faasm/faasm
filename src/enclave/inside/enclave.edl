@@ -1,6 +1,6 @@
 // Annoyingly we have to redefine these here
 #define FAASM_SGX 1
-#define FAASM_SGX_WAMR_WASI_LIBC 0
+#define FAASM_SGX_WAMR_WASI_LIBC 1
 
 enclave{
     include "/usr/local/code/faasm/include/enclave/error.h"
@@ -84,5 +84,23 @@ enclave{
         );
 
         int32_t ocallSbrk(int32_t increment);
+
+        // ----- WASI Filesystem Calls -----
+
+        int32_t ocallWasiFdFdstatGet(
+                    int32_t fd,
+            [out]   uint8_t* wasiFileType,
+            [out]   uint64_t* rightsBase,
+            [out]   uint64_t* rightsInheriting
+        );
+
+        int32_t ocallWasiFdWrite(
+                                        int32_t fd,
+            [in, count=ioVecBasesSize]  uint8_t* ioVecBases,
+                                        int32_t ioVecBasesSize,
+            [in, count=ioVecCount]      int32_t* ioVecOffsets,
+                                        int32_t ioVecCount,
+            [out]                       int32_t* bytesWritten
+        );
     };
 };
