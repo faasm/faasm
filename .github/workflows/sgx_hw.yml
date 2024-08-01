@@ -1,17 +1,44 @@
 name: "SGX Hardware Mode Tests"
 
 # This workflow runs the set of tests in SGX Hardware mode. We run them on a
-# latest-generation IceLake VM on Azure, so we only run them manually on
-# workflow dispatch.
+# latest-generation IceLake VM on Azure, and we run them every time we change
+# something in the enclave sub-tree
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 defaults:
   run:
     shell: bash
 
+# Cancel previous running actions for the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
+  sgx-changed:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    outputs:
+      has-sgx-changed: ${{ (steps.filter.outputs.sgx-changed == 'true') }}
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      # Check if any of the submodules have been modified
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            sgx-changed:
+              - './src/enclave/**'
+
   sgx-hw:
+    needs: sgx-changed
+    if: ${{ needs.sgx-changed.outputs.has-sgx-changed == 'true' }}
     runs-on: self-hosted
     env:
       VM_BASE_NAME: gha-sgx-hw-vm
