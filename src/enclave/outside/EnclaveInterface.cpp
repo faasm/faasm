@@ -13,10 +13,9 @@ namespace wasm {
 EnclaveInterface::EnclaveInterface()
   : interfaceId(faabric::util::generateGid())
 {
-    enclaveId = checkSgxSetup();
+    enclaveId = getFreeEnclave();
 
-    SPDLOG_DEBUG("Created enclave interface for enclave {}",
-                 sgx::getGlobalEnclaveId());
+    SPDLOG_DEBUG("Created enclave interface for enclave {}", enclaveId);
 }
 
 EnclaveInterface::~EnclaveInterface()
@@ -30,6 +29,10 @@ EnclaveInterface::~EnclaveInterface()
     processECallErrors("Error trying to unload module from enclave",
                        sgxReturnValue,
                        returnValue);
+
+    // Free enclave for next faaslet
+    freeEnclave(enclaveId);
+    enclaveId = 0;
 }
 
 EnclaveInterface* getExecutingEnclaveInterface()

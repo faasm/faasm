@@ -4,6 +4,7 @@
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/getSgxSupport.h>
 #include <enclave/outside/system.h>
+#include <faabric/util/environment.h>
 #include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 
@@ -11,9 +12,15 @@
 #include <sgx_urts.h>
 #include <string>
 
-// Global enclave ID and mutex protecting it
-static sgx_enclave_id_t globalEnclaveId = 0;
-static std::mutex enclaveGlobalMutex;
+// Each Faaslet runs a WASM module inside an enclave. Given WASM's sandboxing
+// capabilities, and that the runtime inside the enclave is trusted, it is
+// safe to re-use the enclave across different WASM inovcations. We could
+// explicitly check that there is no state leftover in the trusted runtime
+// shim, but we leave that for future iterations.
+static std::mutex enclaveMutex;
+// The boolean keeps track of whether the enclave is in use or not. Trying to
+// schedule a function in a busy enclave will trigger an error from the enclave
+static std::vector<std::pair<sgx_enclave_id_t, bool>> enclavePool;
 
 #define ERROR_PRINT_CASE(enumVal)                                              \
     case (enumVal): {                                                          \
@@ -22,31 +29,8 @@ static std::mutex enclaveGlobalMutex;
 
 namespace sgx {
 
-sgx_enclave_id_t getGlobalEnclaveId()
+void checkSgxSetup()
 {
-    return globalEnclaveId;
-}
-
-// This method lazily initialises two global resources: the enclave and the
-// WAMR runtime inside the enclave. This method is called every time we
-// instantiate a Faaslet running WASM code inside SGX. We take one conservative
-// lock in the outermost scope, and initialise both resources
-sgx_enclave_id_t checkSgxSetup()
-{
-    faabric::util::UniqueLock lock(enclaveGlobalMutex);
-
-    std::string enclaveIsolationMode =
-      conf::getFaasmConfig().enclaveIsolationMode;
-
-    // Skip set-up if enclave already exists
-    if (enclaveIsolationMode == ENCLAVE_ISOLATION_MODE_GLOBAL &&
-        globalEnclaveId != 0) {
-        SPDLOG_DEBUG("SGX enclave already exists ({})", globalEnclaveId);
-        return globalEnclaveId;
-    }
-
-    faasm_sgx_status_t returnValue;
-
 #ifdef FAASM_SGX_HARDWARE_MODE
     if (!isSgxEnabled()) {
         SPDLOG_ERROR("Machine doesn't support SGX");
@@ -55,6 +39,11 @@ sgx_enclave_id_t checkSgxSetup()
         SPDLOG_INFO("SGX detected in machine to run in HW mode");
     }
 #endif
+}
+
+static sgx_enclave_id_t doCreateEnclave()
+{
+    faasm_sgx_status_t returnValue;
 
     // Check enclave file exists
     if (!boost::filesystem::exists(FAASM_ENCLAVE_PATH)) {
@@ -64,6 +53,7 @@ sgx_enclave_id_t checkSgxSetup()
 
     // Create the enclave
     sgx_launch_token_t sgxEnclaveToken = { 0 };
+
     int sgxEnclaveTokenUpdated = 0;
     sgx_enclave_id_t enclaveId;
     sgx_status_t sgxReturnValue = sgx_create_enclave(FAASM_ENCLAVE_PATH,
@@ -80,8 +70,10 @@ sgx_enclave_id_t checkSgxSetup()
     sgxReturnValue = ecallInitWamr(enclaveId, &returnValue);
     processECallErrors(
       "Unable to initialise WAMR inside enclave", sgxReturnValue, returnValue);
-    SPDLOG_INFO("Initialised WAMR in SGX enclave {}", enclaveId);
 
+    SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", enclaveId);
+
+    // TODO: FIXME: probably want to keep attestation to inside the enclave!
 #ifdef FAASM_SGX_HARDWARE_MODE
     // Attest enclave only in hardware mode
     conf::FaasmConfig& conf = conf::getFaasmConfig();
@@ -98,33 +90,70 @@ sgx_enclave_id_t checkSgxSetup()
     }
 #endif
 
-    // If we only spawn one enclave per host (global isolation mode) we set
-    // the global enclave ID so that other Faaslets don't cretate the enclave
-    // again. Otherwise, we just return the newly created enclave id.
-    if (enclaveIsolationMode == ENCLAVE_ISOLATION_MODE_GLOBAL) {
-        globalEnclaveId = enclaveId;
-    }
-
     return enclaveId;
 }
 
-void tearDownEnclave()
+// This method lazily initialises a pool of enclaves, and returns the next free
+// enclave. It returns an error if there are currently no free enclaves.
+sgx_enclave_id_t getFreeEnclave()
 {
+    faabric::util::UniqueLock lock(enclaveMutex);
 
-    SPDLOG_DEBUG("Destroying enclave {}", globalEnclaveId);
+    // Initialise enclave pool if we have not yet
+    if (enclavePool.empty()) {
+        // First, sanity check that SGX is available
+        checkSgxSetup();
 
-    sgx_status_t sgxReturnValue = sgx_destroy_enclave(globalEnclaveId);
-    processECallErrors("Unable to destroy enclave", sgxReturnValue);
+        int numEnclavesInPool = faabric::util::getUsableCores();
+        SPDLOG_INFO("Initialising enclave pool with {} enclaves", numEnclavesInPool);
+        for (int i = 0; i < numEnclavesInPool; i++) {
+            auto enclaveId = doCreateEnclave();
+            enclavePool.emplace_back(enclaveId, true);
+        }
+    }
 
-    globalEnclaveId = 0;
+    // Find the next free enclave
+    for (const auto& [enclaveId, free] : enclavePool) {
+        if (free) {
+            return enclaveId;
+        }
+    }
+
+    SPDLOG_ERROR("No free enclaves to run faaslet (have: {})", enclavePool.size());
+    throw std::runtime_error("No free enclaves!");
 }
 
-void checkSgxCrypto()
+void freeEnclave(sgx_enclave_id_t enclaveId)
+{
+    for (auto& [thisEnclaveId, free] : enclavePool) {
+        if (enclaveId == thisEnclaveId) {
+            if (free) {
+                return;
+            }
+
+            SPDLOG_DEBUG("Freeing enclave {}", enclaveId);
+            free = false;
+        }
+    }
+
+    SPDLOG_ERROR("Trying to free unrecognised enclave! (id: {})", enclaveId);
+    throw std::runtime_error("Trying to free unrecognised enclave!");
+}
+
+void tearDownEnclave(sgx_enclave_id_t enclaveId)
+{
+    SPDLOG_DEBUG("Destroying enclave {}", enclaveId);
+
+    sgx_status_t sgxReturnValue = sgx_destroy_enclave(enclaveId);
+    processECallErrors("Unable to destroy enclave", sgxReturnValue);
+}
+
+void checkSgxCrypto(sgx_enclave_id_t enclaveId)
 {
     faasm_sgx_status_t faasmReturnValue;
     sgx_status_t sgxReturnValue;
 
-    sgxReturnValue = ecallCryptoChecks(globalEnclaveId, &faasmReturnValue);
+    sgxReturnValue = ecallCryptoChecks(enclaveId, &faasmReturnValue);
 
     processECallErrors(
       "Error running SGX crypto checks", sgxReturnValue, faasmReturnValue);

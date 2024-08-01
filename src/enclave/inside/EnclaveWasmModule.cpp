@@ -61,7 +61,7 @@ bool EnclaveWasmModule::reset(const std::string& user, const std::string& func)
 
     // Sanity check
     if (boundUser != user || boundFunction != func) {
-        SPDLOG_ERROR_SGX("Mismatch when resetting SGX-WAMR module!");
+        SPDLOG_ERROR_SGX("Mismatch whenn resetting SGX-WAMR module!");
         SPDLOG_ERROR_SGX("Bound user/func (%s/%s) != reset user/func (%s/%s)",
                          boundUser.c_str(),
                          boundFunction.c_str(),
