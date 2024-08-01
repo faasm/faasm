@@ -2,9 +2,18 @@
 
 #include <wasm_export.h>
 
-#include <stdexcept>
 #include <string>
 #include <vector>
+
+#define WAMR_INTERNAL_EXCEPTION_PREFIX "Exception: "
+#define WAMR_EXIT_PREFIX "wamr_exit_code_"
+
+// This variables rely on the STACK_SIZE set in wasm/WasmCommon.h
+#define WAMR_ERROR_BUFFER_SIZE 256
+#define WAMR_STACK_SIZE STACK_SIZE
+#define WAMR_HEAP_BUFFER_SIZE (16 * WAMR_HEAP_SIZE)
+// #define WAMR_HEAP_BUFFER_SIZE (400 * 1024 * 1024)
+#define WAMR_HEAP_SIZE (STACK_SIZE * 8)
 
 /*
  * This mixin implements common methods shared between the WAMRWasmModule class

@@ -10,17 +10,6 @@
 #include <unordered_map>
 #include <vector>
 
-#define ONE_KB_BYTES 1024
-#define ONE_MB_BYTES (1024 * 1024)
-
-#define FAASM_SGX_WAMR_HEAP_SIZE (32 * ONE_MB_BYTES)
-#define FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128
-#define FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE (8 * ONE_KB_BYTES)
-#define FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE (8 * ONE_KB_BYTES)
-
-#define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
-#define WASM_ENTRY_FUNC "_start"
-
 namespace wasm {
 
 /*
@@ -35,27 +24,44 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     ~EnclaveWasmModule();
 
-    bool loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize);
+    bool reset(const std::string& user, const std::string& func);
 
-    bool callFunction(uint32_t argcIn, char** argvIn);
+    bool doBindToFunction(const std::string& user,
+                          const std::string& func,
+                          void* wasmOpCodePtr,
+                          uint32_t wasmOpCodeSize);
+
+    uint32_t callFunction(uint32_t argcIn, char** argvIn);
+
+    // TODO: remove duplication with WAMRWasmModule
+    int executeWasmFunction(const std::string& funcName);
 
     WASMModuleInstanceCommon* getModuleInstance();
+
+    std::string getBoundUser() const { return boundUser; }
+
+    std::string getBoundFunction() const { return boundFunction; }
 
     void validateNativePointer(void* nativePtr, int size);
 
     // ---- argc/arv ----
 
-    uint32_t getArgc();
+    uint32_t getArgc() const;
 
     std::vector<std::string> getArgv();
 
-    size_t getArgvBufferSize();
+    size_t getArgvBufferSize() const;
 
   private:
-    char errorBuffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
+    char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
 
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
+
+    std::string boundUser;
+    std::string boundFunction;
+    bool _isBound = false;
+    bool bindInternal();
 
     // Argc/argv
     uint32_t argc;

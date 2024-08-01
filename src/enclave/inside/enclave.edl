@@ -21,20 +21,28 @@ enclave{
 
         public faasm_sgx_status_t ecallInitWamr(void);
 
-        public faasm_sgx_status_t ecallLoadModule(
+        public faasm_sgx_status_t ecallReset(
+                            uint32_t faasletId,
+            [in, string]    const char* user,
+            [in, string]    const char* func
+        );
+
+        public faasm_sgx_status_t ecallDoBindToFunction(
+            [in, string]                const char* user,
+            [in, string]                const char* func,
             [in, size=wasmOpCodeSize]   void *wasmOpCodePtr,
                                         uint32_t wasmOpCodeSize,
                                         uint32_t faasletId
-        );
-
-        public faasm_sgx_status_t ecallUnloadModule(
-            uint32_t faasletId
         );
 
         public faasm_sgx_status_t ecallCallFunction(
                                 uint32_t faasletId,
                                 uint32_t argc,
             [in, count=argc]    char** argv
+        );
+
+        public faasm_sgx_status_t ecallDestroyModule(
+            uint32_t faasletId
         );
 
         public faasm_sgx_status_t ecallCryptoChecks(void);
@@ -59,7 +67,7 @@ enclave{
             [in, string]            const char* name,
             [in, size=inputSize]    uint8_t* input,
                                     long inputSize
-        ) allow(ecallLoadModule);
+        ) allow(ecallDoBindToFunction);
 
         unsigned int ocallFaasmChainPtr(
                                     int wasmFuncPtr,
