@@ -3,22 +3,22 @@
 namespace sgx {
 static int wasi_fd_close(wasm_exec_env_t execEnv, int a)
 {
-    return 0;
+    UNIMPLEMENTED_WASM_INTRINSIC("fd_close");
 }
 
 static int wasi_fd_seek(wasm_exec_env_t execEnv, int a, int64 b, int c, int d)
 {
-    return 0;
+    UNIMPLEMENTED_WASM_INTRINSIC("fd_seek");
 }
 
 static int wasi_fd_write(wasm_exec_env_t execEnv, int a, int b, int c, int d)
 {
-    return 0;
+    UNIMPLEMENTED_WASM_INTRINSIC("fd_write");
 }
 
 static int wasi_fd_fdstat_get(wasm_exec_env_t execEnv, int a, int b)
 {
-    return 0;
+    UNIMPLEMENTED_WASM_INTRINSIC("fd_fdstat_get");
 }
 
 static int32_t wasi_fd_fdstat_set_rights(wasm_exec_env_t exec_env,
@@ -26,7 +26,7 @@ static int32_t wasi_fd_fdstat_set_rights(wasm_exec_env_t exec_env,
                                          int64_t b,
                                          int64_t c)
 {
-    return 0;
+    UNIMPLEMENTED_WASM_INTRINSIC("fd_fdstat_set_rights");
 }
 
 static NativeSymbol wasiNs[] = {
