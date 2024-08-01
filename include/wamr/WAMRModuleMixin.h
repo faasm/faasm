@@ -2,6 +2,7 @@
 
 #include <wasm_export.h>
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -48,6 +49,28 @@ struct WAMRModuleMixin
     {
         auto moduleInstance = this->underlying().getModuleInstance();
         return wasm_runtime_addr_native_to_app(moduleInstance, nativePtr);
+    }
+
+    // Validate that a range of offsets (defined by an offset and a size) are
+    // valid WASM offsets
+    void validateWasmOffset(uint32_t wasmOffset, size_t size)
+    {
+        auto moduleInstance = this->underlying().getModuleInstance();
+        if (!wasm_runtime_validate_app_addr(moduleInstance, wasmOffset, size)) {
+            throw std::runtime_error("Offset outside WAMR's memory");
+        }
+    }
+
+    // Convert relative address to absolute address (pointer to memory)
+    uint8_t* wamrWasmPointerToNative(uint32_t wasmPtr)
+    {
+        auto moduleInstance = this->underlying().getModuleInstance();
+        void* nativePtr =
+          wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
+        if (nativePtr == nullptr) {
+            throw std::runtime_error("Offset out of WAMR memory");
+        }
+        return static_cast<uint8_t*>(nativePtr);
     }
 
     // Allocate memory in the WASM's module heap (inside the linear memory).

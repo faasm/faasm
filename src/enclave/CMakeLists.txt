@@ -55,7 +55,7 @@ set(WAMR_BUILD_LAZY_JIT 0)
 
 # Set libraries
 set(WAMR_BUILD_LIBC_BUILTIN 1)
-set(WAMR_BUILD_LIBC_WASI 0)
+set(WAMR_BUILD_LIBC_WASI 1)
 set(WAMR_BUILD_LIB_PTHREAD 0)
 
 # Let WAMR do the including and importing of the sources
