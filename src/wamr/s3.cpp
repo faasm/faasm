@@ -2,20 +2,19 @@
 #include <storage/S3Wrapper.h>
 #include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
+#include <wasm/s3.h>
 
 #include <wasm_export.h>
 
 namespace wasm {
-static int32_t __faasm_s3_get_num_buckets_wrapper(wasm_exec_env_t exec_env)
+static int32_t __faasm_s3_get_num_buckets_wrapper(wasm_exec_env_t execEnv)
 {
     SPDLOG_DEBUG("S - faasm_s3_get_num_buckets");
 
-    storage::S3Wrapper s3cli;
-
-    return s3cli.listBuckets().size();
+    return wasm::doS3GetNumBuckets();
 }
 
-static void __faasm_s3_list_buckets_wrapper(wasm_exec_env_t exec_env,
+static void __faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
                                             int32_t* bucketsBuffer,
                                             int32_t* bucketsBufferLen)
 {
@@ -50,17 +49,15 @@ static void __faasm_s3_list_buckets_wrapper(wasm_exec_env_t exec_env,
     }
 }
 
-static int32_t __faasm_s3_get_num_keys_wrapper(wasm_exec_env_t exec_env,
+static int32_t __faasm_s3_get_num_keys_wrapper(wasm_exec_env_t execEnv,
                                                const char* bucketName)
 {
     SPDLOG_DEBUG("S - faasm_s3_get_num_keys (bucket: {})", bucketName);
 
-    storage::S3Wrapper s3cli;
-
-    return s3cli.listKeys(bucketName).size();
+    return wasm::doS3GetNumKeys(bucketName);
 }
 
-static void __faasm_s3_list_keys_wrapper(wasm_exec_env_t exec_env,
+static void __faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
                                          char* bucketName,
                                          int32_t* keysBuffer,
                                          int32_t* keysBufferLen)
@@ -95,18 +92,14 @@ static void __faasm_s3_list_keys_wrapper(wasm_exec_env_t exec_env,
     }
 }
 
-static int32_t __faasm_s3_add_key_bytes_wrapper(wasm_exec_env_t exec_env,
+static int32_t __faasm_s3_add_key_bytes_wrapper(wasm_exec_env_t execEnv,
                                                 const char* bucketName,
                                                 const char* keyName,
                                                 void* keyBuffer,
                                                 int32_t keyBufferLen)
 {
-    storage::S3Wrapper s3cli;
-    std::vector<uint8_t> data;
-    data.assign((uint8_t*)keyBuffer, (uint8_t*)keyBuffer + keyBufferLen);
-
     try {
-        s3cli.addKeyBytes(bucketName, keyName, data);
+        wasm::doS3AddKeyBytes(bucketName, keyName, keyBuffer, keyBufferLen);
     } catch (std::exception& e) {
         auto* module = getExecutingWAMRModule();
         module->doThrowException(e);
@@ -115,7 +108,7 @@ static int32_t __faasm_s3_add_key_bytes_wrapper(wasm_exec_env_t exec_env,
     return 0;
 }
 
-static int32_t __faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t exec_env,
+static int32_t __faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
                                                 const char* bucketName,
                                                 const char* keyName,
                                                 int32_t* keyBuffer,

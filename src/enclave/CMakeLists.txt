@@ -46,7 +46,10 @@ endif()
 # Set target platform details
 set(WAMR_BUILD_PLATFORM "linux-sgx")
 set(WAMR_BUILD_TARGET X86_64)
-set(WAMR_BUILD_SPEC_TEST)
+set(WAMR_BUILD_SPEC_TEST 0)
+
+# Top-level Faasm flag for WAMR
+add_definitions(-DWAMR_FAASM=1)
 
 # Set AOT mode, disable JIT
 set(WAMR_BUILD_AOT 1)

@@ -129,4 +129,30 @@ void doFaasmSmReduce(int32_t varPtr,
           varPtr, dataType.first, dataType.second, mergeOp);
     }
 }
+
+int32_t doFaasmReadInput(char* inBuff, int32_t inBuffLen)
+{
+    SPDLOG_DEBUG("S - faasm_read_input {} {}", inBuff, inBuffLen);
+
+    faabric::Message& call =
+      faabric::executor::ExecutorContext::get()->getMsg();
+    std::vector<uint8_t> inputBytes =
+      faabric::util::stringToBytes(call.inputdata());
+
+    // If nothing, return nothing
+    if (inputBytes.empty()) {
+        return 0;
+    }
+
+    // If buffer has zero size, return the input size
+    if (inBuffLen == 0) {
+        return inputBytes.size();
+    }
+
+    // Write to the wasm buffer
+    int inputSize = faabric::util::safeCopyToBuffer(
+      inputBytes, reinterpret_cast<uint8_t*>(inBuff), inBuffLen);
+
+    return inputSize;
+}
 }

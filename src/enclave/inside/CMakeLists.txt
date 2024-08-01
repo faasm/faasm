@@ -72,6 +72,7 @@ set(ENCLAVE_TRUSTED_SRC
     memory.cpp
     native.cpp
     pthread.cpp
+    s3.cpp
     ${ENCLAVE_TRUSTED_HEADERS}
 )
 

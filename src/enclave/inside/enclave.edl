@@ -53,6 +53,11 @@ enclave{
 
         void ocallLogDebug([in, string] const char* msg);
 
+        // We need separate OCalls because WAMR's native logging adds
+        // newlines, which makes the output through the spdlog-based OCalls
+        // unreadable
+        int ocallLogWamr([in, string] const char* msg);
+
         int ocallFaasmReadInput(
             [in, out, size=bufferSize]  uint8_t* buffer,
                                         unsigned int bufferSize
@@ -101,6 +106,41 @@ enclave{
             [in, count=ioVecCount]      int32_t* ioVecOffsets,
                                         int32_t ioVecCount,
             [out]                       int32_t* bytesWritten
+        );
+
+        // ----- S3 Calls -----
+
+        int32_t ocallS3GetNumBuckets();
+
+        int32_t ocallS3ListBuckets(
+            [out, size=bufferSize]  uint8_t* buffer,
+            [out, size=bufferSize]  uint8_t* bufferLens,
+                                    int32_t bufferSize
+        );
+
+        int32_t ocallS3GetNumKeys(
+            [in, string]   const char* bucketName
+        );
+
+        int32_t ocallS3ListKeys(
+            [in, string]            const char* bucketName,
+            [out, size=bufferSize]  uint8_t* buffer,
+            [out, size=bufferSize]  uint8_t* bufferLens,
+                                    int32_t bufferSize
+        );
+
+        int32_t ocallS3AddKeyBytes(
+            [in, string]            const char* bucketName,
+            [in, string]            const char* keyName,
+            [in, size=keyBufferLen] uint8_t* keyBuffer,
+                                    int32_t keyBufferLen
+        );
+
+        int32_t ocallS3GetKeyBytes(
+            [in, string]            const char* bucketName,
+            [in, string]            const char* keyName,
+            [out, size=bufferSize]  uint8_t* buffer,
+                                    int32_t bufferSize
         );
     };
 };

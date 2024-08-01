@@ -275,14 +275,27 @@ void EnclaveWasmModule::validateNativePointer(void* nativePtr, int size)
     }
 }
 
+// We wrap around exception throwing in SGX enclaves in case we decide that
+// there is a better way to handle errors than just throwing exceptions. It
+// is likely that throwing exceptions from SGX together with WAMR's C stack
+// frames is gonna really mess things up.
+void EnclaveWasmModule::doThrowException(std::exception& exc) const
+{
+    SPDLOG_DEBUG_SGX("Throwing exception for %s/%s",
+                     getBoundUser().c_str(),
+                     getBoundFunction().c_str());
+
+    throw exc;
+}
+
 std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
   wasm_exec_env_t execEnv)
 {
     // Acquiring a lock every time may be too conservative
     std::unique_lock<std::mutex> lock(moduleMapMutex);
-    for (auto& it : moduleMap) {
-        if (it.second->getModuleInstance() == execEnv->module_inst) {
-            return it.second;
+    for (auto& itr : moduleMap) {
+        if (itr.second->getModuleInstance() == execEnv->module_inst) {
+            return itr.second;
         }
     }
 

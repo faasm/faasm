@@ -2,6 +2,8 @@
 
 #include <enclave/outside/EnclaveInterface.h>
 #include <wasm/chaining.h>
+#include <wasm/faasm.h>
+#include <wasm/s3.h>
 
 #include <cstring>
 
@@ -24,28 +26,14 @@ extern "C"
         SPDLOG_ERROR("[enclave] {}", msg);
     }
 
+    int ocallLogWamr(const char* msg)
+    {
+        return ::printf("%s", msg);
+    }
+
     int ocallFaasmReadInput(uint8_t* buffer, unsigned int bufferSize)
     {
-        faabric::Message* msg = &ExecutorContext::get()->getMsg();
-
-        unsigned long inputLen = msg->inputdata().size();
-
-        if (bufferSize == 0) {
-            return (int)inputLen;
-        }
-
-        if (inputLen > 0) {
-            const std::string& _input = msg->inputdata();
-            if (_input.size() > bufferSize) {
-                memcpy(buffer, _input.data(), bufferSize);
-                return (int)bufferSize;
-            }
-
-            memcpy(buffer, _input.data(), _input.size());
-            return (int)inputLen;
-        }
-
-        return 0;
+        return wasm::doFaasmReadInput((char*)buffer, bufferSize);
     }
 
     void ocallFaasmWriteOutput(char* output, unsigned int outputSize)
@@ -82,8 +70,30 @@ extern "C"
                                            char* buffer,
                                            unsigned int bufferSize)
     {
-        // FIXME: fix functionality when implementing S3 for SGX
-        return wasm::awaitChainedCallOutput(callId).returnvalue();
+        faabric::Message result;
+
+        try {
+            result = wasm::awaitChainedCallOutput(callId);
+        } catch (std::exception& exc) {
+            // TODO: how should we handle exceptions thrown in the host?
+            SPDLOG_ERROR("Error awating for chained call {}", callId);
+        }
+
+        std::string outputData = result.outputdata();
+        if (outputData.size() > bufferSize) {
+            SPDLOG_ERROR(
+              "Output data is larger than provisioned buffer! ({} > {})",
+              outputData.size(),
+              bufferSize);
+
+            throw std::runtime_error(
+              "Output data larger than provisioned buffer");
+        }
+        std::memcpy(buffer, outputData.c_str(), outputData.size());
+
+        // In this case the return value is the size of output data so that
+        // we can recover it inside the enclave
+        return outputData.size();
     }
 
     int32_t ocallSbrk(int32_t increment)
@@ -165,5 +175,112 @@ extern "C"
         }
 
         return 0;
+    }
+
+    // ----- S3 Calls -----
+
+    int32_t ocallS3GetNumBuckets()
+    {
+        return wasm::doS3GetNumBuckets();
+    }
+
+    int32_t ocallS3ListBuckets(uint8_t* buffer,
+                               uint8_t* bufferLens,
+                               int32_t bufferSize)
+    {
+        storage::S3Wrapper s3cli;
+        auto bucketList = s3cli.listBuckets();
+
+        size_t totalSize = 0;
+        for (int i = 0; i < bucketList.size(); i++) {
+            if (totalSize > bufferSize) {
+                SPDLOG_ERROR(
+                  "Exceeded maximum buffer size copying S3 buckets!");
+                throw std::runtime_error("Exceeded maximum buffer size");
+            }
+
+            int thisBucketSize = bucketList.at(i).size();
+            std::memcpy(bufferLens + i * sizeof(int32_t),
+                        &thisBucketSize,
+                        sizeof(int32_t));
+            std::memcpy(
+              buffer + totalSize, bucketList.at(i).c_str(), thisBucketSize);
+
+            // Assuming bucket size is always greater than sizeof int
+            totalSize += thisBucketSize;
+        }
+
+        return bucketList.size();
+    }
+
+    int32_t ocallS3GetNumKeys(const char* bucketName)
+    {
+        return wasm::doS3GetNumKeys(bucketName);
+    }
+
+    int32_t ocallS3ListKeys(const char* bucketName,
+                            uint8_t* buffer,
+                            uint8_t* bufferLens,
+                            int32_t bufferSize)
+    {
+        storage::S3Wrapper s3cli;
+        auto keysList = s3cli.listKeys(bucketName);
+
+        size_t totalSize = 0;
+        for (int i = 0; i < keysList.size(); i++) {
+            if (totalSize > bufferSize) {
+                SPDLOG_ERROR("Exceeded maximum buffer size copying S3 keys!");
+                throw std::runtime_error("Exceeded maximum buffer size");
+            }
+
+            int thisBucketSize = keysList.at(i).size();
+            std::memcpy(bufferLens + i * sizeof(int32_t),
+                        &thisBucketSize,
+                        sizeof(int32_t));
+            std::memcpy(
+              buffer + totalSize, keysList.at(i).c_str(), thisBucketSize);
+
+            // Assuming bucket size is always greater than sizeof int
+            totalSize += thisBucketSize;
+        }
+
+        return keysList.size();
+    }
+
+    int32_t ocallS3AddKeyBytes(const char* bucketName,
+                               const char* keyName,
+                               uint8_t* keyBuffer,
+                               int32_t keyBufferLen)
+    {
+        wasm::doS3AddKeyBytes(
+          bucketName, keyName, (void*)keyBuffer, keyBufferLen);
+
+        return 0;
+    }
+
+    int32_t ocallS3GetKeyBytes(const char* bucketName,
+                               const char* keyName,
+                               uint8_t* buffer,
+                               int32_t bufferSize)
+    {
+        // First, get the actual key bytes from s3
+        storage::S3Wrapper s3cli;
+
+        // This call to s3 may throw an exception
+        auto data = s3cli.getKeyBytes(bucketName, keyName);
+
+        // Check that we have enough space in the bufer
+        if (data.size() > bufferSize) {
+            SPDLOG_ERROR(
+              "S3 key is larger than provisioned buffer! (key: {}/{})",
+              bucketName,
+              keyName);
+            throw std::runtime_error("S3 key is larger than buffer");
+        }
+
+        // Copy the data into the buffer
+        std::memcpy(buffer, data.data(), data.size());
+
+        return data.size();
     }
 }

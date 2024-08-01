@@ -7,6 +7,7 @@ faasm_private_lib(wasm
     host_interface_test.cpp
     migration.cpp
     openmp.cpp
+    s3.cpp
     threads.cpp
 )
 

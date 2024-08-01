@@ -397,24 +397,12 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
 
 I32 _readInputImpl(I32 bufferPtr, I32 bufferLen)
 {
-    // Get the input
-    faabric::Message* call = &ExecutorContext::get()->getMsg();
-    std::vector<uint8_t> inputBytes =
-      faabric::util::stringToBytes(call->inputdata());
-
-    // If nothing, return nothing
-    if (inputBytes.empty()) {
-        return 0;
-    }
-
     // Write to the wasm buffer
     Runtime::Memory* memoryPtr = getExecutingWAVMModule()->defaultMemory;
     U8* buffer =
       Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr)bufferPtr, (Uptr)bufferLen);
 
-    int inputSize =
-      faabric::util::safeCopyToBuffer(inputBytes, buffer, bufferLen);
-    return inputSize;
+    return wasm::doFaasmReadInput((char*)buffer, bufferLen);
 }
 
 // ------------------------------------
