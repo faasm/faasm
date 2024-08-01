@@ -1,6 +1,8 @@
 #include <enclave/inside/EnclaveWasmModule.h>
 #include <enclave/inside/native.h>
 
+#define S3_OCALL_BUFFER_LEN (2048 * 4)
+
 namespace sgx {
 static int32_t faasm_s3_get_num_buckets_wrapper(wasm_exec_env_t execEnv)
 {
@@ -25,7 +27,7 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
     // Do an OCall with two sufficiently large buffers that we are gonna read
     // and use to populate the WASM provided pointers. We use the return
     // value of the OCall to know how many buckets there are
-    size_t bufferLen = 2048;
+    size_t bufferLen = S3_OCALL_BUFFER_LEN;
     std::vector<uint8_t> tmpBuffer(bufferLen);
     std::vector<uint8_t> tmpBufferLens(bufferLen);
 
@@ -101,7 +103,7 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
     // Do an OCall with two sufficiently large buffers that we are gonna read
     // and use to populate the WASM provided pointers. We use the return
     // value of the OCall to know how many buckets there are
-    size_t bufferLen = 2048;
+    size_t bufferLen = S3_OCALL_BUFFER_LEN;
     std::vector<uint8_t> tmpBuffer(bufferLen);
     std::vector<uint8_t> tmpBufferLens(bufferLen);
 
@@ -184,7 +186,7 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
 
     // Use a temporary, fixed-size, buffer to get the  key bytes. Use the
     // return value to know how many bytes we have got
-    size_t bufferLen = 2048;
+    size_t bufferLen = S3_OCALL_BUFFER_LEN;
     std::vector<uint8_t> tmpBuffer(bufferLen);
 
     sgx_status_t sgxReturnValue;

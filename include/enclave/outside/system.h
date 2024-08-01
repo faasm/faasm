@@ -17,8 +17,6 @@
 #define ENCLAVE_ISOLATION_MODE_FAASLET "faaslet"
 
 namespace sgx {
-sgx_enclave_id_t getGlobalEnclaveId();
-
 void processECallErrors(
   std::string errorMessage,
   sgx_status_t sgxReturnValue,
@@ -28,7 +26,15 @@ std::string sgxErrorString(sgx_status_t status);
 
 std::string faasmSgxErrorString(faasm_sgx_status_t status);
 
-sgx_enclave_id_t checkSgxSetup();
+void checkSgxSetup();
+
+// ----- Enclave management -----
+
+sgx_enclave_id_t getFreeEnclave();
+
+void freeEnclave(sgx_enclave_id_t enclaveId);
+
+// ------ Test functions -----
 
 void checkSgxCrypto();
 
