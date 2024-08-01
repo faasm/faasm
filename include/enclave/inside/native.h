@@ -51,6 +51,8 @@ uint32_t getFaasmMemoryApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmPthreadApi(NativeSymbol** nativeSymbols);
 
+uint32_t getFaasmS3Api(NativeSymbol** nativeSymbols);
+
 uint32_t getFaasmStateApi(NativeSymbol** nativeSymbols);
 
 // ---------- WASI symbols ----------

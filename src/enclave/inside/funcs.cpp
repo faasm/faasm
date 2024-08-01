@@ -8,7 +8,11 @@ static int32_t faasm_read_input_wrapper(wasm_exec_env_t execEnv,
                                         uint8_t* buffer,
                                         unsigned int bufferSize)
 {
-    SPDLOG_DEBUG_SGX("S - faasm_read_input");
+    if (bufferSize == 0) {
+        SPDLOG_DEBUG_SGX("S - faasm_read_input_size");
+    } else {
+        SPDLOG_DEBUG_SGX("S - faasm_read_input");
+    }
 
     int32_t returnValue;
     sgx_status_t sgxReturnValue;
@@ -16,6 +20,7 @@ static int32_t faasm_read_input_wrapper(wasm_exec_env_t execEnv,
            &returnValue, buffer, bufferSize)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
+
     return returnValue;
 }
 
@@ -81,18 +86,41 @@ static unsigned int faasm_await_call_wrapper(wasm_exec_env_t execEnv,
 static unsigned int faasm_await_call_output_wrapper(wasm_exec_env_t execEnv,
                                                     unsigned int callId,
                                                     char* buffer,
-                                                    unsigned int bufferSize)
+                                                    int* bufferSize)
 {
-    SPDLOG_DEBUG_SGX("S - faasm_wait_call_output %i", callId);
+    SPDLOG_DEBUG_SGX("S - faasm_await_call_output %i", callId);
+    GET_EXECUTING_MODULE_AND_CHECK(execEnv);
+
+    // Use a temporary, fixed-size, buffer for the OCall. If the output data
+    // is larger than the buffer, we will report an error. This is to work-
+    // around the fact that we can not pass double-pointers across the SGX
+    // edge
+    std::vector<char> tmpBuf(1024);
 
     sgx_status_t sgxReturnValue;
     unsigned int returnValue;
     if ((sgxReturnValue = ocallFaasmAwaitCallOutput(
-           &returnValue, callId, buffer, bufferSize)) != SGX_SUCCESS) {
+           &returnValue, callId, tmpBuf.data(), tmpBuf.size())) !=
+        SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
-    return returnValue;
+    // We use the return value to let us know how much of the buffer we have
+    // written into
+    void* nativePtr = nullptr;
+    auto wasmOffset = module->wasmModuleMalloc(returnValue, &nativePtr);
+    if (wasmOffset == 0 || nativePtr == nullptr) {
+        SPDLOG_ERROR_SGX("Error allocating memory in WASM module");
+        auto exc = std::runtime_error("Error allocating memory in module!");
+        module->doThrowException(exc);
+    }
+    std::memcpy(nativePtr, tmpBuf.data(), returnValue);
+
+    // Populate the provided pointers
+    *buffer = wasmOffset;
+    *bufferSize = returnValue;
+
+    return 0;
 }
 
 static NativeSymbol funcsNs[] = {
@@ -101,7 +129,7 @@ static NativeSymbol funcsNs[] = {
     REG_FAASM_NATIVE_FUNC(faasm_chain_name, "($$i)i"),
     REG_FAASM_NATIVE_FUNC(faasm_chain_ptr, "(*$i)i"),
     REG_FAASM_NATIVE_FUNC(faasm_await_call, "(i)i"),
-    REG_FAASM_NATIVE_FUNC(faasm_await_call_output, "(i$i)i"),
+    REG_FAASM_NATIVE_FUNC(faasm_await_call_output, "(i**)i"),
 };
 
 uint32_t getFaasmFunctionsApi(NativeSymbol** nativeSymbols)

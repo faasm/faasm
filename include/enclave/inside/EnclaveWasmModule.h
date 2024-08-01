@@ -44,6 +44,9 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     void validateNativePointer(void* nativePtr, int size);
 
+    // ----- Exception handling -----
+    void doThrowException(std::exception& exc) const;
+
     // ---- argc/arv ----
 
     uint32_t getArgc() const;

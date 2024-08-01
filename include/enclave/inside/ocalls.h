@@ -79,4 +79,34 @@ extern "C"
                                                    int32_t* ioVecOffsets,
                                                    int32_t ioVecCount,
                                                    int32_t* bytesWritten);
+
+    // ----- S3 Calls -----
+
+    extern sgx_status_t SGX_CDECL ocallS3GetNumBuckets(int32_t* returnValue);
+
+    extern sgx_status_t SGX_CDECL ocallS3ListBuckets(int32_t* returnValue,
+                                                     uint8_t* buffer,
+                                                     uint8_t* bufferLens,
+                                                     int32_t bufferSize);
+
+    extern sgx_status_t SGX_CDECL ocallS3GetNumKeys(int32_t* returnValue,
+                                                    const char* bucketName);
+
+    extern sgx_status_t SGX_CDECL ocallS3ListKeys(int32_t* returnValue,
+                                                  const char* bucketName,
+                                                  uint8_t* buffer,
+                                                  uint8_t* bufferLens,
+                                                  int32_t bufferSize);
+
+    extern sgx_status_t SGX_CDECL ocallS3AddKeyBytes(int32_t* returnValue,
+                                                     const char* bucketName,
+                                                     const char* keyName,
+                                                     uint8_t* keyBuffer,
+                                                     int32_t keyBufferLen);
+
+    extern sgx_status_t SGX_CDECL ocallS3GetKeyBytes(int32_t* returnValue,
+                                                     const char* bucketName,
+                                                     const char* keyName,
+                                                     uint8_t* buffer,
+                                                     int32_t bufferSize);
 }
