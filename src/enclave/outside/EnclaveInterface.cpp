@@ -13,7 +13,7 @@ namespace wasm {
 EnclaveInterface::EnclaveInterface()
   : interfaceId(faabric::util::generateGid())
 {
-    enclaveId = getFreeEnclave();
+    enclaveId = createEnclave();
 
     SPDLOG_DEBUG("Created enclave interface for enclave {}", enclaveId);
 }
@@ -23,6 +23,7 @@ EnclaveInterface::~EnclaveInterface()
     SPDLOG_TRACE(
       "Destructing SGX-WAMR wasm module {}/{}", boundUser, boundFunction);
 
+    // Tear-down WASM module inside enclave
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue =
       ecallDestroyModule(enclaveId, &returnValue, interfaceId);
@@ -30,8 +31,8 @@ EnclaveInterface::~EnclaveInterface()
                        sgxReturnValue,
                        returnValue);
 
-    // Free enclave for next faaslet
-    freeEnclave(enclaveId);
+    // Destroy the enclave
+    destroyEnclave(enclaveId);
     enclaveId = 0;
 }
 
@@ -50,21 +51,17 @@ void EnclaveInterface::reset(faabric::Message& msg,
     }
 
     faasm_sgx_status_t returnValue;
-    sgx_status_t status = ecallReset(enclaveId,
-                                     &returnValue,
-                                     interfaceId,
-                                     msg.user().c_str(),
-                                     msg.function().c_str());
+    sgx_status_t status = ecallReset(enclaveId, &returnValue);
     processECallErrors("Unable to enter enclave", status, returnValue);
 }
 
 void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
 {
-    SPDLOG_INFO("SGX-WAMR binding to {}/{} via message {} (id: {})",
+    SPDLOG_INFO("SGX-WAMR binding to {}/{} via message {} (eid: {})",
                 msg.user(),
                 msg.function(),
                 msg.id(),
-                interfaceId);
+                enclaveId);
 
     // Set up filesystem
     filesystem.prepareFilesystem();

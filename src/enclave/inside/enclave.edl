@@ -21,11 +21,7 @@ enclave{
 
         public faasm_sgx_status_t ecallInitWamr(void);
 
-        public faasm_sgx_status_t ecallReset(
-                            uint32_t faasletId,
-            [in, string]    const char* user,
-            [in, string]    const char* func
-        );
+        public faasm_sgx_status_t ecallReset();
 
         public faasm_sgx_status_t ecallDoBindToFunction(
             [in, string]                const char* user,
@@ -134,6 +130,11 @@ enclave{
             [in, string]            const char* keyName,
             [in, size=keyBufferLen] uint8_t* keyBuffer,
                                     int32_t keyBufferLen
+        );
+
+        int32_t ocallS3GetKeySize(
+            [in, string]            const char* bucketName,
+            [in, string]            const char* keyName
         );
 
         int32_t ocallS3GetKeyBytes(

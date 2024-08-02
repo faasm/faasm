@@ -30,13 +30,11 @@ void checkSgxSetup();
 
 // ----- Enclave management -----
 
-sgx_enclave_id_t getFreeEnclave();
+sgx_enclave_id_t createEnclave();
 
-void freeEnclave(sgx_enclave_id_t enclaveId);
+void destroyEnclave(sgx_enclave_id_t enclaveId);
 
 // ------ Test functions -----
 
 void checkSgxCrypto();
-
-void tearDownEnclave();
 }

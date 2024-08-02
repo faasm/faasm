@@ -19,10 +19,7 @@ extern "C"
                                       faasm_sgx_status_t* retVal);
 
     extern sgx_status_t ecallReset(sgx_enclave_id_t enclaveId,
-                                   faasm_sgx_status_t* retVal,
-                                   uint32_t faasletId,
-                                   const char* user,
-                                   const char* func);
+                                   faasm_sgx_status_t* retVal);
 
     extern sgx_status_t ecallDoBindToFunction(sgx_enclave_id_t enclaveId,
                                               faasm_sgx_status_t* retVal,

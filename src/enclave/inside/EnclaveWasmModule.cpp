@@ -8,9 +8,7 @@
 
 namespace wasm {
 
-// Define the module map and its mutex
-std::unordered_map<uint32_t, std::shared_ptr<EnclaveWasmModule>> moduleMap;
-std::mutex moduleMapMutex;
+std::shared_ptr<wasm::EnclaveWasmModule> enclaveWasmModule = nullptr;
 
 static bool wamrInitialised = false;
 static uint8_t wamrHeapBuffer[WAMR_HEAP_BUFFER_SIZE];
@@ -43,7 +41,10 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     return success;
 }
 
-EnclaveWasmModule::EnclaveWasmModule() {}
+EnclaveWasmModule::EnclaveWasmModule(const std::string& user, const std::string& func)
+  : user(user)
+  , function(func)
+{}
 
 EnclaveWasmModule::~EnclaveWasmModule()
 {
@@ -51,7 +52,7 @@ EnclaveWasmModule::~EnclaveWasmModule()
     wasm_runtime_unload(wasmModule);
 }
 
-bool EnclaveWasmModule::reset(const std::string& user, const std::string& func)
+bool EnclaveWasmModule::reset()
 {
     bool sucess = true;
 
@@ -59,30 +60,15 @@ bool EnclaveWasmModule::reset(const std::string& user, const std::string& func)
         return sucess;
     }
 
-    // Sanity check
-    if (boundUser != user || boundFunction != func) {
-        SPDLOG_ERROR_SGX("Mismatch whenn resetting SGX-WAMR module!");
-        SPDLOG_ERROR_SGX("Bound user/func (%s/%s) != reset user/func (%s/%s)",
-                         boundUser.c_str(),
-                         boundFunction.c_str(),
-                         user.c_str(),
-                         func.c_str());
-
-        sucess = false;
-        return sucess;
-    }
-
     SPDLOG_DEBUG_SGX(
-      "SGX-WAMR resetting after %s/%s", user.c_str(), func.c_str());
+      "SGX-WAMR resetting after %s/%s", user.c_str(), function.c_str());
     wasm_runtime_deinstantiate(moduleInstance);
     sucess = bindInternal();
 
     return sucess;
 }
 
-bool EnclaveWasmModule::doBindToFunction(const std::string& user,
-                                         const std::string& func,
-                                         void* wasmOpCodePtr,
+bool EnclaveWasmModule::doBindToFunction(void* wasmOpCodePtr,
                                          uint32_t wasmOpCodeSize)
 {
     if (_isBound) {
@@ -98,19 +84,17 @@ bool EnclaveWasmModule::doBindToFunction(const std::string& user,
 
     if (wasmModule == nullptr) {
         SPDLOG_ERROR_SGX(
-          "Error loading WASM for %s/%s", user.c_str(), func.c_str());
+          "Error loading WASM for %s/%s", user.c_str(), function.c_str());
         return false;
     }
 
     if (!bindInternal()) {
         SPDLOG_ERROR_SGX(
-          "Error instantiating WASM for %s/%s", user.c_str(), func.c_str());
+          "Error instantiating WASM for %s/%s", user.c_str(), function.c_str());
         return false;
     }
 
     _isBound = true;
-    boundUser = user;
-    boundFunction = func;
 
     return true;
 }
@@ -150,16 +134,16 @@ bool EnclaveWasmModule::bindInternal()
 uint32_t EnclaveWasmModule::callFunction(uint32_t argcIn, char** argvIn)
 {
     int returnValue = 0;
-    // First, run wasm initialisers
-    returnValue = executeWasmFunction(WASM_CTORS_FUNC_NAME);
-    if (returnValue != 0) {
-        SPDLOG_ERROR_SGX("Error executing WASM ctors function");
-        throw std::runtime_error("Error executing WASM ctors function");
-    }
 
     // Second, run the entrypoint in the WASM module
     prepareArgcArgv(argcIn, argvIn);
     returnValue = executeWasmFunction(ENTRY_FUNC_NAME);
+
+    // When running the main function (_start in WASI) we want to overwrite
+    // the function's return value for the one in WAMR's WASI context.
+    // The former is just the return value of _start, whereas the latter
+    // is the actual return value of the entrypoint (e.g. main)
+    returnValue = wasm_runtime_get_wasi_ctx(moduleInstance)->exit_code;
 
     return returnValue;
 }
@@ -291,22 +275,19 @@ void EnclaveWasmModule::doThrowException(std::exception& exc) const
 std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
   wasm_exec_env_t execEnv)
 {
-    // Acquiring a lock every time may be too conservative
-    std::unique_lock<std::mutex> lock(moduleMapMutex);
-    for (auto& itr : moduleMap) {
-        if (itr.second->getModuleInstance() == execEnv->module_inst) {
-            return itr.second;
-        }
+    if (enclaveWasmModule == nullptr) {
+        ocallLogError("Enclave WASM module has not been initialized!");
+        return nullptr;
     }
 
-    // Returning a null ptr means that we haven't been able to link the
-    // execution environment to any of the registered modules. This is a fatal
-    // error, but we expect the caller to handle it, as throwing exceptions
-    // is not supported.
-    ocallLogError("Can not find any registered module corresponding to the "
-                  "supplied execution environment, this is a fatal error");
+    // Sanity-check in debug mode
+#ifdef FAASM_SGX_DEBUG
+    if (enclaveWasmModule->getModuleInstance() != execEnv->module_inst) {
+        ocallLogError("Enclave WASM module bound to different module instance!");
+        return nullptr;
+    }
+#endif
 
-    return nullptr;
+    return enclaveWasmModule;
 }
-
 }

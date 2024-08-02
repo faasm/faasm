@@ -1,7 +1,7 @@
 #include <enclave/inside/EnclaveWasmModule.h>
 #include <enclave/inside/native.h>
 
-#define S3_OCALL_BUFFER_LEN (2048 * 4)
+#define S3_OCALL_BUFFER_LEN (2048 * 8)
 
 namespace sgx {
 static int32_t faasm_s3_get_num_buckets_wrapper(wasm_exec_env_t execEnv)
@@ -184,39 +184,43 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
       "faasm_s3_get_key_bytes (bucket: %s, key: %s)", bucketName, keyName);
     GET_EXECUTING_MODULE_AND_CHECK(execEnv);
 
-    // Use a temporary, fixed-size, buffer to get the  key bytes. Use the
-    // return value to know how many bytes we have got
-    size_t bufferLen = S3_OCALL_BUFFER_LEN;
-    std::vector<uint8_t> tmpBuffer(bufferLen);
-
+    // S3 keys may be very large, so we always ask first for the key size, and
+    // then heap-allocate the reception buffer
     sgx_status_t sgxReturnValue;
-    int32_t returnValue;
-    if ((sgxReturnValue = ocallS3GetKeyBytes(
-           &returnValue, bucketName, keyName, tmpBuffer.data(), bufferLen)) !=
-        SGX_SUCCESS) {
+    int32_t keySize;
+    if ((sgxReturnValue = ocallS3GetKeySize(&keySize, bucketName, keyName)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
-    if (returnValue == 0) {
-        return 0;
-    }
-
-    // Second, allocate memory in WASM's heap to copy the buffer name into
     void* nativePtr = nullptr;
-    auto wasmOffset = module->wasmModuleMalloc(returnValue, &nativePtr);
-
+    auto wasmOffset = module->wasmModuleMalloc(keySize, &nativePtr);
     if (wasmOffset == 0 || nativePtr == nullptr) {
-        SPDLOG_ERROR_SGX("Error allocating memory in WASM module");
+        SPDLOG_ERROR_SGX("Error allocating memory in WASM module: %s",
+                         wasm_runtime_get_exception(module->getModuleInstance()));
         auto exc = std::runtime_error("Error allocating memory in module!");
         module->doThrowException(exc);
     }
 
-    // Copy the string contents into the newly allocated pointer
-    std::memcpy(nativePtr, tmpBuffer.data(), returnValue);
+    // Now that we have the buffer, we can give get the key bytes into it
+    int copiedBytes;
+    if ((sgxReturnValue = ocallS3GetKeyBytes(
+           &copiedBytes, bucketName, keyName, (uint8_t*) nativePtr, keySize)) !=
+        SGX_SUCCESS) {
+        SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
+    }
+
+    if (copiedBytes != keySize) {
+        SPDLOG_ERROR_SGX("Read different bytes than expected: %i != %i (key: %s/%s)",
+                         copiedBytes,
+                         keySize,
+                         bucketName,
+                         keyName);
+        return 0;
+    }
 
     // Lastly, populate the given pointers with the new values
     *keyBuffer = wasmOffset;
-    *keyBufferLen = returnValue;
+    *keyBufferLen = keySize;
 
     return 0;
 }

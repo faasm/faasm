@@ -12,16 +12,6 @@
 #include <sgx_urts.h>
 #include <string>
 
-// Each Faaslet runs a WASM module inside an enclave. Given WASM's sandboxing
-// capabilities, and that the runtime inside the enclave is trusted, it is
-// safe to re-use the enclave across different WASM inovcations. We could
-// explicitly check that there is no state leftover in the trusted runtime
-// shim, but we leave that for future iterations.
-static std::mutex enclaveMutex;
-// The boolean keeps track of whether the enclave is in use or not. Trying to
-// schedule a function in a busy enclave will trigger an error from the enclave
-static std::vector<std::pair<sgx_enclave_id_t, bool>> enclavePool;
-
 #define ERROR_PRINT_CASE(enumVal)                                              \
     case (enumVal): {                                                          \
         return std::string(#enumVal);                                          \
@@ -93,54 +83,17 @@ static sgx_enclave_id_t doCreateEnclave()
     return enclaveId;
 }
 
-// This method lazily initialises a pool of enclaves, and returns the next free
-// enclave. It returns an error if there are currently no free enclaves.
-sgx_enclave_id_t getFreeEnclave()
+// This method checks that SGX is supported and initializes and enclave with
+// our trusted runtime
+sgx_enclave_id_t createEnclave()
 {
-    faabric::util::UniqueLock lock(enclaveMutex);
+    // First, sanity check that SGX is available
+    checkSgxSetup();
 
-    // Initialise enclave pool if we have not yet
-    if (enclavePool.empty()) {
-        // First, sanity check that SGX is available
-        checkSgxSetup();
-
-        int numEnclavesInPool = faabric::util::getUsableCores();
-        SPDLOG_INFO("Initialising enclave pool with {} enclaves", numEnclavesInPool);
-        for (int i = 0; i < numEnclavesInPool; i++) {
-            auto enclaveId = doCreateEnclave();
-            enclavePool.emplace_back(enclaveId, true);
-        }
-    }
-
-    // Find the next free enclave
-    for (const auto& [enclaveId, free] : enclavePool) {
-        if (free) {
-            return enclaveId;
-        }
-    }
-
-    SPDLOG_ERROR("No free enclaves to run faaslet (have: {})", enclavePool.size());
-    throw std::runtime_error("No free enclaves!");
+    return doCreateEnclave();
 }
 
-void freeEnclave(sgx_enclave_id_t enclaveId)
-{
-    for (auto& [thisEnclaveId, free] : enclavePool) {
-        if (enclaveId == thisEnclaveId) {
-            if (free) {
-                return;
-            }
-
-            SPDLOG_DEBUG("Freeing enclave {}", enclaveId);
-            free = false;
-        }
-    }
-
-    SPDLOG_ERROR("Trying to free unrecognised enclave! (id: {})", enclaveId);
-    throw std::runtime_error("Trying to free unrecognised enclave!");
-}
-
-void tearDownEnclave(sgx_enclave_id_t enclaveId)
+void destroyEnclave(sgx_enclave_id_t enclaveId)
 {
     SPDLOG_DEBUG("Destroying enclave {}", enclaveId);
 

@@ -6,30 +6,29 @@
 #include <wasm_runtime_common.h>
 
 #include <memory>
-#include <mutex>
-#include <unordered_map>
 #include <vector>
 
 namespace wasm {
 
 /*
  * Abstraction around a WebAssembly module running inside an SGX enclave with
- * the WAMR runtime.  */
+ * the WAMR runtime. An EnclaveWasmModule is bound to a unique user/function
+ * pair, and there is only one module inside an enclave.
+ * */
 class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 {
   public:
     static bool initialiseWAMRGlobally();
 
-    EnclaveWasmModule();
+    EnclaveWasmModule(const std::string& user, const std::string& func);
 
     ~EnclaveWasmModule();
 
-    bool reset(const std::string& user, const std::string& func);
+    // Called after every execution, leaves the module ready to execute another
+    // instance of the _same_ function.
+    bool reset();
 
-    bool doBindToFunction(const std::string& user,
-                          const std::string& func,
-                          void* wasmOpCodePtr,
-                          uint32_t wasmOpCodeSize);
+    bool doBindToFunction(void* wasmOpCodePtr, uint32_t wasmOpCodeSize);
 
     uint32_t callFunction(uint32_t argcIn, char** argvIn);
 
@@ -38,9 +37,9 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     WASMModuleInstanceCommon* getModuleInstance();
 
-    std::string getBoundUser() const { return boundUser; }
+    std::string getBoundUser() const { return user; }
 
-    std::string getBoundFunction() const { return boundFunction; }
+    std::string getBoundFunction() const { return function; }
 
     void validateNativePointer(void* nativePtr, int size);
 
@@ -61,8 +60,9 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
 
-    std::string boundUser;
-    std::string boundFunction;
+    const std::string user;
+    const std::string function;
+
     bool _isBound = false;
     bool bindInternal();
 
@@ -74,13 +74,10 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     void prepareArgcArgv(uint32_t argcIn, char** argvIn);
 };
 
-// Data structure to keep track of the modules currently loaded in the enclave.
-// And mutex to control concurrent accesses. Both objects have external
-// definition as they have to be accessed both when running an ECall, and
-// resolving a WAMR native symbol.
-extern std::unordered_map<uint32_t, std::shared_ptr<wasm::EnclaveWasmModule>>
-  moduleMap;
-extern std::mutex moduleMapMutex;
+// Data structure to keep track of the module currently loaded in the enclave.
+// Needs to have external definition as it needs to be accessed both when
+// running an ECall and resolving a WAMR native symbol
+extern std::shared_ptr<wasm::EnclaveWasmModule> enclaveWasmModule;
 
 // Return the EnclaveWasmModule that is executing in a given WASM execution
 // environment. This method relies on `wasm_exec_env_t` having a `module_inst`
