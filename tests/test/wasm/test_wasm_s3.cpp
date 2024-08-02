@@ -24,8 +24,6 @@ class S3ExecTestFixture
     {
         auto req = faabric::util::batchExecFactory("s3", function, 1);
 
-        faasmConf.wasmVm = "wamr";
-
         if (!inputData.empty()) {
             req->mutable_messages(0)->set_inputdata(inputData);
         }
@@ -46,6 +44,18 @@ class S3ExecTestFixture
 
 TEST_CASE_METHOD(S3ExecTestFixture, "Get number of buckets", "[s3]")
 {
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
     auto result = doS3ExecTest("get_num_buckets");
 
     std::string expectedNumBuckets = std::to_string(s3cli.listBuckets().size());
@@ -56,6 +66,18 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Get number of buckets", "[s3]")
 
 TEST_CASE_METHOD(S3ExecTestFixture, "List buckets", "[s3]")
 {
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
     auto result = doS3ExecTest("list_buckets");
 
     std::string expectedNumBuckets = std::to_string(s3cli.listBuckets().size());
@@ -79,6 +101,18 @@ TEST_CASE_METHOD(S3ExecTestFixture, "List buckets", "[s3]")
 
 TEST_CASE_METHOD(S3ExecTestFixture, "Get number of keys", "[s3]")
 {
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
     // Add a few keys
     s3cli.addKeyStr(testBucketName, "hello", "world");
     s3cli.addKeyStr(testBucketName, "foo", "bar");
@@ -93,6 +127,18 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Get number of keys", "[s3]")
 
 TEST_CASE_METHOD(S3ExecTestFixture, "List keys", "[s3]")
 {
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
     // Add a few keys
     s3cli.addKeyStr(testBucketName, "hello", "world");
     s3cli.addKeyStr(testBucketName, "foo", "bar");
@@ -118,6 +164,18 @@ TEST_CASE_METHOD(S3ExecTestFixture, "List keys", "[s3]")
 
 TEST_CASE_METHOD(S3ExecTestFixture, "Add key bytes", "[s3]")
 {
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
     std::string bytesToAdd = "bar";
     std::string keyName = "foo";
     std::string cmdline = fmt::format("{} {}", testBucketName, keyName);
@@ -131,6 +189,18 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Add key bytes", "[s3]")
 
 TEST_CASE_METHOD(S3ExecTestFixture, "Get key bytes", "[s3]")
 {
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
     std::string bytesToAdd = "bar";
     std::string keyName = "foo";
 

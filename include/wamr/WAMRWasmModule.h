@@ -83,9 +83,6 @@ class WAMRWasmModule final
     // Check if native pointer belongs to WASM memory
     void validateNativePointer(void* nativePtr, int size);
 
-    // Check if WASM offset belongs to WASM memory
-    void validateWasmOffset(uint32_t wasmOffset, size_t size);
-
     // Convert relative address to absolute address (pointer to memory)
     uint8_t* wasmPointerToNative(uint32_t wasmPtr) override;
 
