@@ -11,6 +11,7 @@
 // Implementation of the ECalls API
 extern "C"
 {
+    // TODO: probably we want to handle all this logic from inside the enclave
     faasm_sgx_status_t ecallCreateReport(const sgx_target_info_t* qeTarget,
                                          const sgx_report_data_t* heldData,
                                          sgx_report_t* report)
@@ -40,26 +41,14 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t ecallReset(uint32_t faasletId,
-                                  const char* user,
-                                  const char* func)
+    faasm_sgx_status_t ecallReset()
     {
-        std::shared_ptr<wasm::EnclaveWasmModule> module = nullptr;
-
-        // Acquire a lock just to get the module
-        {
-            std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
-            if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
-                SPDLOG_ERROR_SGX("Faaslet not bound to any module.");
-                return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
-            }
-
-            module = wasm::moduleMap[faasletId];
+        if (wasm::enclaveWasmModule == nullptr) {
+            ocallLogError("Faaslet not bound to any module!");
+            return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }
 
-        std::string userStr(user);
-        std::string funcStr(func);
-        module->reset(userStr, funcStr);
+        wasm::enclaveWasmModule->reset();
 
         return FAASM_SGX_SUCCESS;
     }
@@ -80,25 +69,12 @@ extern "C"
             return FAASM_SGX_INVALID_PTR;
         }
 
-        // Add module for faaslet to the module map
-        {
-            std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
-            if (wasm::moduleMap.find(faasletId) != wasm::moduleMap.end()) {
-                ocallLogError("Faaslet is already bound to a module.");
-                return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
-            }
+        wasm::enclaveWasmModule = std::make_shared<wasm::EnclaveWasmModule>(user, func);
 
-            std::string userStr(user);
-            std::string funcStr(func);
-            wasm::moduleMap[faasletId] =
-              std::make_shared<wasm::EnclaveWasmModule>();
-            // TODO: add user and function here
-            if (!wasm::moduleMap[faasletId]->doBindToFunction(
-                  userStr, funcStr, wasmOpCodePtr, wasmOpCodeSize)) {
+        if (!wasm::enclaveWasmModule->doBindToFunction(wasmOpCodePtr, wasmOpCodeSize)) {
                 SPDLOG_ERROR_SGX(
                   "Error binding SGX-WAMR module to %s/%s", user, func);
                 return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
-            }
         }
 
         return FAASM_SGX_SUCCESS;
@@ -106,14 +82,13 @@ extern "C"
 
     faasm_sgx_status_t ecallDestroyModule(uint32_t faasletId)
     {
-        std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
-        if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
-            ocallLogError("Faaslet not bound to any module.");
+        if (wasm::enclaveWasmModule == nullptr) {
+            ocallLogError("Faaslet not bound to any module!");
             return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }
 
-        // Erase will call the underlying destructor for the module
-        wasm::moduleMap.erase(faasletId);
+        // Call the destructor on the module
+        wasm::enclaveWasmModule.reset();
 
         return FAASM_SGX_SUCCESS;
     }
@@ -122,22 +97,14 @@ extern "C"
                                          uint32_t argc,
                                          char** argv)
     {
-        std::shared_ptr<wasm::EnclaveWasmModule> module = nullptr;
-
-        // Acquire a lock just to get the module
-        {
-            std::unique_lock<std::mutex> lock(wasm::moduleMapMutex);
-            if (wasm::moduleMap.find(faasletId) == wasm::moduleMap.end()) {
-                SPDLOG_ERROR_SGX("Faaslet not bound to any module.");
-                return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
-            }
-
-            module = wasm::moduleMap[faasletId];
+        if (wasm::enclaveWasmModule == nullptr) {
+            ocallLogError("Faaslet not bound to any module!");
+            return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }
 
         // Call the function without a lock on the module map, to allow for
         // chaining on the same enclave
-        uint32_t returnValue = module->callFunction(argc, argv);
+        uint32_t returnValue = wasm::enclaveWasmModule->callFunction(argc, argv);
         if (returnValue != 0) {
             SPDLOG_ERROR_SGX("Error trying to call function. Return value: %i",
                              returnValue);

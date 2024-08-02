@@ -104,6 +104,10 @@ extern "C"
                                                      uint8_t* keyBuffer,
                                                      int32_t keyBufferLen);
 
+    extern sgx_status_t SGX_CDECL ocallS3GetKeySize(int32_t* returnValue,
+                                                    const char* bucketName,
+                                                    const char* keyName);
+
     extern sgx_status_t SGX_CDECL ocallS3GetKeyBytes(int32_t* returnValue,
                                                      const char* bucketName,
                                                      const char* keyName,

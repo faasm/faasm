@@ -258,6 +258,18 @@ extern "C"
         return 0;
     }
 
+    int32_t ocallS3GetKeySize(const char* bucketName,
+                              const char* keyName)
+    {
+        // First, get the actual key bytes from s3
+        storage::S3Wrapper s3cli;
+
+        // This call to s3 may throw an exception
+        auto data = s3cli.getKeyBytes(bucketName, keyName);
+
+        return data.size();
+    }
+
     int32_t ocallS3GetKeyBytes(const char* bucketName,
                                const char* keyName,
                                uint8_t* buffer,
@@ -272,7 +284,9 @@ extern "C"
         // Check that we have enough space in the bufer
         if (data.size() > bufferSize) {
             SPDLOG_ERROR(
-              "S3 key is larger than provisioned buffer! (key: {}/{})",
+              "S3 key is larger than provisioned buffer: {} > {} (key: {}/{})",
+              data.size(),
+              bufferSize,
               bucketName,
               keyName);
             throw std::runtime_error("S3 key is larger than buffer");

@@ -22,7 +22,7 @@ static int32_t wasi_fd_fdstat_get(wasm_exec_env_t execEnv,
                                   int32_t wasmFd,
                                   __wasi_fdstat_t* statWasm)
 {
-    SPDLOG_DEBUG_SGX("S - wasi_fd_fdstat_get %i", wasmFd);
+    SPDLOG_DEBUG_SGX("SSSSSSSSSSSSSSS - wasi_fd_fdstat_get %i", wasmFd);
 
     GET_EXECUTING_MODULE_AND_CHECK(execEnv);
 
