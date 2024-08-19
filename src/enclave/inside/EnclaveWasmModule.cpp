@@ -11,7 +11,6 @@ namespace wasm {
 std::shared_ptr<wasm::EnclaveWasmModule> enclaveWasmModule = nullptr;
 
 static bool wamrInitialised = false;
-static uint8_t wamrHeapBuffer[WAMR_HEAP_BUFFER_SIZE];
 
 bool EnclaveWasmModule::initialiseWAMRGlobally()
 {
@@ -25,10 +24,10 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     // Initialise the WAMR runtime
     RuntimeInitArgs wamrRteArgs;
     memset(&wamrRteArgs, 0x0, sizeof(wamrRteArgs));
-    // wamrRteArgs.mem_alloc_type = Alloc_With_Allocator;
-    wamrRteArgs.mem_alloc_type = Alloc_With_Pool;
-    wamrRteArgs.mem_alloc_option.pool.heap_buf = (void*)wamrHeapBuffer;
-    wamrRteArgs.mem_alloc_option.pool.heap_size = sizeof(wamrHeapBuffer);
+    wamrRteArgs.mem_alloc_type = Alloc_With_Allocator;
+    wamrRteArgs.mem_alloc_option.allocator.malloc_func = (void*) ::malloc;
+    wamrRteArgs.mem_alloc_option.allocator.realloc_func = (void*) ::realloc;
+    wamrRteArgs.mem_alloc_option.allocator.free_func = (void*) ::free;
 
     // Initialise WAMR runtime
     bool success = wasm_runtime_full_init(&wamrRteArgs);
@@ -125,8 +124,8 @@ bool EnclaveWasmModule::bindInternal()
                          errorMsg.c_str());
         throw std::runtime_error("Failed to instantiate WAMR module");
     }
-    // TODO(mman)
-    // currentBrk.store(getMemorySizeBytes(), std::memory_order_release);
+
+    currentBrk = getMemorySizeBytes();
 
     return moduleInstance != nullptr;
 }
@@ -245,6 +244,182 @@ std::vector<std::string> EnclaveWasmModule::getArgv()
 size_t EnclaveWasmModule::getArgvBufferSize() const
 {
     return argvBufferSize;
+}
+
+uint32_t EnclaveWasmModule::getCurrentBrk() const
+{
+    return currentBrk;
+}
+
+uint32_t EnclaveWasmModule::shrinkMemory(size_t nBytes)
+{
+    if (!isWasmPageAligned((int32_t)nBytes)) {
+        SPDLOG_ERROR_SGX("Shrink size not page aligned %li", nBytes);
+        throw std::runtime_error("New break not page aligned");
+    }
+
+    uint32_t oldBrk = currentBrk;
+
+    if (nBytes > oldBrk) {
+        SPDLOG_ERROR_SGX(
+          "Shrinking by more than current brk (%li > %i)", nBytes, oldBrk);
+        throw std::runtime_error("Shrinking by more than current brk");
+    }
+
+    // Note - we don't actually free the memory, we just change the brk
+    uint32_t newBrk = oldBrk - nBytes;
+
+    SPDLOG_DEBUG_SGX("MEM - shrinking memory %i -> %i", oldBrk, newBrk);
+    currentBrk = newBrk;
+
+    return oldBrk;
+}
+
+uint32_t EnclaveWasmModule::growMemory(size_t nBytes)
+{
+    if (nBytes == 0) {
+        return currentBrk;
+    }
+
+    uint32_t oldBytes = getMemorySizeBytes();
+    uint32_t oldBrk = currentBrk;
+    uint32_t newBrk = oldBrk + nBytes;
+
+    if (!isWasmPageAligned(newBrk)) {
+        SPDLOG_ERROR_SGX("Growing memory by %li is not wasm page aligned"
+                         " (current brk: %i, new brk: %i)",
+                         nBytes,
+                         oldBrk,
+                         newBrk);
+        throw std::runtime_error("Non-wasm-page-aligned memory growth");
+    }
+
+    size_t newBytes = oldBytes + nBytes;
+    uint32_t oldPages = getNumberOfWasmPagesForBytes(oldBytes);
+    uint32_t newPages = getNumberOfWasmPagesForBytes(newBytes);
+    size_t maxPages = getMaxMemoryPages();
+
+    if (newBytes > UINT32_MAX || newPages > maxPages) {
+        SPDLOG_ERROR_SGX("Growing memory would exceed max of %li pages "
+                         "(current %i, requested %i)",
+                         maxPages,
+                         oldPages,
+                         newPages);
+        throw std::runtime_error("Memory growth exceeding max");
+    }
+
+    // If we can reclaim old memory, just bump the break
+    if (newBrk <= oldBytes) {
+        SPDLOG_DEBUG_SGX(
+          "MEM - Growing memory using already provisioned %u + %li <= %i",
+          oldBrk,
+          nBytes,
+          oldBytes);
+
+        currentBrk = newBrk;
+
+        // TODO: we don't claim the virtual memory, permissions on the memory
+        // pages could be off
+
+        return oldBrk;
+    }
+
+    uint32_t pageChange = newPages - oldPages;
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    bool success = aot_enlarge_memory(aotModule, pageChange);
+    if (!success) {
+        SPDLOG_ERROR_SGX("Failed to grow memory (page change: %i): %s",
+                         pageChange,
+                         wasm_runtime_get_exception(moduleInstance));
+        throw std::runtime_error("Failed to grow memory");
+    }
+
+    SPDLOG_DEBUG_SGX("Growing memory from %i to %i pages (max %li)",
+                     oldPages,
+                     newPages,
+                     maxPages);
+
+    size_t newMemorySize = getMemorySizeBytes();
+    currentBrk = newMemorySize;
+
+    if (newMemorySize != newBytes) {
+        SPDLOG_ERROR_SGX(
+          "Expected new brk (%li) to be old memory plus new bytes (%li)",
+          newMemorySize,
+          newBytes);
+        throw std::runtime_error("Memory growth discrepancy");
+    }
+
+    return oldBrk;
+}
+
+size_t EnclaveWasmModule::getMemorySizeBytes()
+{
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem = ((AOTMemoryInstance**)aotModule->memories)[0];
+    return aotMem->cur_page_count * WASM_BYTES_PER_PAGE;
+}
+
+uint8_t* EnclaveWasmModule::getMemoryBase()
+{
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem = ((AOTMemoryInstance**)aotModule->memories)[0];
+    return reinterpret_cast<uint8_t*>(aotMem->memory_data);
+}
+
+size_t EnclaveWasmModule::getMaxMemoryPages()
+{
+    auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
+    AOTMemoryInstance* aotMem = ((AOTMemoryInstance**)aotModule->memories)[0];
+    return aotMem->max_page_count;
+}
+
+uint32_t EnclaveWasmModule::mmapMemory(size_t nBytes)
+{
+    // The mmap interface allows non page-aligned values, and rounds up
+    uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);
+    return growMemory(pageAligned);
+}
+
+uint32_t EnclaveWasmModule::mmapFile(uint32_t wasmFd, size_t length)
+{
+    SPDLOG_ERROR_SGX("mmap for files is not implemented!");
+
+    throw std::runtime_error("mmap for files not implemented!");
+}
+
+void EnclaveWasmModule::unmapMemory(uint32_t offset, size_t nBytes)
+{
+    // TODO: remove duplication with WasmModule
+    if (nBytes == 0) {
+        return;
+    }
+
+    // Munmap expects the offset itself to be page-aligned, but will round up
+    // the number of bytes
+    if (!isWasmPageAligned(offset)) {
+        SPDLOG_ERROR_SGX("Non-page aligned munmap address %i", offset);
+        throw std::runtime_error("Non-page aligned munmap address");
+    }
+
+    uint32_t pageAligned = roundUpToWasmPageAligned(nBytes);
+    size_t maxPages = getMaxMemoryPages();
+    size_t maxSize = maxPages * WASM_BYTES_PER_PAGE;
+    uint32_t unmapTop = offset + pageAligned;
+
+    if (unmapTop > maxSize) {
+        SPDLOG_ERROR_SGX(
+          "Munmapping outside memory max (%i > %zu)", unmapTop, maxSize);
+        throw std::runtime_error("munmapping outside memory max");
+    }
+
+    if (unmapTop == currentBrk) {
+        shrinkMemory(pageAligned);
+    } else {
+        SPDLOG_ERROR_SGX("MEM - unable to reclaim unmapped memory %i at %i",
+                         pageAligned,
+                         offset);
+    }
 }
 
 // Validate that a memory range defined by a pointer and a size is a valid

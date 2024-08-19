@@ -54,6 +54,28 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     size_t getArgvBufferSize() const;
 
+    // ---- Memory management ----
+    // TODO(csegarragonz): what bits of the memory management can we
+    // de-duplicate using the WAMR's module mixin?
+
+    uint32_t getCurrentBrk() const;
+
+    size_t getMemorySizeBytes();
+
+    uint8_t* getMemoryBase();
+
+    size_t getMaxMemoryPages();
+
+    uint32_t growMemory(size_t nBytes);
+
+    uint32_t shrinkMemory(size_t nBytes);
+
+    uint32_t mmapMemory(size_t nBytes);
+
+    uint32_t mmapFile(uint32_t fd, size_t length);
+
+    void unmapMemory(uint32_t offset, size_t nBytes);
+
   private:
     char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
 
@@ -72,6 +94,9 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     size_t argvBufferSize;
 
     void prepareArgcArgv(uint32_t argcIn, char** argvIn);
+
+    // Memory management
+    uint32_t currentBrk = 0;
 };
 
 // Data structure to keep track of the module currently loaded in the enclave.

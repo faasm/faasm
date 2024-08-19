@@ -12,7 +12,7 @@
 // This variables rely on the STACK_SIZE set in wasm/WasmCommon.h
 #define WAMR_ERROR_BUFFER_SIZE 256
 #define WAMR_STACK_SIZE STACK_SIZE
-#define WAMR_HEAP_BUFFER_SIZE (16 * WAMR_HEAP_SIZE)
+#define WAMR_HEAP_BUFFER_SIZE (32 * WAMR_HEAP_SIZE)
 // #define WAMR_HEAP_BUFFER_SIZE (400 * 1024 * 1024)
 #define WAMR_HEAP_SIZE (STACK_SIZE * 8)
 

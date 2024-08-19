@@ -38,8 +38,15 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         faasmConf.wasmVm = "wamr";
     }
 
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
     auto req = faabric::util::batchExecFactory("demo", "chain_named_a", 1);
-    executeWithPool(req, 5000);
+    executeWithPool(req, 10000);
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,

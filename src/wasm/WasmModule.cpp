@@ -21,35 +21,10 @@
 #include <wasm/WasmModule.h>
 
 #include <boost/filesystem.hpp>
-#include <sstream>
 #include <sys/mman.h>
 #include <sys/uio.h>
 
 namespace wasm {
-
-bool isWasmPageAligned(int32_t offset)
-{
-    if (offset & (WASM_BYTES_PER_PAGE - 1)) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
-size_t getNumberOfWasmPagesForBytes(size_t nBytes)
-{
-    // Round up to nearest page
-    size_t pageCount =
-      (size_t(nBytes) + WASM_BYTES_PER_PAGE - 1) / WASM_BYTES_PER_PAGE;
-
-    return pageCount;
-}
-
-uint32_t roundUpToWasmPageAligned(uint32_t nBytes)
-{
-    size_t nPages = getNumberOfWasmPagesForBytes(nBytes);
-    return (uint32_t)(nPages * WASM_BYTES_PER_PAGE);
-}
 
 size_t getPagesForGuardRegion()
 {

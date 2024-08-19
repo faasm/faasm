@@ -173,6 +173,13 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         faasmConf.wasmVm = "wamr";
     }
 
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
     REQUIRE(executeWithPoolGetBooleanResult(req));
 }
 
@@ -189,6 +196,13 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test big mmap", "[wasm]")
     {
         faasmConf.wasmVm = "wamr";
     }
+
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
 
     executeWithPool(req);
 }
