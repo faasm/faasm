@@ -69,12 +69,14 @@ extern "C"
             return FAASM_SGX_INVALID_PTR;
         }
 
-        wasm::enclaveWasmModule = std::make_shared<wasm::EnclaveWasmModule>(user, func);
+        wasm::enclaveWasmModule =
+          std::make_shared<wasm::EnclaveWasmModule>(user, func);
 
-        if (!wasm::enclaveWasmModule->doBindToFunction(wasmOpCodePtr, wasmOpCodeSize)) {
-                SPDLOG_ERROR_SGX(
-                  "Error binding SGX-WAMR module to %s/%s", user, func);
-                return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
+        if (!wasm::enclaveWasmModule->doBindToFunction(wasmOpCodePtr,
+                                                       wasmOpCodeSize)) {
+            SPDLOG_ERROR_SGX(
+              "Error binding SGX-WAMR module to %s/%s", user, func);
+            return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
         }
 
         return FAASM_SGX_SUCCESS;
@@ -104,7 +106,8 @@ extern "C"
 
         // Call the function without a lock on the module map, to allow for
         // chaining on the same enclave
-        uint32_t returnValue = wasm::enclaveWasmModule->callFunction(argc, argv);
+        uint32_t returnValue =
+          wasm::enclaveWasmModule->callFunction(argc, argv);
         if (returnValue != 0) {
             SPDLOG_ERROR_SGX("Error trying to call function. Return value: %i",
                              returnValue);

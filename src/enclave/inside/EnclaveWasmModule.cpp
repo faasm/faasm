@@ -25,9 +25,9 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     RuntimeInitArgs wamrRteArgs;
     memset(&wamrRteArgs, 0x0, sizeof(wamrRteArgs));
     wamrRteArgs.mem_alloc_type = Alloc_With_Allocator;
-    wamrRteArgs.mem_alloc_option.allocator.malloc_func = (void*) ::malloc;
-    wamrRteArgs.mem_alloc_option.allocator.realloc_func = (void*) ::realloc;
-    wamrRteArgs.mem_alloc_option.allocator.free_func = (void*) ::free;
+    wamrRteArgs.mem_alloc_option.allocator.malloc_func = (void*)::malloc;
+    wamrRteArgs.mem_alloc_option.allocator.realloc_func = (void*)::realloc;
+    wamrRteArgs.mem_alloc_option.allocator.free_func = (void*)::free;
 
     // Initialise WAMR runtime
     bool success = wasm_runtime_full_init(&wamrRteArgs);
@@ -40,7 +40,8 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     return success;
 }
 
-EnclaveWasmModule::EnclaveWasmModule(const std::string& user, const std::string& func)
+EnclaveWasmModule::EnclaveWasmModule(const std::string& user,
+                                     const std::string& func)
   : user(user)
   , function(func)
 {}
@@ -458,7 +459,8 @@ std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
     // Sanity-check in debug mode
 #ifdef FAASM_SGX_DEBUG
     if (enclaveWasmModule->getModuleInstance() != execEnv->module_inst) {
-        ocallLogError("Enclave WASM module bound to different module instance!");
+        ocallLogError(
+          "Enclave WASM module bound to different module instance!");
         return nullptr;
     }
 #endif

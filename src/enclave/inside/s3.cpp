@@ -188,15 +188,17 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
     // then heap-allocate the reception buffer
     sgx_status_t sgxReturnValue;
     int32_t keySize;
-    if ((sgxReturnValue = ocallS3GetKeySize(&keySize, bucketName, keyName)) != SGX_SUCCESS) {
+    if ((sgxReturnValue = ocallS3GetKeySize(&keySize, bucketName, keyName)) !=
+        SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
     void* nativePtr = nullptr;
     auto wasmOffset = module->wasmModuleMalloc(keySize, &nativePtr);
     if (wasmOffset == 0 || nativePtr == nullptr) {
-        SPDLOG_ERROR_SGX("Error allocating memory in WASM module: %s",
-                         wasm_runtime_get_exception(module->getModuleInstance()));
+        SPDLOG_ERROR_SGX(
+          "Error allocating memory in WASM module: %s",
+          wasm_runtime_get_exception(module->getModuleInstance()));
         auto exc = std::runtime_error("Error allocating memory in module!");
         module->doThrowException(exc);
     }
@@ -204,17 +206,18 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
     // Now that we have the buffer, we can give get the key bytes into it
     int copiedBytes;
     if ((sgxReturnValue = ocallS3GetKeyBytes(
-           &copiedBytes, bucketName, keyName, (uint8_t*) nativePtr, keySize)) !=
+           &copiedBytes, bucketName, keyName, (uint8_t*)nativePtr, keySize)) !=
         SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
     if (copiedBytes != keySize) {
-        SPDLOG_ERROR_SGX("Read different bytes than expected: %i != %i (key: %s/%s)",
-                         copiedBytes,
-                         keySize,
-                         bucketName,
-                         keyName);
+        SPDLOG_ERROR_SGX(
+          "Read different bytes than expected: %i != %i (key: %s/%s)",
+          copiedBytes,
+          keySize,
+          bucketName,
+          keyName);
         return 0;
     }
 

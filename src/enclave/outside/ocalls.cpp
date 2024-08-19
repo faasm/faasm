@@ -258,8 +258,7 @@ extern "C"
         return 0;
     }
 
-    int32_t ocallS3GetKeySize(const char* bucketName,
-                              const char* keyName)
+    int32_t ocallS3GetKeySize(const char* bucketName, const char* keyName)
     {
         // First, get the actual key bytes from s3
         storage::S3Wrapper s3cli;
