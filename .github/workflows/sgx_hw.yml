@@ -41,8 +41,10 @@ jobs:
     if: ${{ needs.sgx-changed.outputs.has-sgx-changed == 'true' }}
     runs-on: self-hosted
     env:
-      VM_BASE_NAME: gha-sgx-hw-vm
       FAASM_VERSION: 0.27.0
+      FAASMCTL_VERSION: 0.43.0
+      VM_CODE_DIR: git/faasm/faasm
+      VM_BASE_NAME: gha-sgx-hw-vm
     steps:
       - name: "Check out the experiment-base code"
         uses: actions/checkout@v4
@@ -59,46 +61,44 @@ jobs:
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
+            --path ${{ env.VM_CODE_DIR }} \
             --cmd "git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'"
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
+            --path ${{ env.VM_CODE_DIR }} \
             --cmd "git fetch origin ${{ github.ref }}:ci-branch && git checkout -f ci-branch"
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
+            --path ${{ env.VM_CODE_DIR }} \
             --cmd "git submodule update --init -f"
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm/clients/python" \
+            --path ${{ env.VM_CODE_DIR }}/clients/python \
             --cmd "git submodule update --init -f third-party/cpp"
+      - name: "Install faasmctl"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "pip3 install faasmctl==${{ env.FAASMCTL_VERSION }}"
       - name: "Start the docker compose cluster"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "./bin/refresh_local.sh"
-          ./bin/inv_wrapper.sh vm.run-command \
-            --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "docker volume create --driver local --opt type=tmpfs --opt device=tmpfs --opt o=rw aesmd-socket"
-          ./bin/inv_wrapper.sh vm.run-command \
-            --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "FAASM_BUILD_MOUNT=/build/faasm FAASM_LOCAL_MOUNT=/usr/local/faasm FAASM_CLI_IMAGE=faasm/cli-sgx:${{ env.FAASM_VERSION }} SGX_DEVICE_MOUNT_DIR=/dev/sgx docker compose up --no-recreate -d aesmd faasm-cli"
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "faasmctl deploy.compose --workers=0 --mount-source ."
       - name: "Cross-compile CPP functions"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "FAASM_LOCAL_MOUNT=/usr/local/faasm docker compose run cpp ./bin/inv_wrapper.sh func.local libfake"
-      - name: "Cross-compile Python functions"
+            --cmd "faasmctl cli.cpp --cmd 'inv func.local --clean libfake'"
+      - name: "Run hello function"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "FAASM_LOCAL_MOUNT=/usr/local/faasm docker compose run python ./bin/inv_wrapper.sh cpython.func func.upload-all --local"
+            --cmd "faasmctl cli.faasm --cmd 'inv run demo hello'"
       - name: "Build Faasm targets"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
