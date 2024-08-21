@@ -36,5 +36,5 @@ void destroyEnclave(sgx_enclave_id_t enclaveId);
 
 // ------ Test functions -----
 
-void checkSgxCrypto();
+void checkSgxCrypto(sgx_enclave_id_t enclaveId);
 }

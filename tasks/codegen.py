@@ -143,8 +143,9 @@ def sgx(ctx, clean=False):
     """
     env = copy(environ)
     env.update({"FAASM_WASM_VM": "sgx"})
-    for user, func in SGX_ALLOWED_FUNCS:
-        codegen(ctx, user, func, clean)
+    _do_codegen_user("demo", clean)
+    _do_codegen_user("errors", clean)
+    _do_codegen_user("s3", clean)
 
 
 @task

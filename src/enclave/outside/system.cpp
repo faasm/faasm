@@ -25,9 +25,9 @@ void checkSgxSetup()
     if (!isSgxEnabled()) {
         SPDLOG_ERROR("Machine doesn't support SGX");
         throw std::runtime_error("Machine doesn't support SGX");
-    } else {
-        SPDLOG_INFO("SGX detected in machine to run in HW mode");
     }
+
+    SPDLOG_INFO("SGX detected in machine to run in HW mode");
 #endif
 }
 

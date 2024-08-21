@@ -108,8 +108,9 @@ bool EnclaveWasmModule::bindInternal()
       wasmModule, WAMR_STACK_SIZE, 0, errorBuffer, WAMR_ERROR_BUFFER_SIZE);
 
     if (moduleInstance == nullptr) {
-        SPDLOG_ERROR_SGX(
-          "Null-pointing module instance for %s/%s: %s", user.c_str(), function.c_str());
+        SPDLOG_ERROR_SGX("Null-pointing module instance for %s/%s: %s",
+                         user.c_str(),
+                         function.c_str());
         return false;
     }
 
