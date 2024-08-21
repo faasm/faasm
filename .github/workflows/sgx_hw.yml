@@ -80,13 +80,13 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "pip3 install faasmctl==${{ env.FAASMCTL_VERSION }}"
+            --cmd "pip3 install faasmctl==${{ env.FAASMCTL_VERSION }} && echo 'alias faasmctl=/home/faasm/.local/bin/faasmctl' >> ~/.bashrc"
       - name: "Start the docker compose cluster"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "faasmctl deploy.compose --workers=0 --mount-source ."
+            --cmd "/home/faasm/.local/bin/faasmctl deploy.compose --workers=0 --mount-source ."
       - name: "Cross-compile CPP functions"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
@@ -97,26 +97,26 @@ jobs:
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
+            --path ${{ env.VM_CODE_DIR }} \
             --cmd "faasmctl cli.faasm --cmd 'inv dev.tools --build Release --sgx Hardware'"
+      - name: "Run codegen"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "faasmctl cli.faasm --cmd 'inv codegen.tests'"
       - name: "Run hello function"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "faasmctl cli.faasm --cmd 'inv run demo hello'"
-      - name: "Run codegen"
-        run: |
-          ./bin/inv_wrapper.sh vm.run-command \
-            --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "docker compose exec faasm-cli ./bin/inv_wrapper.sh codegen.tests"
+            --cmd "./bin/inv_wrapper.sh faasmctl cli.faasm --cmd 'inv run demo hello'"
       - name: "Run tests"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "docker compose exec -e LOG_LEVEL=info -e AZ_ATTESTATION_PROVIDER_URL='' -e CGROUP_MODE=off -e HOST_TYPE=ci faasm-cli /build/faasm/bin/tests"
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "./bin/inv_wrapper.sh faasmctl cli.faasm --cmd 'inv tests'"
       - name: "Delete VM"
         if: always()
         run: ./bin/inv_wrapper.sh vm.delete --name ${{ env.VM_NAME }}
