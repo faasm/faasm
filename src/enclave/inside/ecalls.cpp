@@ -86,8 +86,7 @@ extern "C"
     {
         if (wasm::enclaveWasmModule == nullptr) {
             ocallLogError("Faaslet not bound to any module!");
-            return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
-        }
+            return FAASM_SGX_WAMR_MODULE_NOT_BOUND; }
 
         // Call the destructor on the module
         wasm::enclaveWasmModule.reset();
@@ -114,6 +113,17 @@ extern "C"
             return FAASM_SGX_WAMR_FUNCTION_UNABLE_TO_CALL;
         }
 
+        return FAASM_SGX_SUCCESS;
+    }
+
+    faasm_sgx_status_t ecallCopyDataIn(uint8_t* buffer, uint32_t bufferSize)
+    {
+        if (wasm::enclaveWasmModule == nullptr) {
+            ocallLogError("Faaslet not bound to any module!");
+            return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
+        }
+
+        wasm::enclaveWasmModule->dataXferPtr = buffer;
         return FAASM_SGX_SUCCESS;
     }
 }

@@ -76,6 +76,10 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     void unmapMemory(uint32_t offset, size_t nBytes);
 
+    // Heap pointer used to transfer data from outside of the enclave to inside
+    // when the data size exceeds the caller's stack size
+    uint8_t* dataXferPtr = nullptr;
+
   private:
     char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
 

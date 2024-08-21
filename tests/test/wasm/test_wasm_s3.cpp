@@ -201,7 +201,7 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Get key bytes", "[s3]")
     }
 #endif
 
-    std::string bytesToAdd = "bar";
+    std::string bytesToAdd(1024 * 1024, 'b'); //  = "bar";
     std::string keyName = "foo";
 
     // Add some bytes to the key

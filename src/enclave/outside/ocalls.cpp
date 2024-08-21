@@ -1,6 +1,8 @@
-#include <faabric/executor/ExecutorContext.h>
-
+#include <enclave/common.h>
 #include <enclave/outside/EnclaveInterface.h>
+#include <enclave/outside/ecalls.h>
+#include <enclave/outside/system.h>
+#include <faabric/executor/ExecutorContext.h>
 #include <wasm/chaining.h>
 #include <wasm/faasm.h>
 #include <wasm/s3.h>
@@ -279,6 +281,18 @@ extern "C"
 
         // This call to s3 may throw an exception
         auto data = s3cli.getKeyBytes(bucketName, keyName);
+
+        if (data.size() > MAX_OCALL_BUFFER_SIZE) {
+            faasm_sgx_status_t returnValue;
+            auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
+            sgx_status_t sgxReturnValue =
+              ecallCopyDataIn(enclaveId, &returnValue, data.data(), data.size());
+            sgx::processECallErrors("Error trying to copy data into enclave",
+                               sgxReturnValue,
+                               returnValue);
+
+            return 0;
+        }
 
         // Check that we have enough space in the bufer
         if (data.size() > bufferSize) {

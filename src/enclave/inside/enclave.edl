@@ -42,6 +42,15 @@ enclave{
         );
 
         public faasm_sgx_status_t ecallCryptoChecks(void);
+
+        // ECall in buffers are allocated in the enclave's heap, whereas
+        // OCall out buffers are allocated in the untrusted application's stack.
+        // As a consequence, if we need to transfer large amounts of data into
+        // the enclave, we need to use an ECall, and not a pointer in an OCall.
+        public faasm_sgx_status_t ecallCopyDataIn(
+            [in, size=bufferSize]   uint8_t* buffer,
+            uint32_t                bufferSize
+        );
     };
 
     untrusted{
@@ -142,6 +151,6 @@ enclave{
             [in, string]            const char* keyName,
             [out, size=bufferSize]  uint8_t* buffer,
                                     int32_t bufferSize
-        );
+        ) allow(ecallCopyDataIn);
     };
 };
