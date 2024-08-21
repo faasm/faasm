@@ -186,6 +186,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test big mmap", "[wasm]")
 {
     auto req = setUpContext("demo", "mmap_big");
+    int timeoutMs = 1000;
 
     SECTION("WAVM")
     {
@@ -201,6 +202,9 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test big mmap", "[wasm]")
     SECTION("SGX")
     {
         faasmConf.wasmVm = "sgx";
+        // This test does a lot of new memory allocations, which patricularly
+        // stress SGX's EDMM feature
+        timeoutMs = 20 * 1000;
     }
 #endif
 

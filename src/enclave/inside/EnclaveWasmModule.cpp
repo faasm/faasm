@@ -107,6 +107,12 @@ bool EnclaveWasmModule::bindInternal()
     moduleInstance = wasm_runtime_instantiate(
       wasmModule, WAMR_STACK_SIZE, 0, errorBuffer, WAMR_ERROR_BUFFER_SIZE);
 
+    if (moduleInstance == nullptr) {
+        SPDLOG_ERROR_SGX(
+          "Null-pointing module instance for %s/%s: %s", user.c_str(), function.c_str());
+        return false;
+    }
+
     // Sense-check the module after instantiation
     auto* aotModule = reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     AOTMemoryInstance* aotMem = ((AOTMemoryInstance**)aotModule->memories)[0];
