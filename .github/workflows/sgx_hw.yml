@@ -91,20 +91,20 @@ jobs:
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
+            --path ${{ env.VM_CODE_DIR }} \
             --cmd "faasmctl cli.cpp --cmd 'inv func.local --clean libfake'"
-      - name: "Run hello function"
-        run: |
-          ./bin/inv_wrapper.sh vm.run-command \
-            --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "faasmctl cli.faasm --cmd 'inv run demo hello'"
       - name: "Build Faasm targets"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path "code/faasm" \
-            --cmd "docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release --sgx Hardware"
+            --cmd "faasmctl cli.faasm --cmd 'inv dev.tools --build Release --sgx Hardware'"
+      - name: "Run hello function"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "faasmctl cli.faasm --cmd 'inv run demo hello'"
       - name: "Run codegen"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
