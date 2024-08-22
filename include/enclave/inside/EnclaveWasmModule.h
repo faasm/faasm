@@ -76,9 +76,19 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     void unmapMemory(uint32_t offset, size_t nBytes);
 
-    // Heap pointer used to transfer data from outside of the enclave to inside
-    // when the data size exceeds the caller's stack size
+    // There are two ways to transfer data into the enclave. Either as an [in]
+    // buffer as an argument of an ECall or an [out] buffer as an argument of
+    // an OCall. The OCall situation is more common, as it is the enclave
+    // requesting information from the outside using an OCall. Unfortunately,
+    // OCall arguments are stored in the untrusted application's stack, meanng
+    // that we are limited to whatever the stack size is (usually a few KBs).
+    // On the other hand, ECall arguments are heap-allocated in the enclave
+    // memory, allowing arbitrarily large data transfers. We use by default the
+    // OCall mechanism, and fall-back to the ECall one if needed. The following
+    // two variables are used to stage data that is transferred in an OCall +
+    // ECall mechanism
     uint8_t* dataXferPtr = nullptr;
+    size_t dataXferSize = 0;
 
   private:
     char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
@@ -101,6 +111,7 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     // Memory management
     uint32_t currentBrk = 0;
+
 };
 
 // Data structure to keep track of the module currently loaded in the enclave.

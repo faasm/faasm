@@ -23,12 +23,19 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
     SPDLOG_DEBUG_SGX("faasm_s3_list_buckets");
     auto module = wasm::getExecutingEnclaveWasmModule(execEnv);
 
+    // Get the offset for the buffer pointers so that they are not invalidated
+    // after memory growth
+    int32_t bucketsBufferOffset = module->nativePointerToWasmOffset(bucketsBuffer);
+    int32_t bucketsBufferLenOffset = module->nativePointerToWasmOffset(bucketsBufferLen);
+
     // Do an OCall with two sufficiently large buffers that we are gonna read
     // and use to populate the WASM provided pointers. We use the return
     // value of the OCall to know how many buckets there are
     size_t bufferLen = MAX_OCALL_BUFFER_SIZE;
     std::vector<uint8_t> tmpBuffer(bufferLen);
     std::vector<uint8_t> tmpBufferLens(bufferLen);
+    assert(module->dataXferPtr == nullptr);
+    assert(module->dataXferSize == 0);
 
     sgx_status_t sgxReturnValue;
     int32_t returnValue;
@@ -38,25 +45,33 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
+    // Work-out if we have had to use an ECall to transfer data in, or we can
+    // use the temporary buffer
+    uint8_t* readBuffer;
+    bool haveUsedAuxECall = module->dataXferSize != 0 && module->dataXferPtr != nullptr;
+    if (haveUsedAuxECall) {
+        // If we have used the ECall, we need to copy from the heap-allocated
+        // data xfer buffer
+        readBuffer = module->dataXferPtr;
+    } else {
+        readBuffer = tmpBuffer.data();
+    }
+
     // Sanity check that each pointer-to-array is large enough
-    module->validateWasmOffset(module->nativePointerToWasmOffset(bucketsBuffer),
+    module->validateWasmOffset(bucketsBufferOffset,
                                returnValue * sizeof(char*));
-    module->validateWasmOffset(
-      module->nativePointerToWasmOffset(bucketsBufferLen),
-      returnValue * sizeof(int32_t));
+    module->validateWasmOffset(bucketsBufferLenOffset,
+                               returnValue * sizeof(int32_t));
 
     // Return value holds the number of different buckets
-    size_t bufferOffset = 0;
+    size_t readOffset = 0;
     for (int i = 0; i < returnValue; i++) {
-        // First, copy the size of the buffer
-        std::memcpy(&bucketsBufferLen[i],
-                    tmpBufferLens.data() + i * sizeof(int32_t),
-                    sizeof(int32_t));
+        int32_t thisBucketLen = *(tmpBufferLens.data() + i * sizeof(int32_t));
 
-        // Second, allocate memory in WASM's heap to copy the buffer name into
+        // Allocate memory in WASM's heap to copy the buffer into
         void* nativePtr = nullptr;
         auto wasmOffset =
-          module->wasmModuleMalloc(bucketsBufferLen[i], &nativePtr);
+          module->wasmModuleMalloc(thisBucketLen, &nativePtr);
         if (wasmOffset == 0 || nativePtr == nullptr) {
             SPDLOG_ERROR_SGX("Error allocating memory in WASM module");
             auto exc = std::runtime_error("Error allocating memory in module!");
@@ -64,15 +79,25 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
         }
 
         // Copy the string contents into the newly allocated pointer
-        std::memcpy(
-          nativePtr, tmpBuffer.data() + bufferOffset, bucketsBufferLen[i]);
+        std::memcpy(nativePtr, readBuffer + readOffset, thisBucketLen);
 
-        // Store in the i-th entry of the array, a (WASM) pointer to the newly
-        // allocated string
-        bucketsBuffer[i] = wasmOffset;
+        // Re-convert the WASM offset to a native pointer to prevent pointer
+        // invalidations after memory grow operations
+        int32_t* bucketsBufferLenPtr = (int32_t*) module->wasmOffsetToNativePointer(bucketsBufferLenOffset);
+        int32_t* bucketsBufferPtr = (int32_t*) module->wasmOffsetToNativePointer(bucketsBufferOffset);
+
+        // Copy the buffer size and buffer length
+        bucketsBufferPtr[i] = wasmOffset;
+        bucketsBufferLenPtr[i] = thisBucketLen;
 
         // Lastly, increment the offset in the main buffer
-        bufferOffset += bucketsBufferLen[i];
+        readOffset += bucketsBufferLen[i];
+    }
+
+    if (haveUsedAuxECall) {
+        free(module->dataXferPtr);
+        module->dataXferPtr = nullptr;
+        module->dataXferSize = 0;
     }
 }
 
@@ -99,12 +124,19 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
     SPDLOG_DEBUG_SGX("S - faasm_s3_list_keys (bucket: %s)", bucketName);
     auto module = wasm::getExecutingEnclaveWasmModule(execEnv);
 
+    // Get the offset for the buffer pointers so that they are not invalidated
+    // after memory growth
+    int32_t keysBufferOffset = module->nativePointerToWasmOffset(keysBuffer);
+    int32_t keysBufferLenOffset = module->nativePointerToWasmOffset(keysBufferLen);
+
     // Do an OCall with two sufficiently large buffers that we are gonna read
     // and use to populate the WASM provided pointers. We use the return
-    // value of the OCall to know how many buckets there are
+    // value of the OCall to know how many keys there are.
     size_t bufferLen = MAX_OCALL_BUFFER_SIZE;
     std::vector<uint8_t> tmpBuffer(bufferLen);
     std::vector<uint8_t> tmpBufferLens(bufferLen);
+    assert(module->dataXferPtr == nullptr);
+    assert(module->dataXferSize == 0);
 
     sgx_status_t sgxReturnValue;
     int32_t returnValue;
@@ -116,24 +148,33 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
+    // Work-out if we have had to use an ECall to transfer data in, or we can
+    // use the temporary buffer
+    uint8_t* readBuffer;
+    bool haveUsedAuxECall = module->dataXferSize != 0 && module->dataXferPtr != nullptr;
+    if (haveUsedAuxECall) {
+        // If we have used the ECall, we need to copy from the heap-allocated
+        // data xfer buffer
+        readBuffer = module->dataXferPtr;
+    } else {
+        readBuffer = tmpBuffer.data();
+    }
+
     // Sanity check that each pointer-to-array is large enough
-    module->validateWasmOffset(module->nativePointerToWasmOffset(keysBuffer),
+    module->validateWasmOffset(keysBufferOffset,
                                returnValue * sizeof(char*));
-    module->validateWasmOffset(module->nativePointerToWasmOffset(keysBufferLen),
+    module->validateWasmOffset(keysBufferLenOffset,
                                returnValue * sizeof(int32_t));
 
-    // Return value holds the number of different buckets
-    size_t bufferOffset = 0;
+    // Return value holds the number of different keys
+    size_t readOffset = 0;
     for (int i = 0; i < returnValue; i++) {
-        // First, copy the size of the buffer
-        std::memcpy(&keysBufferLen[i],
-                    tmpBufferLens.data() + i * sizeof(int32_t),
-                    sizeof(int32_t));
+        int32_t thisKeyLen = *(tmpBufferLens.data() + i * sizeof(int32_t));
 
-        // Second, allocate memory in WASM's heap to copy the buffer name into
+        // Allocate memory in WASM's heap to copy the buffer into
         void* nativePtr = nullptr;
         auto wasmOffset =
-          module->wasmModuleMalloc(keysBufferLen[i], &nativePtr);
+          module->wasmModuleMalloc(thisKeyLen, &nativePtr);
         if (wasmOffset == 0 || nativePtr == nullptr) {
             SPDLOG_ERROR_SGX("Error allocating memory in WASM module");
             auto exc = std::runtime_error("Error allocating memory in module!");
@@ -141,15 +182,25 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
         }
 
         // Copy the string contents into the newly allocated pointer
-        std::memcpy(
-          nativePtr, tmpBuffer.data() + bufferOffset, keysBufferLen[i]);
+        std::memcpy(nativePtr, readBuffer + readOffset, thisKeyLen);
 
-        // Store in the i-th entry of the array, a (WASM) pointer to the newly
-        // allocated string
-        keysBuffer[i] = wasmOffset;
+        // Re-convert the WASM offset to a native pointer to prevent pointer
+        // invalidations after memory grow operations
+        int32_t* keysBufferLenPtr = (int32_t*) module->wasmOffsetToNativePointer(keysBufferLenOffset);
+        int32_t* keysBufferPtr = (int32_t*) module->wasmOffsetToNativePointer(keysBufferOffset);
+
+        // Copy the buffer size and buffer length
+        keysBufferPtr[i] = wasmOffset;
+        keysBufferLenPtr[i] = thisKeyLen;
 
         // Lastly, increment the offset in the main buffer
-        bufferOffset += keysBufferLen[i];
+        readOffset += keysBufferLen[i];
+    }
+
+    if (haveUsedAuxECall) {
+        free(module->dataXferPtr);
+        module->dataXferPtr = nullptr;
+        module->dataXferSize = 0;
     }
 }
 
@@ -213,10 +264,9 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
     // If the key is larger than what we can fit in the untrusted app's stack,
     // we need to trigger an ECall, and move the memory from the ECall-
     // allocated buffer to our WASM buffer.
-    bool mustUseAuxEcall = keySize > MAX_OCALL_BUFFER_SIZE;
-    if (mustUseAuxEcall) {
-        module->dataXferPtr = nullptr;
-    }
+    bool mustUseAuxECall = keySize > MAX_OCALL_BUFFER_SIZE;
+    assert(module->dataXferPtr == nullptr);
+    assert(module->dataXferSize == 0);
 
     void* nativePtr = nullptr;
     auto wasmOffset = module->wasmModuleMalloc(keySize, &nativePtr);
@@ -235,22 +285,25 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
            bucketNameStr.c_str(),
            keyNameStr.c_str(),
            (uint8_t*)nativePtr,
-           mustUseAuxEcall ? 0 : keySize)) !=
+           mustUseAuxECall ? 0 : keySize)) !=
         SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
-    if (mustUseAuxEcall) {
+    if (mustUseAuxECall) {
         assert(copiedBytes == 0);
 
-        if (module->dataXferPtr == nullptr) {
+        if (module->dataXferPtr == nullptr || module->dataXferSize != keySize) {
             SPDLOG_ERROR_SGX("Copying large buffer in OCall, but have not"
                              " populated auxiliary heap pointer!");
             return 1;
         }
 
         memcpy(nativePtr, module->dataXferPtr, keySize);
+
+        free(module->dataXferPtr);
         module->dataXferPtr = nullptr;
+        module->dataXferSize = 0;
     } else if (copiedBytes != keySize) {
         SPDLOG_ERROR_SGX(
           "Read different bytes than expected: %i != %i (key: %s/%s)",

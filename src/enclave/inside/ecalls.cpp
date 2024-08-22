@@ -123,9 +123,13 @@ extern "C"
             return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }
 
-        // wasm::enclaveWasmModule->dataXferPtr = buffer;
+        // TODO: this ECall is triggered by the untrsuted host, so we should
+        // sanitize that we are not malloc-ing something ridiculous. Ideally
+        // we should be able to know the data we expect to receive before
+        // hand, and double-check it here
         wasm::enclaveWasmModule->dataXferPtr = (uint8_t*) malloc(bufferSize);
         memcpy(wasm::enclaveWasmModule->dataXferPtr, buffer, bufferSize);
+        wasm::enclaveWasmModule->dataXferSize = bufferSize;
 
         return FAASM_SGX_SUCCESS;
     }

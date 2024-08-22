@@ -229,22 +229,42 @@ extern "C"
         storage::S3Wrapper s3cli;
         auto keysList = s3cli.listKeys(bucketName);
 
+        // First, calculate the total amount of data to transfer to know if the
+        // OCall buffer will be enough or not
         size_t totalSize = 0;
-        for (int i = 0; i < keysList.size(); i++) {
-            if (totalSize > bufferSize) {
-                SPDLOG_ERROR("Exceeded maximum buffer size copying S3 keys!");
-                throw std::runtime_error("Exceeded maximum buffer size");
-            }
+        for (const auto& key : keysList) {
+            totalSize += key.size();
+        }
 
-            int thisBucketSize = keysList.at(i).size();
+        // If we need to use an ECall to transfer data overwrite the provided
+        // buffer by a big-enough buffer. Part of it will still be copied as
+        // a result of the OCall, but just 1 KB
+        bool mustUseECall = totalSize > MAX_OCALL_BUFFER_SIZE;
+        if (mustUseECall) {
+            buffer = (uint8_t*) faabric::util::malloc(totalSize);
+        }
+
+        size_t writtenOffset = 0;
+        for (int i = 0; i < keysList.size(); i++) {
+            int thisKeySize = keysList.at(i).size();
+
             std::memcpy(bufferLens + i * sizeof(int32_t),
-                        &thisBucketSize,
+                        &thisKeySize,
                         sizeof(int32_t));
             std::memcpy(
-              buffer + totalSize, keysList.at(i).c_str(), thisBucketSize);
+              buffer + writtenOffset, keysList.at(i).c_str(), thisKeySize);
 
-            // Assuming bucket size is always greater than sizeof int
-            totalSize += thisBucketSize;
+            writtenOffset += thisKeySize;
+        }
+
+        if (mustUseECall) {
+            faasm_sgx_status_t returnValue;
+            auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
+            sgx_status_t sgxReturnValue =
+              ecallCopyDataIn(enclaveId, &returnValue, buffer, totalSize);
+            sgx::processECallErrors("Error trying to copy data into enclave",
+                               sgxReturnValue,
+                               returnValue);
         }
 
         return keysList.size();

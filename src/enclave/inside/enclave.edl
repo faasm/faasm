@@ -132,7 +132,7 @@ enclave{
             [out, size=bufferSize]  uint8_t* buffer,
             [out, size=bufferSize]  uint8_t* bufferLens,
                                     int32_t bufferSize
-        );
+        ) allow(ecallCopyDataIn);
 
         int32_t ocallS3AddKeyBytes(
             [in, string]            const char* bucketName,
