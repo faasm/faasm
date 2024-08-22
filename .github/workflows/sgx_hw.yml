@@ -87,25 +87,25 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "{{ env.FAASMCTL_BIN }} deploy.compose --workers=0 --mount-source ."
+            --cmd "${{ env.FAASMCTL_BIN }} deploy.compose --workers=0 --mount-source ."
       - name: "Cross-compile CPP functions"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "{{ env.FAASMCTL_BIN }} cli.cpp --cmd 'inv func.local --clean libfake'"
+            --cmd "${{ env.FAASMCTL_BIN }} cli.cpp --cmd 'inv func.local --clean libfake'"
       - name: "Build Faasm targets"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "{{ env.FAASMCTL_BIN }} cli.faasm --cmd 'inv dev.tools --build Release --sgx Hardware'"
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd 'inv dev.tools --build Release --sgx Hardware'"
       - name: "Run codegen"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "{{ env.FAASMCTL_BIN }} cli.faasm --cmd 'inv codegen.tests'"
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd 'inv codegen.tests'"
       - name: "Run hello function"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
