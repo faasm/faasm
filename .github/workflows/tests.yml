@@ -18,7 +18,7 @@ concurrency:
 
 # Top-level env. vars shared by most jobs
 env:
-  COMPOSE_VERSION: 2.24.5
+  COMPOSE_VERSION: 2.22.0
   CONAN_CACHE_MOUNT_SOURCE: .conan
   FAABRIC_VERSION: 0.20.0
   FAASM_INI_FILE: ./faasm.ini
