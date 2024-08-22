@@ -4,6 +4,13 @@ Faasm provides
 [SGX](https://software.intel.com/content/www/us/en/develop/topics/software-guard-extensions.html)
 support using [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime).
 
+> [!WARNING]
+> We restrict the use of WAMR + SGX to SGX v2 **only**. This is to ensure we
+> can use SGX's [dynamic memory management features](https://github.com/intel/sgx-emm).
+> This means that, to run in HW mode, you need: (i) an Intel IceLake server
+> (or newer), and (ii) a host kernel > 6.0 (EDMM was upstreamed with the
+> in-kernel SGX driver then).
+
 ## Quick start
 
 To configure SGX, we must build the code with the desired SGX flavour: disabled
@@ -54,12 +61,12 @@ inv run demo hello
 To run a development cluster with SGX run:
 
 ```bash
-WASM_VM=sgx(-sim) faasmctl deploy.compose --mount-source
+WASM_VM=sgx(-sim) faasmctl deploy.compose --mount-source .
 ```
 
 To run SGX in an Azure kubernetes cluster, see the relevant repositories:
 [experiment-base](https://github.com/faasm/experiment-base) and
-[experiment-sgx](https://github.com/faasm/experiment-sgx).
+[experiment-tless](https://github.com/faasm/experiment-tless).
 
 ## Remote Attestation
 
@@ -102,8 +109,8 @@ as valid, we check the integrity of the actual JWT.
 
 ## Update SGX SDK and PSW version
 
-We use SGX SDK and PSW version [`2.15.1`](https://github.com/intel/linux-sgx/tree/sgx_2.15.1)
-as defined in [`sgx.dockerfile`](https://github.com/faasm/faasm/blob/main/docker/sgx.dockerfile).
+We use SGX SDK and PSW version [`2.18.1`](https://github.com/intel/linux-sgx/tree/sgx_2.18.1)
+as defined in [`base-sgx.dockerfile`](https://github.com/faasm/faasm/blob/main/docker/base-sgx.dockerfile).
 If you want to upgrade the version, change it there, and create a new docker
 image using:
 
