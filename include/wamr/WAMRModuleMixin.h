@@ -77,6 +77,11 @@ struct WAMRModuleMixin
     // Returns the WASM offset of the newly allocated memory if succesful, 0
     // otherwise. If succesful, populate the nativePtr variable with the
     // native pointer to access the returned offset
+    // WARNING: wasm_runtime_module_malloc may call heap functions sinde the
+    // module which, in turn, trigger a memory growth operation. Such an
+    // operation _could_ invalidate native pointers into WASM memory. When
+    // calling this function make sure to trust only WASM offsets, and convert
+    // before and after into native pointers
     uint32_t wasmModuleMalloc(size_t size, void** nativePtr)
     {
         auto moduleInstance = this->underlying().getModuleInstance();

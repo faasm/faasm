@@ -230,15 +230,6 @@ static int32_t faasm_s3_add_key_bytes_wrapper(wasm_exec_env_t execEnv,
     return returnValue;
 }
 
-// WARNING: this native function calls wasmModuleMalloc, which in turn calls
-// the underlying wasm_runtime_module_malloc. This function call may call heap
-// functions inside the module instance and may cause a memory growth. As
-// a consequence, native pointers into WASM memory can be invalidated right
-// after calling wasm_runtime_module_malloc. As a consequence, make local
-// copies of the necessary variables, or use WASM offsets and manually
-// translate them right before use. In particular: for the const char* we
-// build local copies as strings, and for the buffer and buffer length, which
-// are really pointers, we convert the address manually right before use.
 static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
                                               const char* bucketName,
                                               const char* keyName,
