@@ -25,8 +25,10 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
 
     // Get the offset for the buffer pointers so that they are not invalidated
     // after memory growth
-    int32_t bucketsBufferOffset = module->nativePointerToWasmOffset(bucketsBuffer);
-    int32_t bucketsBufferLenOffset = module->nativePointerToWasmOffset(bucketsBufferLen);
+    int32_t bucketsBufferOffset =
+      module->nativePointerToWasmOffset(bucketsBuffer);
+    int32_t bucketsBufferLenOffset =
+      module->nativePointerToWasmOffset(bucketsBufferLen);
 
     // Do an OCall with two sufficiently large buffers that we are gonna read
     // and use to populate the WASM provided pointers. We use the return
@@ -48,7 +50,8 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
     // Work-out if we have had to use an ECall to transfer data in, or we can
     // use the temporary buffer
     uint8_t* readBuffer;
-    bool haveUsedAuxECall = module->dataXferSize != 0 && module->dataXferPtr != nullptr;
+    bool haveUsedAuxECall =
+      module->dataXferSize != 0 && module->dataXferPtr != nullptr;
     if (haveUsedAuxECall) {
         // If we have used the ECall, we need to copy from the heap-allocated
         // data xfer buffer
@@ -70,8 +73,7 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
 
         // Allocate memory in WASM's heap to copy the buffer into
         void* nativePtr = nullptr;
-        auto wasmOffset =
-          module->wasmModuleMalloc(thisBucketLen, &nativePtr);
+        auto wasmOffset = module->wasmModuleMalloc(thisBucketLen, &nativePtr);
         if (wasmOffset == 0 || nativePtr == nullptr) {
             SPDLOG_ERROR_SGX("Error allocating memory in WASM module");
             auto exc = std::runtime_error("Error allocating memory in module!");
@@ -83,8 +85,10 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
 
         // Re-convert the WASM offset to a native pointer to prevent pointer
         // invalidations after memory grow operations
-        int32_t* bucketsBufferLenPtr = (int32_t*) module->wasmOffsetToNativePointer(bucketsBufferLenOffset);
-        int32_t* bucketsBufferPtr = (int32_t*) module->wasmOffsetToNativePointer(bucketsBufferOffset);
+        int32_t* bucketsBufferLenPtr =
+          (int32_t*)module->wasmOffsetToNativePointer(bucketsBufferLenOffset);
+        int32_t* bucketsBufferPtr =
+          (int32_t*)module->wasmOffsetToNativePointer(bucketsBufferOffset);
 
         // Copy the buffer size and buffer length
         bucketsBufferPtr[i] = wasmOffset;
@@ -127,7 +131,8 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
     // Get the offset for the buffer pointers so that they are not invalidated
     // after memory growth
     int32_t keysBufferOffset = module->nativePointerToWasmOffset(keysBuffer);
-    int32_t keysBufferLenOffset = module->nativePointerToWasmOffset(keysBufferLen);
+    int32_t keysBufferLenOffset =
+      module->nativePointerToWasmOffset(keysBufferLen);
 
     // Do an OCall with two sufficiently large buffers that we are gonna read
     // and use to populate the WASM provided pointers. We use the return
@@ -151,7 +156,8 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
     // Work-out if we have had to use an ECall to transfer data in, or we can
     // use the temporary buffer
     uint8_t* readBuffer;
-    bool haveUsedAuxECall = module->dataXferSize != 0 && module->dataXferPtr != nullptr;
+    bool haveUsedAuxECall =
+      module->dataXferSize != 0 && module->dataXferPtr != nullptr;
     if (haveUsedAuxECall) {
         // If we have used the ECall, we need to copy from the heap-allocated
         // data xfer buffer
@@ -161,8 +167,7 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
     }
 
     // Sanity check that each pointer-to-array is large enough
-    module->validateWasmOffset(keysBufferOffset,
-                               returnValue * sizeof(char*));
+    module->validateWasmOffset(keysBufferOffset, returnValue * sizeof(char*));
     module->validateWasmOffset(keysBufferLenOffset,
                                returnValue * sizeof(int32_t));
 
@@ -173,8 +178,7 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
 
         // Allocate memory in WASM's heap to copy the buffer into
         void* nativePtr = nullptr;
-        auto wasmOffset =
-          module->wasmModuleMalloc(thisKeyLen, &nativePtr);
+        auto wasmOffset = module->wasmModuleMalloc(thisKeyLen, &nativePtr);
         if (wasmOffset == 0 || nativePtr == nullptr) {
             SPDLOG_ERROR_SGX("Error allocating memory in WASM module");
             auto exc = std::runtime_error("Error allocating memory in module!");
@@ -186,8 +190,10 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
 
         // Re-convert the WASM offset to a native pointer to prevent pointer
         // invalidations after memory grow operations
-        int32_t* keysBufferLenPtr = (int32_t*) module->wasmOffsetToNativePointer(keysBufferLenOffset);
-        int32_t* keysBufferPtr = (int32_t*) module->wasmOffsetToNativePointer(keysBufferOffset);
+        int32_t* keysBufferLenPtr =
+          (int32_t*)module->wasmOffsetToNativePointer(keysBufferLenOffset);
+        int32_t* keysBufferPtr =
+          (int32_t*)module->wasmOffsetToNativePointer(keysBufferOffset);
 
         // Copy the buffer size and buffer length
         keysBufferPtr[i] = wasmOffset;
@@ -243,20 +249,23 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
     std::string bucketNameStr(bucketName);
     std::string keyNameStr(keyName);
 
-    SPDLOG_DEBUG_SGX(
-      "faasm_s3_get_key_bytes (bucket: %s, key: %s)", bucketNameStr.c_str(), keyNameStr.c_str());
+    SPDLOG_DEBUG_SGX("faasm_s3_get_key_bytes (bucket: %s, key: %s)",
+                     bucketNameStr.c_str(),
+                     keyNameStr.c_str());
     GET_EXECUTING_MODULE_AND_CHECK(execEnv);
 
     // Get the offset for the buffer pointers so that they are not invalidated
     // after memory growth
     int32_t keyBufferOffset = module->nativePointerToWasmOffset(keyBuffer);
-    int32_t keyBufferLenOffset = module->nativePointerToWasmOffset(keyBufferLen);
+    int32_t keyBufferLenOffset =
+      module->nativePointerToWasmOffset(keyBufferLen);
 
     // S3 keys may be very large, so we always ask first for the key size, and
     // then heap-allocate the reception buffer
     sgx_status_t sgxReturnValue;
     int32_t keySize;
-    if ((sgxReturnValue = ocallS3GetKeySize(&keySize, bucketNameStr.c_str(), keyNameStr.c_str())) !=
+    if ((sgxReturnValue = ocallS3GetKeySize(
+           &keySize, bucketNameStr.c_str(), keyNameStr.c_str())) !=
         SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
@@ -280,12 +289,11 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
 
     // Now that we have the buffer, we can give get the key bytes into it
     int copiedBytes;
-    if ((sgxReturnValue = ocallS3GetKeyBytes(
-           &copiedBytes,
-           bucketNameStr.c_str(),
-           keyNameStr.c_str(),
-           (uint8_t*)nativePtr,
-           mustUseAuxECall ? 0 : keySize)) !=
+    if ((sgxReturnValue = ocallS3GetKeyBytes(&copiedBytes,
+                                             bucketNameStr.c_str(),
+                                             keyNameStr.c_str(),
+                                             (uint8_t*)nativePtr,
+                                             mustUseAuxECall ? 0 : keySize)) !=
         SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
@@ -316,10 +324,12 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
 
     // Lastly, convert the return variables to pointers and populate them with
     // the new values
-    int32_t* keyBufferPtr = (int32_t*) module->wasmOffsetToNativePointer(keyBufferOffset);
+    int32_t* keyBufferPtr =
+      (int32_t*)module->wasmOffsetToNativePointer(keyBufferOffset);
     *keyBufferPtr = wasmOffset;
 
-    int32_t* keyBufferLenPtr = (int32_t*) module->wasmOffsetToNativePointer(keyBufferLenOffset);
+    int32_t* keyBufferLenPtr =
+      (int32_t*)module->wasmOffsetToNativePointer(keyBufferLenOffset);
     *keyBufferLenPtr = keySize;
 
     return 0;

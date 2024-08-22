@@ -35,7 +35,8 @@ TEST_CASE("Test default faasm config initialisation", "[conf]")
     REQUIRE(conf.s3User == "minio");
     REQUIRE(conf.s3Password == "minio123");
 
-    REQUIRE(conf.attestationProviderUrl == "https://faasmattprov.eus2.attest.azure.net");
+    REQUIRE(conf.attestationProviderUrl ==
+            "https://faasmattprov.eus2.attest.azure.net");
 }
 
 TEST_CASE("Test overriding faasm config initialisation", "[conf]")

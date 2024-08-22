@@ -122,10 +122,12 @@ static unsigned int faasm_await_call_output_wrapper(wasm_exec_env_t execEnv,
     std::memcpy(nativePtr, tmpBuf.data(), returnValue);
 
     // Populate the provided pointers
-    int32_t* bufferPtr = (int32_t*) module->wasmOffsetToNativePointer(bufferOffset);
+    int32_t* bufferPtr =
+      (int32_t*)module->wasmOffsetToNativePointer(bufferOffset);
     *bufferPtr = wasmOffset;
 
-    int32_t* bufferSizePtr = (int32_t*) module->wasmOffsetToNativePointer(bufferSizeOffset);
+    int32_t* bufferSizePtr =
+      (int32_t*)module->wasmOffsetToNativePointer(bufferSizeOffset);
     *bufferSizePtr = returnValue;
 
     return 0;

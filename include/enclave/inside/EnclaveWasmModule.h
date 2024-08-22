@@ -111,7 +111,6 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     // Memory management
     uint32_t currentBrk = 0;
-
 };
 
 // Data structure to keep track of the module currently loaded in the enclave.

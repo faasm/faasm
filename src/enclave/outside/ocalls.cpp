@@ -241,16 +241,15 @@ extern "C"
         // a result of the OCall, but just 1 KB
         bool mustUseECall = totalSize > MAX_OCALL_BUFFER_SIZE;
         if (mustUseECall) {
-            buffer = (uint8_t*) faabric::util::malloc(totalSize);
+            buffer = (uint8_t*)faabric::util::malloc(totalSize);
         }
 
         size_t writtenOffset = 0;
         for (int i = 0; i < keysList.size(); i++) {
             int thisKeySize = keysList.at(i).size();
 
-            std::memcpy(bufferLens + i * sizeof(int32_t),
-                        &thisKeySize,
-                        sizeof(int32_t));
+            std::memcpy(
+              bufferLens + i * sizeof(int32_t), &thisKeySize, sizeof(int32_t));
             std::memcpy(
               buffer + writtenOffset, keysList.at(i).c_str(), thisKeySize);
 
@@ -259,12 +258,13 @@ extern "C"
 
         if (mustUseECall) {
             faasm_sgx_status_t returnValue;
-            auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
+            auto enclaveId =
+              wasm::getExecutingEnclaveInterface()->getEnclaveId();
             sgx_status_t sgxReturnValue =
               ecallCopyDataIn(enclaveId, &returnValue, buffer, totalSize);
             sgx::processECallErrors("Error trying to copy data into enclave",
-                               sgxReturnValue,
-                               returnValue);
+                                    sgxReturnValue,
+                                    returnValue);
         }
 
         return keysList.size();
@@ -305,12 +305,13 @@ extern "C"
 
         if (data.size() > MAX_OCALL_BUFFER_SIZE) {
             faasm_sgx_status_t returnValue;
-            auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
-            sgx_status_t sgxReturnValue =
-              ecallCopyDataIn(enclaveId, &returnValue, data.data(), data.size());
+            auto enclaveId =
+              wasm::getExecutingEnclaveInterface()->getEnclaveId();
+            sgx_status_t sgxReturnValue = ecallCopyDataIn(
+              enclaveId, &returnValue, data.data(), data.size());
             sgx::processECallErrors("Error trying to copy data into enclave",
-                               sgxReturnValue,
-                               returnValue);
+                                    sgxReturnValue,
+                                    returnValue);
 
             return 0;
         }

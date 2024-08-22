@@ -86,7 +86,8 @@ extern "C"
     {
         if (wasm::enclaveWasmModule == nullptr) {
             ocallLogError("Faaslet not bound to any module!");
-            return FAASM_SGX_WAMR_MODULE_NOT_BOUND; }
+            return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
+        }
 
         // Call the destructor on the module
         wasm::enclaveWasmModule.reset();
@@ -127,7 +128,7 @@ extern "C"
         // sanitize that we are not malloc-ing something ridiculous. Ideally
         // we should be able to know the data we expect to receive before
         // hand, and double-check it here
-        wasm::enclaveWasmModule->dataXferPtr = (uint8_t*) malloc(bufferSize);
+        wasm::enclaveWasmModule->dataXferPtr = (uint8_t*)malloc(bufferSize);
         memcpy(wasm::enclaveWasmModule->dataXferPtr, buffer, bufferSize);
         wasm::enclaveWasmModule->dataXferSize = bufferSize;
 
