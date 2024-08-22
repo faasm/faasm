@@ -42,6 +42,7 @@ jobs:
     runs-on: self-hosted
     env:
       FAASM_VERSION: 0.27.0
+      FAASMCTL_BIN: /home/faasm/.local/bin/faasmctl
       FAASMCTL_VERSION: 0.43.0
       VM_CODE_DIR: git/faasm/faasm
       VM_BASE_NAME: gha-sgx-hw-vm
@@ -80,43 +81,43 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "pip3 install faasmctl==${{ env.FAASMCTL_VERSION }} && echo 'alias faasmctl=/home/faasm/.local/bin/faasmctl' >> ~/.bashrc"
+            --cmd "pip3 install faasmctl==${{ env.FAASMCTL_VERSION }}"
       - name: "Start the docker compose cluster"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "/home/faasm/.local/bin/faasmctl deploy.compose --workers=0 --mount-source ."
+            --cmd "{{ env.FAASMCTL_BIN }} deploy.compose --workers=0 --mount-source ."
       - name: "Cross-compile CPP functions"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "faasmctl cli.cpp --cmd 'inv func.local --clean libfake'"
+            --cmd "{{ env.FAASMCTL_BIN }} cli.cpp --cmd 'inv func.local --clean libfake'"
       - name: "Build Faasm targets"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "faasmctl cli.faasm --cmd 'inv dev.tools --build Release --sgx Hardware'"
+            --cmd "{{ env.FAASMCTL_BIN }} cli.faasm --cmd 'inv dev.tools --build Release --sgx Hardware'"
       - name: "Run codegen"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "faasmctl cli.faasm --cmd 'inv codegen.tests'"
+            --cmd "{{ env.FAASMCTL_BIN }} cli.faasm --cmd 'inv codegen.tests'"
       - name: "Run hello function"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "./bin/inv_wrapper.sh faasmctl cli.faasm --cmd 'inv run demo hello'"
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd 'inv run demo hello'"
       - name: "Run tests"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "./bin/inv_wrapper.sh faasmctl cli.faasm --cmd 'inv tests'"
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd 'inv tests'"
       - name: "Delete VM"
         if: always()
         run: ./bin/inv_wrapper.sh vm.delete --name ${{ env.VM_NAME }}
