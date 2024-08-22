@@ -91,6 +91,11 @@ static unsigned int faasm_await_call_output_wrapper(wasm_exec_env_t execEnv,
     SPDLOG_DEBUG_SGX("S - faasm_await_call_output %i", callId);
     GET_EXECUTING_MODULE_AND_CHECK(execEnv);
 
+    // Get the offset for the buffer pointers so that they are not invalidated
+    // after memory growth
+    int32_t bufferOffset = module->nativePointerToWasmOffset(buffer);
+    int32_t bufferSizeOffset = module->nativePointerToWasmOffset(bufferSize);
+
     // Use a temporary, fixed-size, buffer for the OCall. If the output data
     // is larger than the buffer, we will report an error. This is to work-
     // around the fact that we can not pass double-pointers across the SGX
@@ -117,8 +122,11 @@ static unsigned int faasm_await_call_output_wrapper(wasm_exec_env_t execEnv,
     std::memcpy(nativePtr, tmpBuf.data(), returnValue);
 
     // Populate the provided pointers
-    *buffer = wasmOffset;
-    *bufferSize = returnValue;
+    int32_t* bufferPtr = (int32_t*) module->wasmOffsetToNativePointer(bufferOffset);
+    *bufferPtr = wasmOffset;
+
+    int32_t* bufferSizePtr = (int32_t*) module->wasmOffsetToNativePointer(bufferSizeOffset);
+    *bufferSizePtr = returnValue;
 
     return 0;
 }

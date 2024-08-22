@@ -265,11 +265,9 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
     // the new values
     int32_t* keyBufferPtr = (int32_t*) module->wasmOffsetToNativePointer(keyBufferOffset);
     *keyBufferPtr = wasmOffset;
-    // *keyBuffer = wasmOffset;
 
     int32_t* keyBufferLenPtr = (int32_t*) module->wasmOffsetToNativePointer(keyBufferLenOffset);
     *keyBufferLenPtr = keySize;
-    // *keyBufferLen = keySize;
 
     return 0;
 }
