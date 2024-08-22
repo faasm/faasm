@@ -282,6 +282,7 @@ extern "C"
         // This call to s3 may throw an exception
         auto data = s3cli.getKeyBytes(bucketName, keyName);
 
+        SPDLOG_WARN("{} > {}?", data.size(), MAX_OCALL_BUFFER_SIZE);
         if (data.size() > MAX_OCALL_BUFFER_SIZE) {
             faasm_sgx_status_t returnValue;
             auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();

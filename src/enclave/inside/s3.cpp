@@ -173,21 +173,39 @@ static int32_t faasm_s3_add_key_bytes_wrapper(wasm_exec_env_t execEnv,
     return returnValue;
 }
 
+// WARNING: this native function calls wasmModuleMalloc, which in turn calls
+// the underlying wasm_runtime_module_malloc. This function call may call heap
+// functions inside the module instance and may cause a memory growth. As
+// a consequence, native pointers into WASM memory can be invalidated right
+// after calling wasm_runtime_module_malloc. As a consequence, make local
+// copies of the necessary variables, or use WASM offsets and manually
+// translate them right before use. In particular: for the const char* we
+// build local copies as strings, and for the buffer and buffer length, which
+// are really pointers, we convert the address manually right before use.
 static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
                                               const char* bucketName,
                                               const char* keyName,
                                               int32_t* keyBuffer,
                                               int32_t* keyBufferLen)
 {
+    // Make a copy to the native stack to avoid pointer invalidations
+    std::string bucketNameStr(bucketName);
+    std::string keyNameStr(keyName);
+
     SPDLOG_DEBUG_SGX(
-      "faasm_s3_get_key_bytes (bucket: %s, key: %s)", bucketName, keyName);
+      "faasm_s3_get_key_bytes (bucket: %s, key: %s)", bucketNameStr.c_str(), keyNameStr.c_str());
     GET_EXECUTING_MODULE_AND_CHECK(execEnv);
+
+    // Get the offset for the buffer pointers so that they are not invalidated
+    // after memory growth
+    int32_t keyBufferOffset = module->nativePointerToWasmOffset(keyBuffer);
+    int32_t keyBufferLenOffset = module->nativePointerToWasmOffset(keyBufferLen);
 
     // S3 keys may be very large, so we always ask first for the key size, and
     // then heap-allocate the reception buffer
     sgx_status_t sgxReturnValue;
     int32_t keySize;
-    if ((sgxReturnValue = ocallS3GetKeySize(&keySize, bucketName, keyName)) !=
+    if ((sgxReturnValue = ocallS3GetKeySize(&keySize, bucketNameStr.c_str(), keyNameStr.c_str())) !=
         SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
@@ -211,14 +229,11 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
     }
 
     // Now that we have the buffer, we can give get the key bytes into it
-    // FIXME: this ocall is broken as keySize is larger than the size of the
-    // app's stack, so we are overruning it and cannot return the expected
-    // values
     int copiedBytes;
     if ((sgxReturnValue = ocallS3GetKeyBytes(
            &copiedBytes,
-           bucketName,
-           keyName,
+           bucketNameStr.c_str(),
+           keyNameStr.c_str(),
            (uint8_t*)nativePtr,
            mustUseAuxEcall ? 0 : keySize)) !=
         SGX_SUCCESS) {
@@ -234,13 +249,9 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
             return 1;
         }
 
-        memmove(nativePtr, module->dataXferPtr, keySize);
+        memcpy(nativePtr, module->dataXferPtr, keySize);
         module->dataXferPtr = nullptr;
-
-        return 0;
-    }
-
-    if (copiedBytes != keySize) {
+    } else if (copiedBytes != keySize) {
         SPDLOG_ERROR_SGX(
           "Read different bytes than expected: %i != %i (key: %s/%s)",
           copiedBytes,
@@ -250,9 +261,15 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
         return 0;
     }
 
-    // Lastly, populate the given pointers with the new values
-    *keyBuffer = wasmOffset;
-    *keyBufferLen = keySize;
+    // Lastly, convert the return variables to pointers and populate them with
+    // the new values
+    int32_t* keyBufferPtr = (int32_t*) module->wasmOffsetToNativePointer(keyBufferOffset);
+    *keyBufferPtr = wasmOffset;
+    // *keyBuffer = wasmOffset;
+
+    int32_t* keyBufferLenPtr = (int32_t*) module->wasmOffsetToNativePointer(keyBufferLenOffset);
+    *keyBufferLenPtr = keySize;
+    // *keyBufferLen = keySize;
 
     return 0;
 }

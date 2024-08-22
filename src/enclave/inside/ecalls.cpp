@@ -123,7 +123,10 @@ extern "C"
             return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }
 
-        wasm::enclaveWasmModule->dataXferPtr = buffer;
+        // wasm::enclaveWasmModule->dataXferPtr = buffer;
+        wasm::enclaveWasmModule->dataXferPtr = (uint8_t*) malloc(bufferSize);
+        memcpy(wasm::enclaveWasmModule->dataXferPtr, buffer, bufferSize);
+
         return FAASM_SGX_SUCCESS;
     }
 }
