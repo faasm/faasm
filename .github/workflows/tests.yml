@@ -18,6 +18,7 @@ concurrency:
 
 # Top-level env. vars shared by most jobs
 env:
+  COMPOSE_VERSION: 2.24.5
   CONAN_CACHE_MOUNT_SOURCE: .conan
   FAABRIC_VERSION: 0.20.0
   FAASM_INI_FILE: ./faasm.ini
@@ -271,7 +272,7 @@ jobs:
           read-only: 'true'
       - uses: csegarragonz/set-compose-version-action@main
         with:
-          compose-version: "2.22.0"
+          compose-version: ${{ env.COMPOSE_VERSION }}
       - name: "Check out code"
         uses: actions/checkout@v4
         with:
@@ -468,7 +469,7 @@ jobs:
     steps:
       - uses: csegarragonz/set-compose-version-action@main
         with:
-          compose-version: "2.22.0"
+          compose-version: ${{ env.COMPOSE_VERSION }}
       - name: "Image cache (must run as first step!)"
         uses: faasm/image-cache-action@main
         with:
