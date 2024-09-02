@@ -2,7 +2,7 @@
 FROM faasm.azurecr.io/cpython:0.2.5 as python
 
 # Note - we don't often rebuild cpp-root so this dep may be behind
-FROM faasm.azurecr.io/cpp-root:0.22.0
+FROM faasm.azurecr.io/cpp-root:0.28.0
 ARG FAASM_VERSION
 
 # Flag to say we're in a container

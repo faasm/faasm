@@ -20,7 +20,7 @@ spec:
             - control
   containers:
     - name: master
-      image: faasm.azurecr.io/redis:0.27.0
+      image: faasm.azurecr.io/redis:0.28.0
       ports:
         - containerPort: 6379
 
@@ -46,7 +46,7 @@ spec:
             - control
   containers:
     - name: master
-      image: faasm.azurecr.io/redis:0.27.0
+      image: faasm.azurecr.io/redis:0.28.0
       ports:
         - containerPort: 6379
 
