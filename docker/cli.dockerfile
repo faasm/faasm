@@ -1,6 +1,6 @@
 ARG FAASM_VERSION
 ARG FAASM_SGX_PARENT_SUFFIX
-FROM faasm.azurecr.io/base${FAASM_SGX_PARENT_SUFFIX:-fail}:${FAASM_VERSION:-fail}
+FROM faasm.azurecr.io/base${FAASM_SGX_PARENT_SUFFIX}:${FAASM_VERSION:-fail}
 
 SHELL ["/bin/bash", "-c"]
 
