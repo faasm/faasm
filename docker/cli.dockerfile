@@ -1,6 +1,6 @@
 ARG FAASM_VERSION
 ARG FAASM_SGX_PARENT_SUFFIX
-FROM faasm.azurecr.io/base${FAASM_SGX_PARENT_SUFFIX}:$FAASM_VERSION
+FROM faasm.azurecr.io/base${FAASM_SGX_PARENT_SUFFIX}:${FAASM_VERSION:-fail}
 
 SHELL ["/bin/bash", "-c"]
 
@@ -37,7 +37,7 @@ RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
  # Terminal colours
-ENV TERM xterm-256color
+ENV TERM=xterm-256color
 
 # GDB config, allow loading repo-specific config
 RUN touch /root/.gdbinit

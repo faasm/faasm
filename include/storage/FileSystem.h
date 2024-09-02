@@ -4,6 +4,7 @@
 
 #include <faabric/proto/faabric.pb.h>
 
+#include <cstdint>
 #include <unordered_map>
 
 namespace storage {
