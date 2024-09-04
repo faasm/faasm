@@ -18,12 +18,12 @@ concurrency:
 
 # Top-level env. vars shared by most jobs
 env:
-  COMPOSE_VERSION: 2.22.0
+  COMPOSE_VERSION: 2.29.2
   CONAN_CACHE_MOUNT_SOURCE: .conan
   FAABRIC_VERSION: 0.20.0
   FAASM_INI_FILE: ./faasm.ini
   FAASM_VERSION: 0.27.0
-  FAASMCTL_VERSION: 0.46.0
+  FAASMCTL_VERSION: 0.46.1
 
 jobs:
   checks:
@@ -357,11 +357,7 @@ jobs:
         if: ${{ (needs.wasm-funcs-cache.outputs.needs-cpp-wasm == 'true') || (needs.wasm-funcs-cache.outputs.needs-py-wasm == 'true') || (steps.machine-code-cache.outputs.cache-hit != 'true') }}
         run: |
           faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake dev.cc codegen_func dev.cc codegen_shared_obj"
-          # faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh codegen.tests"
-          faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh codegen.wamr"
-          faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh codegen.sgx"
-          faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh codegen.wavm"
-          faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh codegen.libs"
+          faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh codegen.tests"
       - name: "Clear existing pyc files"
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh python.clear-runtime-pyc"
 
