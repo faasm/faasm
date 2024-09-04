@@ -3,13 +3,15 @@
 #include <faabric/util/asio.h>
 #include <faabric/util/logging.h>
 
+#include <boost/beast/ssl.hpp>
 #include <cppcodec/base64_url.hpp>
 #include <jwt-cpp/traits/kazuho-picojson/defaults.h>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-#define ATT_URI_SUFFIX ":443/attest/SgxEnclave?api-version=2020-10-01"
+#define ATTESTATION_URI "/attest/SgxEnclave?api-version=2020-10-01"
+#define CERTIFICATES_URI "/certs"
 
 using namespace rapidjson;
 using header = beast::http::field;
@@ -21,11 +23,12 @@ namespace sgx {
 std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
   const EnclaveInfo& enclaveInfo)
 {
-    Document d;
-    d.SetObject();
-    Value outer, inner;
+    Document doc;
+    doc.SetObject();
+    Value outer;
+    Value inner;
 
-    Document::AllocatorType& allocator = d.GetAllocator();
+    Document::AllocatorType& allocator = doc.GetAllocator();
 
     // Specification for the JSON Format to attest SGX enclaves
     // https://docs.microsoft.com/en-us/rest/api/attestation/attestation/attest-sgx-enclave
@@ -33,7 +36,7 @@ std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
 
     // draftPolicyForAttestation: attest against a provided draft policy rather
     // than one uploaded to the attestation service (unset)
-    std::string draftPolicyForAttestation = "";
+    std::string draftPolicyForAttestation;
     outer.AddMember("draftPolicyForAttestation",
                     Value(draftPolicyForAttestation.c_str(),
                           draftPolicyForAttestation.size()),
@@ -41,7 +44,7 @@ std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
 
     // initTimeData: initialisation data provided when enclave is created
     // (unset)
-    std::string initTimeData = "";
+    std::string initTimeData;
     inner.SetObject();
     inner.AddMember(
       "data", Value(initTimeData.c_str(), initTimeData.size()), allocator);
@@ -52,7 +55,7 @@ std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
     // quote: quote of the enclave to be attested
     std::vector<uint8_t> quote = enclaveInfo.getQuote();
     std::string quoteBase64 =
-      cppcodec::base64_url::encode(&quote[0], quote.size());
+      cppcodec::base64_url::encode(quote.data(), quote.size());
     outer.AddMember(
       "quote", Value(quoteBase64.c_str(), quoteBase64.size()), allocator);
 
@@ -63,7 +66,7 @@ std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
     // the request, as there is still not a clear use for it.
     std::vector<uint8_t> heldData = {};
     std::string enclaveHeldDataBase64 =
-      cppcodec::base64_url::encode(&heldData[0], heldData.size());
+      cppcodec::base64_url::encode(heldData.data(), heldData.size());
     std::string dataType = "Binary";
     inner.SetObject();
     inner.AddMember(
@@ -74,11 +77,11 @@ std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
       "dataType", Value(dataType.c_str(), dataType.size()), allocator);
     outer.AddMember("runtimeData", inner, allocator);
 
-    d.CopyFrom(outer, allocator);
+    doc.CopyFrom(outer, allocator);
 
     StringBuffer buffer;
     Writer<rapidjson::StringBuffer> writer(buffer);
-    d.Accept(writer);
+    doc.Accept(writer);
     return std::string(buffer.GetString());
 }
 
@@ -91,14 +94,30 @@ AzureAttestationServiceClient::AzureAttestationServiceClient(
 {}
 
 static BeastHttpResponse doRequest(const std::string& url,
-                                   const BeastHttpRequest& request)
+                                   BeastHttpRequest& request)
 {
-    // Send HTTP request and wait for task to complete
+    // We need to send the request over HTTPS
+
+    // Resolve URL
     boost::asio::io_context ioc;
     boost::asio::ip::tcp::resolver resolver(ioc);
-    beast::tcp_stream stream(ioc);
-    auto results = resolver.resolve(url);
-    stream.connect(results);
+    auto results = resolver.resolve(url, "443");
+
+    // Configure TLS context
+    boost::asio::ssl::context ctx(boost::asio::ssl::context::tlsv13_client);
+    ctx.set_verify_mode(boost::asio::ssl::verify_peer);
+    ctx.set_default_verify_paths();
+
+    boost::beast::ssl_stream<boost::beast::tcp_stream> stream(ioc, ctx);
+    boost::beast::get_lowest_layer(stream).connect(results);
+    stream.handshake(boost::asio::ssl::stream_base::client);
+
+    // Add necessary headers
+    request.set(boost::beast::http::field::host, url);
+    request.set(boost::beast::http::field::user_agent,
+                BOOST_BEAST_VERSION_STRING);
+    request.set(boost::beast::http::field::accept, "*/*");
+
     beast::http::write(stream, request);
 
     // Process response
@@ -108,12 +127,14 @@ static BeastHttpResponse doRequest(const std::string& url,
 
     // Close connection
     beast::error_code errorCode;
-    stream.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both,
-                             errorCode);
+    stream.shutdown(errorCode);
+    if (errorCode == boost::asio::error::eof ||
+        errorCode == boost::asio::ssl::error::stream_truncated) {
+        errorCode = {};
+    }
 
-    if (errorCode && errorCode != beast::errc::not_connected) {
-        SPDLOG_ERROR("Caught exception while querying Azure Attestation Service"
-                     "to validate SGX quote");
+    if (errorCode) {
+        SPDLOG_ERROR("Error shutting down HTTP stream: {}", errorCode.value());
         throw beast::system_error(errorCode);
     }
 
@@ -124,18 +145,23 @@ std::string AzureAttestationServiceClient::attestEnclave(
   const EnclaveInfo& enclaveInfo)
 {
     // Prepare HTTP request
-    std::string uri = attestationServiceUrl + ATT_URI_SUFFIX;
-    BeastHttpRequest request(beast::http::verb::post, uri, 11);
+    BeastHttpRequest request(beast::http::verb::post, ATTESTATION_URI, 11);
     request.set(header::content_type, "application/json");
     std::string requestBodyJson = requestBodyFromEnclaveInfo(enclaveInfo);
     request.content_length(requestBodyJson.size());
     request.body() = requestBodyJson;
 
-    auto response = doRequest(attestationServiceUrl, request);
+    std::string host = attestationServiceUrl;
+    if (host.starts_with("https://")) {
+        host = host.substr(std::string("https://").length());
+    }
+
+    auto response = doRequest(host, request);
 
     // Process output
     if (response.result() != beast::http::status::ok) {
-        SPDLOG_ERROR("Error querying Azure to validate SGX quote: {}",
+        SPDLOG_ERROR("Error querying Azure to validate SGX quote ({}): {}",
+                     response.result_int(),
                      response.body());
         throw std::runtime_error("Error validaing enclave quote");
     }
@@ -146,17 +172,17 @@ std::string AzureAttestationServiceClient::attestEnclave(
 
 static std::string getTokenFromJwtResponse(const std::string& jwtResponse)
 {
-    rapidjson::Document d;
-    d.Parse(jwtResponse.c_str());
-    return d["token"].GetString();
+    rapidjson::Document doc;
+    doc.Parse(jwtResponse.c_str());
+    return doc["token"].GetString();
 }
 
 void AzureAttestationServiceClient::validateJkuUri(const DecodedJwt& decodedJwt)
 {
     std::string header = decodedJwt.get_header();
-    Document d;
-    d.Parse(header.c_str());
-    std::string jwtJkuUri = d["jku"].GetString();
+    Document doc;
+    doc.Parse(header.c_str());
+    std::string jwtJkuUri = doc["jku"].GetString();
 
     if (jwtJkuUri != certificateEndpoint) {
         SPDLOG_ERROR("Error parsing JKU field in JWT for enclave attestation "
@@ -172,15 +198,21 @@ void AzureAttestationServiceClient::validateJkuUri(const DecodedJwt& decodedJwt)
 JwksSet AzureAttestationServiceClient::fetchJwks()
 {
     // Retrieve trusted signing keys from the attestation service
-    BeastHttpRequest request(beast::http::verb::get, "/certs", 11);
+    BeastHttpRequest request(beast::http::verb::get, CERTIFICATES_URI, 11);
     request.set("tenantName", tenantName);
-    auto response = doRequest(attestationServiceUrl, request);
+
+    std::string host = attestationServiceUrl;
+    if (host.starts_with("https://")) {
+        host = host.substr(std::string("https://").length());
+    }
+
+    auto response = doRequest(host, request);
 
     // Process output
     if (response.result() != beast::http::status::ok) {
         SPDLOG_ERROR("Error querying Azure Attestation Service for the"
                      "trusted signing keys ({}): {}",
-                     tenantName,
+                     response.result_int(),
                      response.body());
         throw std::runtime_error(
           "Exception querying Azure Attestation Service");
@@ -195,7 +227,7 @@ void AzureAttestationServiceClient::validateJwtSignature(
     // Get the Json Web Key (JWK) for the id that signed the token. We first
     // check against our cached key set, and refresh it only upon failure. Use
     // the JWK to get the signing certificate.
-    std::string x5c = "";
+    std::string x5c;
     try {
         auto jwk = cachedJwks.get_jwk(decodedJwt.get_key_id());
         x5c = jwk.get_x5c_key_value();
@@ -241,10 +273,10 @@ void AzureAttestationServiceClient::validateJwtSignature(
 }
 
 void AzureAttestationServiceClient::validateJwtToken(
-  const std::string& jwtResponse)
+  const std::string& jwtToken)
 {
-    std::string jwtToken = getTokenFromJwtResponse(jwtResponse);
-    auto decodedJwt = jwt::decode(jwtToken);
+    std::string jwt = getTokenFromJwtResponse(jwtToken);
+    auto decodedJwt = jwt::decode(jwt);
 
     validateJkuUri(decodedJwt);
     validateJwtSignature(decodedJwt);
