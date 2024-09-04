@@ -22,10 +22,10 @@ class UploadEndpointHandler final
 
   private:
     static void handleGet(faabric::util::BeastHttpRequest&& request,
-                   faabric::util::BeastHttpResponse& response);
+                          faabric::util::BeastHttpResponse& response);
 
     static void handlePut(faabric::util::BeastHttpRequest&& request,
-                   faabric::util::BeastHttpResponse& response);
+                          faabric::util::BeastHttpResponse& response);
 };
 
 class InvalidPathException : public faabric::util::FaabricException

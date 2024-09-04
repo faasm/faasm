@@ -7,7 +7,8 @@
 
 namespace storage {
 
-enum class S3Error {
+enum class S3Error
+{
     BucketAlreadyOwnedByYou,
     BucketNotEmpty,
     NoSuchBucket,
@@ -17,13 +18,14 @@ enum class S3Error {
 };
 
 std::unordered_map<std::string, S3Error> errorToStringMap = {
-    {"BucketAlreadyOwnedByYou", S3Error::BucketAlreadyOwnedByYou},
-    {"BucketNotEmpty", S3Error::BucketNotEmpty},
-    {"NoSuchBucket", S3Error::NoSuchBucket},
-    {"NoSuchKey", S3Error::NoSuchKey},
+    { "BucketAlreadyOwnedByYou", S3Error::BucketAlreadyOwnedByYou },
+    { "BucketNotEmpty", S3Error::BucketNotEmpty },
+    { "NoSuchBucket", S3Error::NoSuchBucket },
+    { "NoSuchKey", S3Error::NoSuchKey },
 };
 
-S3Error parseError(const std::string& errorStr) {
+S3Error parseError(const std::string& errorStr)
+{
     if (errorToStringMap.find(errorStr) == errorToStringMap.end()) {
         SPDLOG_WARN("Unregognised error: {}", errorStr);
         return S3Error::UnrecognisedError;
@@ -34,14 +36,22 @@ S3Error parseError(const std::string& errorStr) {
 
 #define CHECK_ERRORS(response, bucketName, keyName)                            \
     {                                                                          \
-        if (!response) {                                           \
+        if (!response) {                                                       \
             if (std::string(bucketName).empty()) {                             \
-                SPDLOG_ERROR("General S3 error: {} ({})", response.code, response.message);                  \
+                SPDLOG_ERROR("General S3 error: {} ({})",                      \
+                             response.code,                                    \
+                             response.message);                                \
             } else if (std::string(keyName).empty()) {                         \
-                SPDLOG_ERROR("S3 error with bucket {}: {} ({})", bucketName, response.code, response.message);          \
+                SPDLOG_ERROR("S3 error with bucket {}: {} ({})",               \
+                             bucketName,                                       \
+                             response.code,                                    \
+                             response.message);                                \
             } else {                                                           \
-                SPDLOG_ERROR(                                                  \
-                  "S3 error with bucket/key {}/{}: {} ({})", bucketName, keyName, response.code, response.message);     \
+                SPDLOG_ERROR("S3 error with bucket/key {}/{}: {} ({})",        \
+                             bucketName,                                       \
+                             keyName,                                          \
+                             response.code,                                    \
+                             response.message);                                \
             }                                                                  \
             throw std::runtime_error("S3 error");                              \
         }                                                                      \
@@ -77,8 +87,11 @@ void shutdownFaasmS3()
 
 S3Wrapper::S3Wrapper()
   : faasmConf(conf::getFaasmConfig())
-  , baseUrl(minio::s3::BaseUrl(fmt::format("{}:{}", faasmConf.s3Host, faasmConf.s3Port), false, {}))
-    // TODO: consider a better for of authentication
+  , baseUrl(minio::s3::BaseUrl(
+      fmt::format("{}:{}", faasmConf.s3Host, faasmConf.s3Port),
+      false,
+      {}))
+  // TODO: consider a better for of authentication
   , provider(minio::creds::StaticProvider("minio", "minio123"))
   , client(baseUrl, &provider)
 {}
@@ -199,11 +212,14 @@ void S3Wrapper::deleteKey(const std::string& bucketName,
     }
 }
 
-class ByteStreamBuf : public std::streambuf {
+class ByteStreamBuf : public std::streambuf
+{
   public:
-    ByteStreamBuf(const std::vector<uint8_t>& data) {
+    ByteStreamBuf(const std::vector<uint8_t>& data)
+    {
         // Set the beginning and end of the buffer
-        char* begin = reinterpret_cast<char*>(const_cast<uint8_t*>(data.data()));
+        char* begin =
+          reinterpret_cast<char*>(const_cast<uint8_t*>(data.data()));
         this->setg(begin, begin, begin + data.size());
     }
 };
@@ -255,7 +271,6 @@ std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string& bucketName,
     args.object = keyName;
 
     args.datafunc = [&data](minio::http::DataFunctionArgs args) -> bool {
-        SPDLOG_WARN("adding {} bytes", args.datachunk.size());
         data.insert(data.end(), args.datachunk.begin(), args.datachunk.end());
         return true;
     };

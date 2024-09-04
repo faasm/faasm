@@ -27,7 +27,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
     }
 
     // WAMR logging, set this to 4+ if debugging issues
-    bh_log_set_verbose_level(4);
+    bh_log_set_verbose_level(2);
 
     // Load the module
     const size_t errorBufferSize = 128;

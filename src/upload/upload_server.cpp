@@ -1,6 +1,6 @@
 #include <storage/S3Wrapper.h>
-#include <upload/UploadServer.h>
 #include <upload/UploadEndpointHandler.h>
+#include <upload/UploadServer.h>
 
 #include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/state/StateServer.h>
@@ -17,8 +17,7 @@ int main()
     conf::getFaasmConfig().print();
 
     SPDLOG_INFO("Starting upload's state server");
-    faabric::state::StateServer stateServer(
-      faabric::state::getGlobalState());
+    faabric::state::StateServer stateServer(faabric::state::getGlobalState());
     stateServer.start();
 
     // Start the upload server in the main thread

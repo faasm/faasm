@@ -25,11 +25,10 @@ class PathParts
         auto uri = std::string(request.target());
         relativeUri = uri.substr(0, uri.find("?"));
         boost::trim_if(relativeUri, boost::is_any_of("/"));
-        boost::split(pathParts, relativeUri, boost::is_any_of("/"), boost::token_compress_on);
-        SPDLOG_WARN("size: {}", pathParts.size());
-        for (const auto& part : pathParts) {
-            SPDLOG_WARN("part: {}", part);
-        }
+        boost::split(pathParts,
+                     relativeUri,
+                     boost::is_any_of("/"),
+                     boost::token_compress_on);
     }
 
     std::string relativeUri;
@@ -56,6 +55,8 @@ class PathParts
         try {                                                                  \
             varName = pathParts.getPart(idx);                                  \
         } catch (InvalidPathException & e) {                                   \
+            response.body() = e.what();                                        \
+            response.result(beast::http::status::bad_request);                 \
             return;                                                            \
         }                                                                      \
     }
@@ -64,7 +65,7 @@ void UploadEndpointHandler::onRequest(
   faabric::endpoint::HttpRequestContext&& ctx,
   faabric::util::BeastHttpRequest&& request)
 {
-    SPDLOG_WARN("Upload server received request");
+    SPDLOG_TRACE("Upload server received request");
 
     // Very permissive CORS
     faabric::util::BeastHttpResponse response;
@@ -93,9 +94,8 @@ void UploadEndpointHandler::onRequest(
     };
 }
 
-void UploadEndpointHandler::handleGet(
-  BeastHttpRequest&& request,
-  BeastHttpResponse& response)
+void UploadEndpointHandler::handleGet(BeastHttpRequest&& request,
+                                      BeastHttpResponse& response)
 {
     std::string uri = std::string(request.target());
     std::string relativeUri = uri.substr(0, uri.find("?"));
@@ -139,7 +139,7 @@ void UploadEndpointHandler::handleGet(
             returnBytes = fileLoader.loadSharedFile(filePath);
         } else {
             std::string errorMsg = fmt::format(
-                "Bad request, expected file path header {}", FILE_PATH_HEADER);
+              "Bad request, expected file path header {}", FILE_PATH_HEADER);
 
             response.body() = errorMsg;
             response.result(beast::http::status::bad_request);
@@ -179,13 +179,13 @@ void UploadEndpointHandler::handlePut(
         SPDLOG_INFO("Uploading state to ({}/{})", user, key);
 
         if (!request.body().empty()) {
-              const std::vector<uint8_t> bytesData =
-                faabric::util::stringToBytes(request.body());
+            const std::vector<uint8_t> bytesData =
+              faabric::util::stringToBytes(request.body());
 
-              auto& state = faabric::state::getGlobalState();
-              const auto& kvStore = state.getKV(user, key, bytesData.size());
-              kvStore->set(bytesData.data());
-              kvStore->pushFull();
+            auto& state = faabric::state::getGlobalState();
+            const auto& kvStore = state.getKV(user, key, bytesData.size());
+            kvStore->set(bytesData.data());
+            kvStore->pushFull();
         }
 
         response.result(beast::http::status::ok);
@@ -229,7 +229,7 @@ void UploadEndpointHandler::handlePut(
             }
         } else {
             std::string errorMsg = fmt::format(
-                "Bad request, expected file path header {}", FILE_PATH_HEADER);
+              "Bad request, expected file path header {}", FILE_PATH_HEADER);
 
             response.body() = errorMsg;
             response.result(beast::http::status::bad_request);
@@ -248,8 +248,8 @@ void UploadEndpointHandler::handlePut(
         fileLoader.uploadFunction(msg);
 
         auto& gen = codegen::getMachineCodeGenerator(fileLoader);
-        // When uploading a function, we always want to re-run the code generation
-        // so we set the clean flag to true
+        // When uploading a function, we always want to re-run the code
+        // generation so we set the clean flag to true
         gen.codegenForFunction(msg, true);
 
         response.body() = std::string("Function upload complete\n");
