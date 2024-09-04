@@ -211,7 +211,8 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Get key bytes", "[s3]")
     std::string cmdline = fmt::format("{} {}", testBucketName, keyName);
 
     auto result = doS3ExecTest("get_key_bytes", bytesToAdd, cmdline);
-    REQUIRE(result.outputdata() == bytesToAdd);
+    bool outputEqual = result.outputdata() == bytesToAdd;
+    REQUIRE(outputEqual);
     REQUIRE(result.returnvalue() == 0);
 }
 }
