@@ -88,43 +88,43 @@ jobs:
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
             --cmd "${{ env.FAASMCTL_BIN }} deploy.compose --workers=0 --mount-source ." \
-            --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
+            --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini" \
             --env "FAASM_WASM_VM=sgx"
       - name: "Cross-compile CPP functions"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "${{ env.FAASMCTL_BIN }} cli.cpp --cmd \"./bin/inv_wrapper.sh func.local --clean libfake\""
+            --cmd "${{ env.FAASMCTL_BIN }} cli.cpp --cmd \"./bin/inv_wrapper.sh func.local --clean libfake\"" \
             --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
       - name: "Build Faasm targets"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh dev.tools --build Release --sgx Hardware\""
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh dev.tools --build Release --sgx Hardware\"" \
             --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
       - name: "Run codegen"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh codegen.tests\""
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh codegen.tests\"" \
             --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
       - name: "Run hello function"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh run demo hello\""
-            --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh run demo hello\"" \
+            --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini" \
             --env "FAASM_WASM_VM=sgx"
       - name: "Run tests"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh tests\""
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh tests\"" \
             --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
       - name: "Delete VM"
         if: always()
