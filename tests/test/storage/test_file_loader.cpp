@@ -1,24 +1,18 @@
 #include <catch2/catch.hpp>
 
-#include "faabric_utils.h"
 #include "faasm_fixtures.h"
-#include "utils.h"
 
+#include <codegen/MachineCodeGenerator.h>
+#include <conf/FaasmConfig.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/config.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <faabric/util/macros.h>
-
-#include <codegen/MachineCodeGenerator.h>
-#include <conf/FaasmConfig.h>
 #include <storage/FileLoader.h>
-#include <upload/UploadServer.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
-
-#include <stdlib.h>
 
 using namespace storage;
 

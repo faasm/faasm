@@ -53,6 +53,8 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
     std::unique_ptr<aot_comp_data, decltype(&aot_destroy_comp_data)>
       compileData(aot_create_comp_data(wasmModule.get()),
                   &aot_destroy_comp_data);
+    // TODO(wamr-bump): replace by
+    // compileData(aot_create_comp_data(wasmModule.get(), "x86_64", false),
     if (compileData == nullptr) {
         SPDLOG_ERROR("WAMR failed to create compilation data: {}",
                      aot_get_last_error());

@@ -17,15 +17,11 @@ target_include_directories(attestation PUBLIC
     ${SGX_DCAP_QUOTE_GENERATION_INCLUDE}/ql/inc
 )
 
-# We need to link with cpprest to interact with the remote attestation service
-# over HTTP. We use that the library is installed through faabric.
-find_package(cpprestsdk REQUIRED)
 find_package(cppcodec REQUIRED)
 
 target_link_libraries(attestation
     faasm::common_deps
     cppcodec::cppcodec
-    cpprestsdk::cpprestsdk
     jwt-cpp::jwt-cpp
     picojson::picojson
     RapidJSON::RapidJSON

@@ -30,7 +30,6 @@ endif()
 conan_cmake_configure(
     REQUIRES
         "catch2/2.13.9@#8793d3e6287d3684201418de556d98fe"
-        "cpprestsdk/2.10.19@#889c41bf66e2838146eec76e3f22af8d"
         # These three dependencies are only needed to perform remote attestation
         # of SGX enclaves using Microsoft Azure's Attestation Service
         "cppcodec/0.2@#f6385611ce2f7cff954ac8b16e25c4fa"
@@ -62,57 +61,22 @@ include(${CMAKE_CURRENT_BINARY_DIR}/conan_paths.cmake)
 
 find_package(Catch2 REQUIRED)
 find_package(cppcodec REQUIRED)
-find_package(cpprestsdk REQUIRED)
 find_package(jwt-cpp REQUIRED)
 find_package(picojson REQUIRED)
 find_package(RapidJSON REQUIRED)
 
-# 22/12/2021 - WARNING: we don't install AWS through Conan as the recipe proved
-# very unstable and failed frequently.
-
-# There are some AWS docs on using the cpp sdk as an external project:
-# https://github.com/aws/aws-sdk-cpp/blob/main/Docs/CMake_External_Project.md
-# but they don't specify how to link the libraries, which required adding an
-# extra couple of CMake targets.
-set(AWS_CORE_LIBRARY ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-core.so)
-set(AWS_S3_LIBRARY ${CMAKE_INSTALL_PREFIX}/lib/libaws-cpp-sdk-s3.so)
-ExternalProject_Add(aws_ext
-    GIT_REPOSITORY   "https://github.com/aws/aws-sdk-cpp.git"
-    GIT_TAG          "a47c163630a4d4e62cd3c42e9c391c954be80664"
-    BUILD_ALWAYS     0
-    TEST_COMMAND     ""
-    UPDATE_COMMAND   ""
-    BUILD_BYPRODUCTS ${AWS_S3_LIBRARY} ${AWS_CORE_LIBRARY}
-    CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
-    LIST_SEPARATOR    "|"
-    CMAKE_ARGS       -DBUILD_SHARED_LIBS=ON
-                     -DBUILD_ONLY=s3|sts
-                     -DAUTORUN_UNIT_TESTS=OFF
-                     -DENABLE_TESTING=OFF
-                     -DCMAKE_BUILD_TYPE=Release
-    LOG_CONFIGURE ON
-    LOG_INSTALL ON
-    LOG_BUILD ON
-    LOG_OUTPUT_ON_FAILURE ON
-)
-
-add_library(aws_ext_core SHARED IMPORTED)
-add_library(aws_ext_s3 SHARED IMPORTED)
-set_target_properties(aws_ext_core
-    PROPERTIES IMPORTED_LOCATION
-    ${AWS_CORE_LIBRARY})
-set_target_properties(aws_ext_s3
-    PROPERTIES IMPORTED_LOCATION
-    ${AWS_S3_LIBRARY})
-add_dependencies(aws_ext_core aws_ext)
-add_dependencies(aws_ext_s3 aws_ext)
-# Merge the two libraries in one aliased interface
-add_library(aws_ext_s3_lib INTERFACE)
-target_link_libraries(aws_ext_s3_lib INTERFACE aws_ext_s3 aws_ext_core)
-add_library(AWS::s3 ALIAS aws_ext_s3_lib)
-
 # Tightly-coupled dependencies
 set(FETCHCONTENT_QUIET OFF)
+
+# minio-cpp has no Conan recipe and can only be installed using VCPKG. We
+# fork it and tweak the CMake file for a smoother integration.
+# Main library target: miniocpp::miniocpp
+FetchContent_Declare(miniocpp_ext
+    GIT_REPOSITORY "https://github.com/faasm/minio-cpp"
+    GIT_TAG "76e5ffd49a7d4637cb4c2194717217b74bc0a33e"
+)
+FetchContent_MakeAvailable(miniocpp_ext)
+
 FetchContent_Declare(wavm_ext
     GIT_REPOSITORY "https://github.com/faasm/WAVM.git"
     GIT_TAG "6f4a663826f41d87d43203c9747253f8ecb3a1c0"

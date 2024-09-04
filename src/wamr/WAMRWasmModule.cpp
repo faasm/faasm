@@ -346,6 +346,8 @@ AOTFuncType* getFuncTypeFromFuncPtr(WASMModuleCommon* wasmModule,
 
     AOTModule* aotModule = reinterpret_cast<AOTModule*>(wasmModule);
 
+    // TODO(wamr-bump): replace by
+    // return aotModule->types[funcTypeIdx];
     return aotModule->func_types[funcTypeIdx];
 }
 
@@ -552,6 +554,8 @@ int WAMRWasmModule::executeWasmFunction(int threadPoolIdx,
 
     WASMFunctionInstanceCommon* func =
       wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
+    // TODO(wamr-bump): replace by
+    // wasm_runtime_lookup_function(moduleInstance, funcName.c_str());
     if (func == nullptr) {
         SPDLOG_ERROR("Did not find function {} for module {}/{}",
                      funcName,
