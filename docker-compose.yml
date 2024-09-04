@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   redis-state:
     image: faasm.azurecr.io/redis:${FAASM_VERSION}
