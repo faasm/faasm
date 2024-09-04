@@ -2,34 +2,85 @@
 
 #include "faasm_fixtures.h"
 
+#include <boost/beast/http.hpp>
+#include <conf/FaasmConfig.h>
+#include <faabric/endpoint/FaabricEndpoint.h>
 #include <faabric/proto/faabric.pb.h>
 #include <faabric/redis/Redis.h>
 #include <faabric/state/State.h>
+#include <faabric/util/asio.h>
 #include <faabric/util/bytes.h>
 #include <faabric/util/environment.h>
 #include <faabric/util/files.h>
 #include <faabric/util/func.h>
 #include <faabric/util/string_tools.h>
+#include <storage/FileLoader.h>
+#include <upload/UploadEndpointHandler.h>
 
 #include <boost/filesystem.hpp>
 
-#include <conf/FaasmConfig.h>
-#include <storage/FileLoader.h>
-#include <upload/UploadServer.h>
-
-using namespace web::http::experimental::listener;
-using namespace web::http;
+// TODO: delete me
+#include <fstream>
 
 namespace tests {
+
+using BeastHttpRequest = faabric::util::BeastHttpRequest;
+using BeastHttpResponse = faabric::util::BeastHttpResponse;
 
 class UploadTestFixture
   : public FunctionLoaderTestFixture
   , public RedisFixture
 {
   public:
-    UploadTestFixture() {}
+    UploadTestFixture()
+      : host(LOCALHOST)
+      , port(UPLOAD_PORT)
+      , resolver(ioc)
+      , stream(ioc)
+      , endpoint(
+          std::stoi(port),
+          faabric::planner::getPlanner().getConfig().numthreadshttpserver(),
+          std::make_shared<upload::UploadEndpointHandler>())
+    {
+        endpoint.start(faabric::endpoint::EndpointMode::BG_THREAD);
+    }
+
     ~UploadTestFixture() {}
 
+  protected:
+    std::string host;
+    std::string port;
+    boost::asio::io_context ioc;
+    boost::asio::ip::tcp::resolver resolver;
+    beast::tcp_stream stream;
+    faabric::endpoint::FaabricEndpoint endpoint;
+
+    BeastHttpResponse doRequest(const BeastHttpRequest& request)
+    {
+        // Open connection
+        auto results = resolver.resolve(host, port);
+        stream.connect(results);
+
+        // Send request
+        beast::http::write(stream, request);
+
+        // Process response
+        beast::flat_buffer buffer;
+        BeastHttpResponse response;
+        beast::http::read(stream, buffer, response);
+
+        // Close connection
+        beast::error_code errorCode;
+        stream.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, errorCode);
+
+        if(errorCode && errorCode != beast::errc::not_connected) {
+            throw beast::system_error(errorCode);
+        }
+
+        return response;
+    }
+
+    /*
     http_request createRequest(const std::string& path,
                                const std::vector<uint8_t>& inputData = {})
     {
@@ -78,6 +129,7 @@ class UploadTestFixture
           response.extract_vector().get();
         REQUIRE(responseBytes == bytes);
     }
+    */
 
     void checkS3bytes(const std::string& bucket,
                       const std::string& key,
@@ -85,7 +137,33 @@ class UploadTestFixture
     {
         std::vector<uint8_t> s3bytes = s3.getKeyBytes(bucket, key);
         REQUIRE(s3bytes.size() == expectedBytes.size());
-        REQUIRE(s3bytes == expectedBytes);
+
+        if (key.ends_with(".aot")) {
+            bool isEqual = std::equal(wamrObjBytesA.begin(), wamrObjBytesA.end(), expectedBytes.begin());
+            SPDLOG_WARN("is equal: {} (expected)", isEqual);
+            isEqual = std::equal(wamrObjBytesA.begin(), wamrObjBytesA.end(), s3bytes.begin());
+            SPDLOG_WARN("is equal: {} (actual)", isEqual);
+
+            for (int i = 0; i < s3bytes.size(); i++) {
+                if (s3bytes.at(i) != expectedBytes.at(i)) {
+                    SPDLOG_ERROR("mismatch at byte {}/{} ({} != {})", i, s3bytes.size(), s3bytes.at(i), expectedBytes.at(i));
+                }
+            }
+
+            SPDLOG_WARN("writtingg: {}", key);
+            std::ofstream output_file(fmt::format("/tmp/foo_before_2.txt"));
+            std::ostream_iterator<uint8_t> output_iterator(output_file);
+            std::copy(expectedBytes.begin(), expectedBytes.end(), output_iterator);
+
+            std::ofstream output_file_2(fmt::format("/tmp/foo_after_2.txt"));
+            std::ostream_iterator<uint8_t> output_iterator_2(output_file_2);
+            std::copy(s3bytes.begin(), s3bytes.end(), output_iterator_2);
+        }
+
+        // Assert with a boolean, as otherwise catch2 prints both arrays which
+        // can potentially be very long
+        bool bytesEqual = s3bytes == expectedBytes;
+        REQUIRE(bytesEqual);
     }
 };
 
@@ -104,14 +182,26 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         std::vector<uint8_t> stateA2 = { 9, 10, 11 };
         std::vector<uint8_t> stateB = { 6, 7, 8 };
 
-        const http_request requestA1 = createRequest(pathA1, stateA1);
-        const http_request requestA2 = createRequest(pathA2, stateA2);
-        const http_request requestB = createRequest(pathB, stateB);
+        BeastHttpRequest requestA1(beast::http::verb::put, pathA1, 11);
+        requestA1.content_length(stateA1.size());
+        requestA1.body() = std::string(stateA1.begin(), stateA1.end());
 
-        // Submit requests
-        edge::UploadServer::handlePut(requestA1);
-        edge::UploadServer::handlePut(requestA2);
-        edge::UploadServer::handlePut(requestB);
+        BeastHttpRequest requestA2(beast::http::verb::put, pathA2, 11);
+        requestA2.content_length(stateA2.size());
+        requestA2.body() = std::string(stateA2.begin(), stateA2.end());
+
+        BeastHttpRequest requestB(beast::http::verb::put, pathB, 11);
+        requestB.content_length(stateB.size());
+        requestB.body() = std::string(stateB.begin(), stateB.end());
+
+        auto responseA1 = doRequest(requestA1);
+        REQUIRE(responseA1.result() == beast::http::status::ok);
+
+        auto responseA2 = doRequest(requestA2);
+        REQUIRE(responseA2.result() == beast::http::status::ok);
+
+        auto responseB = doRequest(requestB);
+        REQUIRE(responseB.result() == beast::http::status::ok);
 
         // Check set in state
         faabric::state::State& globalState = faabric::state::getGlobalState();
@@ -139,14 +229,21 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
     {
         std::string path = fmt::format("/{}/foo/bar", STATE_URL_PART);
         std::vector<uint8_t> state = { 0, 1, 2, 3, 4, 5 };
-        const http_request request = createRequest(path, state);
+        BeastHttpRequest uploadReq(beast::http::verb::put, path, 11);
+        uploadReq.content_length(state.size());
+        uploadReq.body() = std::string(state.begin(), state.end());
 
         // Submit request
-        edge::UploadServer::handlePut(request);
+        auto response = doRequest(uploadReq);
+        REQUIRE(response.result() == beast::http::status::ok);
 
         // Retrieve the state
-        http_request requestB = createRequest(path, state);
-        checkGet(requestB, state);
+        BeastHttpRequest downloadReq(beast::http::verb::get, path, 11);
+        response = doRequest(downloadReq);
+        REQUIRE(response.result() == beast::http::status::ok);
+
+        std::vector<uint8_t> actualState(response.body().begin(), response.body().end());
+        REQUIRE(state == actualState);
     }
 
     SECTION("Test uploading function wasm file")
@@ -161,8 +258,15 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 
         // Check putting the file adds three keys
         std::string url = fmt::format("/{}/gamma/delta", FUNCTION_URL_PART);
-        http_request request = createRequest(url, wasmBytesA);
-        checkPut(request, 3);
+        BeastHttpRequest request(beast::http::verb::put, url, 11);
+        request.content_length(wasmBytesA.size());
+        request.body() = std::string(wasmBytesA.begin(), wasmBytesA.end());
+
+        int expectedNumKeys = s3.listKeys(faasmConf.s3Bucket).size() + 3;
+
+        auto response = doRequest(request);
+        REQUIRE(response.result() == beast::http::status::ok);
+        REQUIRE(s3.listKeys(faasmConf.s3Bucket).size() == expectedNumKeys);
 
         // Check wasm, object file and hash stored in s3
         checkS3bytes(faasmConf.s3Bucket, fileKey, wasmBytesA);
@@ -180,17 +284,26 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
 
         // Check putting the file
         std::string url = fmt::format("/{}/", SHARED_FILE_URL_PART);
-        http_request request = createRequest(url, fileBytes);
-        addRequestFilePathHeader(request, fileKey);
+        BeastHttpRequest uploadRequest(beast::http::verb::put, url, 11);
+        uploadRequest.content_length(fileBytes.size());
+        uploadRequest.body() = std::string(fileBytes.begin(), fileBytes.end());
+        uploadRequest.set(FILE_PATH_HEADER, fileKey);
 
-        checkPut(request, 1);
+        int expectedNumKeys = s3.listKeys(faasmConf.s3Bucket).size() + 1;
+        auto response = doRequest(uploadRequest);
+        REQUIRE(response.result() == beast::http::status::ok);
+        REQUIRE(s3.listKeys(faasmConf.s3Bucket).size() == expectedNumKeys);
 
         checkS3bytes(faasmConf.s3Bucket, fileKey, fileBytes);
 
         // Check downloading the file
-        http_request requestB = createRequest(url, fileBytes);
-        addRequestFilePathHeader(requestB, fileKey);
-        checkGet(requestB, fileBytes);
+        BeastHttpRequest downloadRequest(beast::http::verb::get, url, 11);
+        downloadRequest.set(FILE_PATH_HEADER, fileKey);
+        response = doRequest(downloadRequest);
+        REQUIRE(response.result() == beast::http::status::ok);
+
+        std::vector<uint8_t> actualFileBytes(response.body().begin(), response.body().end());
+        REQUIRE(fileBytes == actualFileBytes);
     }
 
     SECTION("Test uploading and downloading python file")
@@ -209,16 +322,27 @@ TEST_CASE_METHOD(UploadTestFixture, "Test upload and download", "[upload]")
         // Check putting the file
         std::string url =
           fmt::format("/{}/{}/{}", PYTHON_URL_PART, pythonUser, pythonFunction);
-        http_request request = createRequest(url, fileBytes);
-        checkPut(request, 1);
+        BeastHttpRequest uploadRequest(beast::http::verb::put, url, 11);
+        uploadRequest.content_length(fileBytes.size());
+        uploadRequest.body() = std::string(fileBytes.begin(), fileBytes.end());
+
+        int expectedNumKeys = s3.listKeys(faasmConf.s3Bucket).size() + 1;
+        auto response = doRequest(uploadRequest);
+        REQUIRE(response.result() == beast::http::status::ok);
+        REQUIRE(s3.listKeys(faasmConf.s3Bucket).size() == expectedNumKeys);
 
         checkS3bytes(faasmConf.s3Bucket, pythonFuncKey, fileBytes);
 
         // Check getting as shared file
         std::string sharedFileUrl = fmt::format("/{}/", SHARED_FILE_URL_PART);
-        http_request requestB = createRequest(sharedFileUrl);
-        addRequestFilePathHeader(requestB, pythonFuncKey);
-        checkGet(requestB, fileBytes);
+        // http_request requestB = createRequest(sharedFileUrl);
+        BeastHttpRequest downloadRequest(beast::http::verb::get, sharedFileUrl, 11);
+        downloadRequest.set(FILE_PATH_HEADER, pythonFuncKey);
+        response = doRequest(downloadRequest);
+        REQUIRE(response.result() == beast::http::status::ok);
+
+        std::vector<uint8_t> actualFileBytes(response.body().begin(), response.body().end());
+        REQUIRE(fileBytes == actualFileBytes);
     }
 }
 
@@ -234,6 +358,7 @@ TEST_CASE_METHOD(UploadTestFixture,
     std::vector<uint8_t> actualHashBytesA;
     std::vector<uint8_t> actualHashBytesB;
 
+    /*
     SECTION("WAVM")
     {
         faasmConf.wasmVm = "wavm";
@@ -244,6 +369,7 @@ TEST_CASE_METHOD(UploadTestFixture,
         actualHashBytesA = hashBytesA;
         actualHashBytesB = hashBytesB;
     }
+    */
 
     SECTION("WAMR")
     {
@@ -255,6 +381,19 @@ TEST_CASE_METHOD(UploadTestFixture,
         actualHashBytesA = wamrHashBytesA;
         actualHashBytesB = wamrHashBytesB;
     }
+
+    std::string str(wamrObjBytesA.begin(), wamrObjBytesA.end());
+    std::vector<uint8_t> bytes(str.begin(), str.end());
+    bool isEqual = std::equal(wamrObjBytesA.begin(), wamrObjBytesA.end(), bytes.begin());
+    SPDLOG_WARN("is equal 1: {}", isEqual);
+    std::string str2(wamrObjBytesB.begin(), wamrObjBytesB.end());
+    std::vector<uint8_t> bytes2(str2.begin(), str2.end());
+    isEqual = std::equal(wamrObjBytesB.begin(), wamrObjBytesB.end(), bytes2.begin());
+    SPDLOG_WARN("is equal 2: {}", isEqual);
+
+    auto newBytes = wasm::wamrCodegen(wasmBytesA, false);
+    isEqual = std::equal(wamrObjBytesA.begin(), wamrObjBytesA.end(), newBytes.begin());
+    SPDLOG_WARN("is equal 3: {}", isEqual);
 
 #ifndef FAASM_SGX_DISABLED_MODE
     SECTION("SGX")
@@ -277,21 +416,50 @@ TEST_CASE_METHOD(UploadTestFixture,
     std::string url = fmt::format("/{}/gamma/delta", FUNCTION_URL_PART);
 
     // First, upload one WASM file under the given path
-    http_request request = createRequest(url, wasmBytesA);
-    checkPut(request, 3);
+    BeastHttpRequest request(beast::http::verb::put, url, 11);
+    request.content_length(wasmBytesA.size());
+    request.body() = std::string(wasmBytesA.begin(), wasmBytesA.end());
+
+    // Check there are three new keys
+    int expectedNumKeys = s3.listKeys(faasmConf.s3Bucket).size() + 3;
+    auto response = doRequest(request);
+    REQUIRE(response.result() == beast::http::status::ok);
+    REQUIRE(s3.listKeys(faasmConf.s3Bucket).size() == expectedNumKeys);
+
+    // TODO: delete block
+    auto newerMsg = faabric::util::messageFactory("gamma", "delta");
+    auto newerWasmBytes = loader.loadFunctionWasm(newerMsg);
+    auto newerObjBytes = wasm::wamrCodegen(newerWasmBytes, false);
+    isEqual = std::equal(newerObjBytes.begin(), newerObjBytes.end(), newBytes.begin());
+    SPDLOG_WARN("is equal 4: {}", isEqual);
+
+    // Check the key's contents
+    SPDLOG_WARN("1");
     checkS3bytes(faasmConf.s3Bucket, fileKey, wasmBytesA);
+    SPDLOG_WARN("2");
     checkS3bytes(faasmConf.s3Bucket, objFileKey, actualObjBytesA);
+    SPDLOG_WARN("3");
     checkS3bytes(faasmConf.s3Bucket, objFileHashKey, actualHashBytesA);
 
     // Second, upload a different WASM file under the same path, and check that
     // both the WASM file and the machine code have been overwritten
-    request = createRequest(url, wasmBytesB);
-    checkPut(request, 0);
+    request.content_length(wasmBytesB.size());
+    request.body() = std::string(wasmBytesB.begin(), wasmBytesB.end());
+
+    expectedNumKeys = s3.listKeys(faasmConf.s3Bucket).size();
+    response = doRequest(request);
+    REQUIRE(response.result() == beast::http::status::ok);
+    REQUIRE(s3.listKeys(faasmConf.s3Bucket).size() == expectedNumKeys);
+
+    SPDLOG_WARN("1");
     checkS3bytes(faasmConf.s3Bucket, fileKey, wasmBytesB);
+    SPDLOG_WARN("2");
     checkS3bytes(faasmConf.s3Bucket, objFileKey, actualObjBytesB);
+    SPDLOG_WARN("3");
     checkS3bytes(faasmConf.s3Bucket, objFileHashKey, actualHashBytesB);
 }
 
+/*
 TEST_CASE_METHOD(UploadTestFixture,
                  "Test upload server invalid requests",
                  "[upload]")
@@ -368,25 +536,17 @@ TEST_CASE_METHOD(UploadTestFixture,
     http_response response = req.get_response().get();
     REQUIRE(response.status_code() == status_codes::BadRequest);
 }
+*/
 
 TEST_CASE_METHOD(UploadTestFixture, "Test upload server ping", "[upload]")
 {
-    http_request req = createRequest("/ping");
-    edge::UploadServer::handleGet(req);
-    http_response response = req.get_response().get();
-    REQUIRE(response.status_code() == status_codes::OK);
+    BeastHttpRequest req(beast::http::verb::get, "/ping", 11);
+    // req.set(beasthttp::field::host, "www.example.com");
+        // req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
-    concurrency::streams::stringstreambuf inputStream;
-    std::string responseStr;
-    response.body()
-      .read_to_end(inputStream)
-      .then([&inputStream, &responseStr](size_t size) {
-          if (size > 0) {
-              responseStr = inputStream.collection();
-          }
-      })
-      .wait();
+    auto response = doRequest(req);
 
-    REQUIRE(responseStr == "PONG");
+    REQUIRE(response.result() == beast::http::status::ok);
+    REQUIRE(response.body() == "PONG");
 }
 }

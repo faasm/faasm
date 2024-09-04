@@ -45,7 +45,7 @@ class S3TestFixture : public FaasmConfTestFixture
         s3.createBucket(faasmConf.s3Bucket);
     };
 
-    ~S3TestFixture() { s3.deleteBucket(faasmConf.s3Bucket); };
+    ~S3TestFixture() { }; // s3.deleteBucket(faasmConf.s3Bucket); };
 
   protected:
     storage::S3Wrapper s3;

@@ -10,6 +10,4 @@ target_link_libraries(storage PUBLIC
     faasm::wavmmodule
     faasm::wamrmodule
     miniocpp::miniocpp
-    # AWS::s3
-    cpprestsdk::cpprestsdk
 )

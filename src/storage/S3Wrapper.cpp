@@ -1,8 +1,9 @@
 #include <conf/FaasmConfig.h>
-#include <storage/S3Wrapper.h>
-
 #include <faabric/util/bytes.h>
 #include <faabric/util/logging.h>
+#include <storage/S3Wrapper.h>
+
+#include <boost/algorithm/string/trim.hpp>
 
 namespace storage {
 
@@ -100,7 +101,7 @@ void S3Wrapper::createBucket(const std::string& bucketName)
     }
 }
 
-void S3Wrapper::deleteBucket(const std::string& bucketName)
+void S3Wrapper::deleteBucket(const std::string& bucketName, bool recursive)
 {
     SPDLOG_DEBUG("Deleting bucket {}", bucketName);
     minio::s3::RemoveBucketArgs args;
@@ -115,6 +116,11 @@ void S3Wrapper::deleteBucket(const std::string& bucketName)
         }
 
         if (error == S3Error::BucketNotEmpty) {
+            if (recursive) {
+                SPDLOG_ERROR("Caught an erroneous recursive loop");
+                throw std::runtime_error("Erroneous recurvie loop!");
+            }
+
             SPDLOG_DEBUG("Bucket {} not empty, deleting keys", bucketName);
 
             std::vector<std::string> keys = listKeys(bucketName);
@@ -123,7 +129,7 @@ void S3Wrapper::deleteBucket(const std::string& bucketName)
             }
 
             // Recursively delete
-            deleteBucket(bucketName);
+            deleteBucket(bucketName, true);
             return;
         }
 
@@ -134,6 +140,7 @@ void S3Wrapper::deleteBucket(const std::string& bucketName)
 std::vector<std::string> S3Wrapper::listBuckets()
 {
     SPDLOG_TRACE("Listing buckets");
+
     auto response = client.ListBuckets();
     CHECK_ERRORS(response, "", "");
 
@@ -148,8 +155,10 @@ std::vector<std::string> S3Wrapper::listBuckets()
 std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName)
 {
     SPDLOG_TRACE("Listing keys in bucket {}", bucketName);
+
     minio::s3::ListObjectsArgs args;
     args.bucket = bucketName;
+    args.recursive = true;
     auto response = client.ListObjects(args);
 
     std::vector<std::string> keys;
@@ -190,12 +199,31 @@ void S3Wrapper::deleteKey(const std::string& bucketName,
     }
 }
 
+class ByteStreamBuf : public std::streambuf {
+  public:
+    ByteStreamBuf(const std::vector<uint8_t>& data) {
+        // Set the beginning and end of the buffer
+        char* begin = reinterpret_cast<char*>(const_cast<uint8_t*>(data.data()));
+        this->setg(begin, begin, begin + data.size());
+    }
+};
+
 void S3Wrapper::addKeyBytes(const std::string& bucketName,
                             const std::string& keyName,
                             const std::vector<uint8_t>& data)
 {
-    std::string tmpStr(data.begin(), data.end());
-    addKeyStr(bucketName, keyName, tmpStr);
+    SPDLOG_TRACE("Writing S3 key {}/{} as bytes", bucketName, keyName);
+
+    ByteStreamBuf buffer(data);
+    std::istream iss(&buffer);
+
+    minio::s3::PutObjectArgs args(iss, data.size(), 0);
+    args.bucket = bucketName;
+    args.object = keyName;
+
+    auto response = client.PutObject(args);
+
+    CHECK_ERRORS(response, bucketName, keyName);
 }
 
 void S3Wrapper::addKeyStr(const std::string& bucketName,
@@ -208,7 +236,7 @@ void S3Wrapper::addKeyStr(const std::string& bucketName,
     args.bucket = bucketName;
     args.object = keyName;
 
-    SPDLOG_TRACE("Writing S3 key {}/{} as bytes", bucketName, keyName);
+    SPDLOG_TRACE("Writing S3 key {}/{} as string", bucketName, keyName);
     auto response = client.PutObject(args);
 
     CHECK_ERRORS(response, bucketName, keyName);
@@ -220,8 +248,29 @@ std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string& bucketName,
 {
     SPDLOG_TRACE("Getting S3 key {}/{} as bytes", bucketName, keyName);
 
-    auto str = getKeyStr(bucketName, keyName, tolerateMissing);
-    std::vector<uint8_t> data(str.begin(), str.end());
+    std::vector<uint8_t> data;
+
+    minio::s3::GetObjectArgs args;
+    args.bucket = bucketName;
+    args.object = keyName;
+
+    args.datafunc = [&data](minio::http::DataFunctionArgs args) -> bool {
+        SPDLOG_WARN("adding {} bytes", args.datachunk.size());
+        data.insert(data.end(), args.datachunk.begin(), args.datachunk.end());
+        return true;
+    };
+
+    auto response = client.GetObject(args);
+    if (!response) {
+        auto error = parseError(response.code);
+        if (tolerateMissing && (error == S3Error::NoSuchKey)) {
+            SPDLOG_TRACE(
+              "Tolerating missing S3 key {}/{}", bucketName, keyName);
+            return std::vector<uint8_t>();
+        }
+
+        CHECK_ERRORS(response, bucketName, keyName);
+    }
 
     return data;
 }
@@ -230,6 +279,8 @@ std::string S3Wrapper::getKeyStr(const std::string& bucketName,
                                  const std::string& keyName,
                                  bool tolerateMissing)
 {
+    SPDLOG_TRACE("Getting S3 key {}/{} as string", bucketName, keyName);
+
     std::string data;
 
     minio::s3::GetObjectArgs args;

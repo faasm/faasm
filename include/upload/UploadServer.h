@@ -2,18 +2,7 @@
 
 #include <faabric/util/func.h>
 
-#include <cpprest/http_listener.h>
-
-using namespace web::http::experimental::listener;
-using namespace web::http;
-
-#define UPLOAD_PORT "8002"
-
-#define FUNCTION_URL_PART "f"
-#define PYTHON_URL_PART "p"
-#define STATE_URL_PART "s"
-#define SHARED_FILE_URL_PART "file"
-
+/*
 namespace edge {
 class UploadServer
 {
@@ -21,12 +10,6 @@ class UploadServer
     void listen(const std::string& port);
 
     void stop();
-
-    static void handleGet(const http_request& request);
-
-    static void handlePut(const http_request& request);
-
-    static void handleOptions(const http_request& request);
 
   private:
     bool stopped = false;
@@ -52,12 +35,5 @@ class UploadServer
     static void extractRequestBody(const http_request& req,
                                    faabric::Message& msg);
 };
-
-class InvalidPathException : public faabric::util::FaabricException
-{
-  public:
-    explicit InvalidPathException(std::string message)
-      : faabric::util::FaabricException(std::move(message))
-    {}
-};
-}
+*/
+// }

@@ -23,7 +23,7 @@ class S3Wrapper
 
     void createBucket(const std::string& bucketName);
 
-    void deleteBucket(const std::string& bucketName);
+    void deleteBucket(const std::string& bucketName, bool recursive = false);
 
     std::vector<std::string> listBuckets();
 

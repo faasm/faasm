@@ -37,12 +37,14 @@ set(WAMR_BUILD_BULK_MEMORY 1)
 # code, and it's difficult to change it surgically.
 set(WAMR_DISABLE_HW_BOUND_CHECK 0)
 # This definition prevents a buffer underflow during code generation
+# TODO(wamr-bump): safe to remove the following line when bumping wamr
 add_definitions(-DWASM_ENABLE_WAMR_COMPILER=1)
 
 include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
 # 13/09/2021 - Setting the CMake flag includes the code required to run
 # code generation, but the pre-processor macro introduces LLVM errors. It is
 # safe to disable as we actually don't run JITed code.
+# TODO(wamr-bump): safe to remove the following line when bumping wamr
 remove_definitions("-DWASM_ENABLE_JIT=1")
 faasm_private_lib(wamrlib "${WAMR_RUNTIME_LIB_SOURCE}")
 
