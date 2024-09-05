@@ -382,7 +382,7 @@ jobs:
       # Run tests
       - name: "Run the tests"
         if: ${{ matrix.sanitiser != 'Coverage' }}
-        run: faasmctl cli.faasm --env HOST_TYPE=ci --cmd "./bin/inv_wrapper.sh tests --debug"
+        run: faasmctl cli.faasm --env HOST_TYPE=ci --cmd "./bin/inv_wrapper.sh tests"
       - name: "Run the tests and fetch coverage report"
         if: ${{ matrix.sanitiser == 'Coverage' }}
         run: faasmctl cli.faasm --env HOST_TYPE=ci,LLVM_PROFILE_FILE=/tmp/faasm.profraw --cmd "./bin/inv_wrapper.sh tests"
