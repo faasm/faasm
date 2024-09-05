@@ -9,7 +9,10 @@ support using [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime).
 > can use SGX's [dynamic memory management features](https://github.com/intel/sgx-emm).
 > This means that, to run in HW mode, you need: (i) an Intel IceLake server
 > (or newer), and (ii) a host kernel > 6.0 (EDMM was upstreamed with the
-> in-kernel SGX driver then).
+> in-kernel SGX driver then). However, this configuration only works for HW
+> mode, as the EDMM symbols are not in the SIM mode libraries. We test it
+> as part of our GHA run in HW mode. For the SIM mode tests we use an older
+> SGX configuration.
 
 ## Quick start
 

@@ -86,7 +86,7 @@ FetchContent_Declare(wavm_ext
 
 FetchContent_Declare(wamr_ext
     GIT_REPOSITORY "https://github.com/faasm/wasm-micro-runtime"
-    GIT_TAG "73a79c4cf78798350a89efe056ae071788e6e2dd"
+    GIT_TAG "16db8a3bb11b585728608d50b38377cc75520a72"
 )
 
 # WAMR and WAVM both link to LLVM

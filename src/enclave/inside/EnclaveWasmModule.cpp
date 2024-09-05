@@ -37,6 +37,8 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
 
     wamrInitialised = true;
 
+    bh_log_set_verbose_level(2);
+
     return success;
 }
 

@@ -198,12 +198,13 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test big mmap", "[wasm]")
         faasmConf.wasmVm = "wamr";
     }
 
-#ifndef FAASM_SGX_DISABLED_MODE
+#ifdef FAASM_SGX_HARDWARE_MODE
     SECTION("SGX")
     {
         faasmConf.wasmVm = "sgx";
         // This test does a lot of new memory allocations, which patricularly
-        // stress SGX's EDMM feature
+        // stress SGX's EDMM feature. Therefore we can only run it in HW
+        // mode
         timeoutMs = 20 * 1000;
     }
 #endif

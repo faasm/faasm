@@ -108,9 +108,11 @@ target_link_options(enclave_trusted PRIVATE
 )
 
 if (FAASM_SGX_MODE STREQUAL "Simulation")
+    set(SGX_ENCLAVE_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/enclave_sim.config)
     set(SGX_TRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_trts_sim.a)
     set(SGX_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_tservice_sim.a)
 elseif (FAASM_SGX_MODE STREQUAL "Hardware")
+    set(SGX_ENCLAVE_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/enclave_hw.config)
     set(SGX_TRUSTED_RUNTIME_LIB ${SGX_SDK_LIB_PATH}/libsgx_trts.a)
     set(SGX_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_tservice.a)
 else ()
@@ -165,6 +167,6 @@ add_custom_command(TARGET enclave_trusted
     -key ${CMAKE_CURRENT_SOURCE_DIR}/enclave.pem
     -enclave ${CMAKE_BINARY_DIR}/lib/enclave_trusted.so
     -out ${ENCLAVE_PATH}
-    -config ${CMAKE_CURRENT_SOURCE_DIR}/enclave.config
+    -config ${SGX_ENCLAVE_CONFIG_FILE}
 )
 
