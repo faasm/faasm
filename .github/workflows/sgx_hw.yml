@@ -43,7 +43,7 @@ jobs:
     env:
       FAASM_VERSION: 0.27.0
       FAASMCTL_BIN: /home/faasm/.local/bin/faasmctl
-      FAASMCTL_VERSION: 0.43.0
+      FAASMCTL_VERSION: 0.46.2
       VM_CODE_DIR: /home/faasm/git/faasm/faasm
       VM_BASE_NAME: gha-sgx-hw-vm
     steps:

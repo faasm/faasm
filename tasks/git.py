@@ -22,6 +22,7 @@ VERSIONED_FILES = {
         "requirements.txt",
         ".github/workflows/tests.yml",
         ".github/workflows/azure.yml",
+        ".github/workflows/sgx_hw.yml",
     ],
 }
 
