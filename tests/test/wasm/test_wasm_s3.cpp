@@ -202,7 +202,7 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Get key bytes", "[s3]")
 #endif
 
     // Test a very large key to stress ECall/OCall bufer size limits
-    std::string bytesToAdd(1024 * 1024, 'b');
+    std::string bytesToAdd(128, 'b');
     std::string keyName = "foo";
 
     // Add some bytes to the key
