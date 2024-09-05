@@ -186,7 +186,6 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test big mmap", "[wasm]")
 {
     auto req = setUpContext("demo", "mmap_big");
-    int timeoutMs = 1000;
 
     SECTION("WAVM")
     {
