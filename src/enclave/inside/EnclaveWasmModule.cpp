@@ -206,9 +206,6 @@ int EnclaveWasmModule::executeWasmFunction(const std::string& funcName)
             return parsedReturnValue;
         }
 
-        // SPDLOG_ERROR_SGX("Caught wasm runtime exception: %s",
-        // errorMessage.c_str());
-
         // Ensure return value is not zero if not successful
         if (returnValue == 0) {
             returnValue = 1;

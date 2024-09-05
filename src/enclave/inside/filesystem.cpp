@@ -88,11 +88,9 @@ static int wasi_fd_write(wasm_exec_env_t execEnv,
         totalBasesSize += ioVecBuffWasm[i].buffLen;
     }
 
-    // uint8_t ioVecBases[totalBasesSize];
     std::vector<uint8_t> ioVecBases(totalBasesSize);
     int32_t offset = 0;
     std::vector<int32_t> ioVecOffsets(ioVecCountWasm);
-    // int32_t ioVecOffsets[ioVecCountWasm];
     for (int i = 0; i < ioVecCountWasm; i++) {
         module->validateWasmOffset(ioVecBuffWasm[i].buffOffset,
                                    sizeof(char) * ioVecBuffWasm[i].buffLen);

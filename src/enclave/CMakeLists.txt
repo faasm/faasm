@@ -29,7 +29,6 @@ set(SGX_C_GLOBAL_FLAGS -m64)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O0 -g)
 
-    # add_definitions(-DFAASM_SGX_DEBUG)
     add_compile_definitions(FAASM_SGX_DEBUG)
 else()
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O2)
