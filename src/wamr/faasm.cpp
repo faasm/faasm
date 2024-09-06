@@ -219,7 +219,7 @@ static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env,
                                          char* outBuff,
                                          int32_t outLen)
 {
-    SPDLOG_DEBUG("S - faasm_write_output {} {}", outBuff, outLen);
+    SPDLOG_TRACE("S - faasm_write_output {} {}", outBuff, outLen);
 
     faabric::Message& call = ExecutorContext::get()->getMsg();
     call.set_outputdata(outBuff, outLen);

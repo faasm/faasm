@@ -51,7 +51,7 @@ def purge(context):
 
 
 @task
-def purge_acr(context):
+def purge_acr(context, dry_run=False):
     """
     Purge docker images from the Azure Container Registry
     """
@@ -78,12 +78,17 @@ def purge_acr(context):
         tag_list.remove(faasm_ver)
         for tag in tag_list:
             print("Removing {}:{}".format(ctr, tag))
+
+            if dry_run:
+                continue
+
             # Sometimes deleting an image deletes images with the same hash
             # (but different tags), so we make sure the image exists before we
             # delete it
             az_cmd = "az acr repository show --name {} --image {}:{}".format(
                 repo_name, ctr, tag
             )
+
             out = run(az_cmd, shell=True, capture_output=True)
             if out.returncode != 0:
                 print("Skipping as already deleted...")
@@ -91,7 +96,13 @@ def purge_acr(context):
             az_cmd = "az acr repository delete -n {} --image {}:{} -y".format(
                 repo_name, ctr, tag
             )
-            run(az_cmd, shell=True, check=True)
+            out = run(az_cmd, shell=True, capture_output=True)
+            if out.returncode != 0:
+                print(
+                    "WARNING: error deleting image ({}:{}): {}".format(
+                        ctr, tag, out.stderr.decode("utf-8")
+                    )
+                )
 
 
 def _check_valid_containers(containers):

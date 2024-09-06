@@ -187,6 +187,8 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Add key bytes", "[s3]")
     REQUIRE(result.returnvalue() == 0);
 }
 
+// 06/09/2024 - FIXME(wamr-bup): this test is giving spurious errors only
+// on Debug mode, so we skip it for now
 TEST_CASE_METHOD(S3ExecTestFixture, "Get key bytes", "[s3][.]")
 {
     SECTION("WAMR")
