@@ -40,6 +40,7 @@ jobs:
     needs: sgx-changed
     if: ${{ needs.sgx-changed.outputs.has-sgx-changed == 'true' }}
     runs-on: self-hosted
+    timeout-minutes: 60
     env:
       FAASM_VERSION: 0.27.0
       FAASMCTL_BIN: /home/faasm/.local/bin/faasmctl

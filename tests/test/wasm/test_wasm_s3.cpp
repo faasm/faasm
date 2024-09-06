@@ -187,7 +187,7 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Add key bytes", "[s3]")
     REQUIRE(result.returnvalue() == 0);
 }
 
-TEST_CASE_METHOD(S3ExecTestFixture, "Get key bytes", "[s3]")
+TEST_CASE_METHOD(S3ExecTestFixture, "Get key bytes", "[s3][.]")
 {
     SECTION("WAMR")
     {
