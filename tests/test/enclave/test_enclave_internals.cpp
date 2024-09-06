@@ -6,29 +6,25 @@ namespace tests {
 class SgxTestFixture
 {
   public:
-    SgxTestFixture() { sgx::checkSgxSetup(); }
+    SgxTestFixture() { enclaveId = sgx::createEnclave(); }
 
-    ~SgxTestFixture() { sgx::tearDownEnclave(); }
+    ~SgxTestFixture() { sgx::destroyEnclave(enclaveId); }
+
+  protected:
+    sgx_enclave_id_t enclaveId;
 };
 
 TEST_CASE("Test enclave set up and tear down", "[.][sgx]")
 {
-    sgx::tearDownEnclave();
+    auto enclaveId = sgx::createEnclave();
 
-    REQUIRE(sgx::getGlobalEnclaveId() == 0);
+    REQUIRE(enclaveId != 0);
 
-    // Initialise the global enclave
-    sgx::checkSgxSetup();
-
-    REQUIRE(sgx::getGlobalEnclaveId() != 0);
-
-    sgx::tearDownEnclave();
-
-    REQUIRE(sgx::getGlobalEnclaveId() == 0);
+    sgx::destroyEnclave(enclaveId);
 }
 
 TEST_CASE_METHOD(SgxTestFixture, "Test SGX crypto checks", "[.][sgx]")
 {
-    REQUIRE_NOTHROW(sgx::checkSgxCrypto());
+    REQUIRE_NOTHROW(sgx::checkSgxCrypto(enclaveId));
 }
 }

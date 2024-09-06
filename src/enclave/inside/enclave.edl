@@ -1,6 +1,6 @@
 // Annoyingly we have to redefine these here
 #define FAASM_SGX 1
-#define FAASM_SGX_WAMR_WASI_LIBC 0
+#define FAASM_SGX_WAMR_WASI_LIBC 1
 
 enclave{
     include "/usr/local/code/faasm/include/enclave/error.h"
@@ -21,14 +21,14 @@ enclave{
 
         public faasm_sgx_status_t ecallInitWamr(void);
 
-        public faasm_sgx_status_t ecallLoadModule(
+        public faasm_sgx_status_t ecallReset();
+
+        public faasm_sgx_status_t ecallDoBindToFunction(
+            [in, string]                const char* user,
+            [in, string]                const char* func,
             [in, size=wasmOpCodeSize]   void *wasmOpCodePtr,
                                         uint32_t wasmOpCodeSize,
                                         uint32_t faasletId
-        );
-
-        public faasm_sgx_status_t ecallUnloadModule(
-            uint32_t faasletId
         );
 
         public faasm_sgx_status_t ecallCallFunction(
@@ -37,13 +37,31 @@ enclave{
             [in, count=argc]    char** argv
         );
 
+        public faasm_sgx_status_t ecallDestroyModule(
+            uint32_t faasletId
+        );
+
         public faasm_sgx_status_t ecallCryptoChecks(void);
+
+        // ECall in buffers are allocated in the enclave's heap, whereas
+        // OCall out buffers are allocated in the untrusted application's stack.
+        // As a consequence, if we need to transfer large amounts of data into
+        // the enclave, we need to use an ECall, and not a pointer in an OCall.
+        public faasm_sgx_status_t ecallCopyDataIn(
+            [in, size=bufferSize]   uint8_t* buffer,
+            uint32_t                bufferSize
+        );
     };
 
     untrusted{
         void ocallLogError([in, string] const char* msg);
 
         void ocallLogDebug([in, string] const char* msg);
+
+        // We need separate OCalls because WAMR's native logging adds
+        // newlines, which makes the output through the spdlog-based OCalls
+        // unreadable
+        int ocallLogWamr([in, string] const char* msg);
 
         int ocallFaasmReadInput(
             [in, out, size=bufferSize]  uint8_t* buffer,
@@ -59,7 +77,7 @@ enclave{
             [in, string]            const char* name,
             [in, size=inputSize]    uint8_t* input,
                                     long inputSize
-        ) allow(ecallLoadModule);
+        ) allow(ecallDoBindToFunction);
 
         unsigned int ocallFaasmChainPtr(
                                     int wasmFuncPtr,
@@ -76,5 +94,63 @@ enclave{
         );
 
         int32_t ocallSbrk(int32_t increment);
+
+        // ----- WASI Filesystem Calls -----
+
+        int32_t ocallWasiFdFdstatGet(
+                    int32_t fd,
+            [out]   uint8_t* wasiFileType,
+            [out]   uint64_t* rightsBase,
+            [out]   uint64_t* rightsInheriting
+        );
+
+        int32_t ocallWasiFdWrite(
+                                        int32_t fd,
+            [in, count=ioVecBasesSize]  uint8_t* ioVecBases,
+                                        int32_t ioVecBasesSize,
+            [in, count=ioVecCount]      int32_t* ioVecOffsets,
+                                        int32_t ioVecCount,
+            [out]                       int32_t* bytesWritten
+        );
+
+        // ----- S3 Calls -----
+
+        int32_t ocallS3GetNumBuckets();
+
+        int32_t ocallS3ListBuckets(
+            [out, size=bufferSize]  uint8_t* buffer,
+            [out, size=bufferSize]  uint8_t* bufferLens,
+                                    int32_t bufferSize
+        );
+
+        int32_t ocallS3GetNumKeys(
+            [in, string]   const char* bucketName
+        );
+
+        int32_t ocallS3ListKeys(
+            [in, string]            const char* bucketName,
+            [out, size=bufferSize]  uint8_t* buffer,
+            [out, size=bufferSize]  uint8_t* bufferLens,
+                                    int32_t bufferSize
+        ) allow(ecallCopyDataIn);
+
+        int32_t ocallS3AddKeyBytes(
+            [in, string]            const char* bucketName,
+            [in, string]            const char* keyName,
+            [in, size=keyBufferLen] uint8_t* keyBuffer,
+                                    int32_t keyBufferLen
+        );
+
+        int32_t ocallS3GetKeySize(
+            [in, string]            const char* bucketName,
+            [in, string]            const char* keyName
+        );
+
+        int32_t ocallS3GetKeyBytes(
+            [in, string]            const char* bucketName,
+            [in, string]            const char* keyName,
+            [out, size=bufferSize]  uint8_t* buffer,
+                                    int32_t bufferSize
+        ) allow(ecallCopyDataIn);
     };
 };

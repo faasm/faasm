@@ -1,16 +1,16 @@
+#include <conf/FaasmConfig.h>
 #include <enclave/error.h>
 #include <enclave/outside/attestation/attestation.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/getSgxSupport.h>
 #include <enclave/outside/system.h>
+#include <faabric/util/environment.h>
+#include <faabric/util/locks.h>
 #include <faabric/util/logging.h>
 
 #include <boost/filesystem/operations.hpp>
 #include <sgx_urts.h>
 #include <string>
-
-// Global enclave ID
-sgx_enclave_id_t globalEnclaveId = 0;
 
 #define ERROR_PRINT_CASE(enumVal)                                              \
     case (enumVal): {                                                          \
@@ -19,30 +19,21 @@ sgx_enclave_id_t globalEnclaveId = 0;
 
 namespace sgx {
 
-sgx_enclave_id_t getGlobalEnclaveId()
-{
-    return globalEnclaveId;
-}
-
 void checkSgxSetup()
 {
-
-    // Skip set-up if enclave already exists
-    if (globalEnclaveId != 0) {
-        SPDLOG_DEBUG("SGX enclave already exists ({})", globalEnclaveId);
-        return;
-    }
-
-    faasm_sgx_status_t returnValue;
-
 #ifdef FAASM_SGX_HARDWARE_MODE
     if (!isSgxEnabled()) {
         SPDLOG_ERROR("Machine doesn't support SGX");
         throw std::runtime_error("Machine doesn't support SGX");
-    } else {
-        SPDLOG_INFO("SGX detected in machine to run in HW mode");
     }
+
+    SPDLOG_INFO("SGX detected in machine to run in HW mode");
 #endif
+}
+
+static sgx_enclave_id_t doCreateEnclave()
+{
+    faasm_sgx_status_t returnValue;
 
     // Check enclave file exists
     if (!boost::filesystem::exists(FAASM_ENCLAVE_PATH)) {
@@ -52,49 +43,70 @@ void checkSgxSetup()
 
     // Create the enclave
     sgx_launch_token_t sgxEnclaveToken = { 0 };
+
     int sgxEnclaveTokenUpdated = 0;
+    sgx_enclave_id_t enclaveId;
     sgx_status_t sgxReturnValue = sgx_create_enclave(FAASM_ENCLAVE_PATH,
                                                      SGX_DEBUG_FLAG,
                                                      &sgxEnclaveToken,
                                                      &sgxEnclaveTokenUpdated,
-                                                     &globalEnclaveId,
+                                                     &enclaveId,
                                                      nullptr);
-    processECallErrors("Unable to create enclave", sgxReturnValue);
-    SPDLOG_DEBUG("Created SGX enclave: {}", globalEnclaveId);
+    processECallErrors(fmt::format("Unable to create enclave {}: ", enclaveId),
+                       sgxReturnValue);
+    SPDLOG_DEBUG("Created SGX enclave: {}", enclaveId);
 
     // Initialise WebAssembly runtime inside the enclave (WAMR)
-    sgxReturnValue = ecallInitWamr(globalEnclaveId, &returnValue);
+    sgxReturnValue = ecallInitWamr(enclaveId, &returnValue);
     processECallErrors(
       "Unable to initialise WAMR inside enclave", sgxReturnValue, returnValue);
-    SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", globalEnclaveId);
 
+    SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", enclaveId);
+
+    // TODO: FIXME: probably want to keep attestation to inside the enclave!
 #ifdef FAASM_SGX_HARDWARE_MODE
     // Attest enclave only in hardware mode
-    // 06/04/2022 - For the moment, the enclave held data is a dummy placeholder
-    // until we decide if we are going to use it or not.
-    std::vector<uint8_t> enclaveHeldData{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
-    attestEnclave(globalEnclaveId, enclaveHeldData);
-    SPDLOG_DEBUG("Attested SGX enclave: {}", globalEnclaveId);
+    conf::FaasmConfig& conf = conf::getFaasmConfig();
+    if (conf.attestationProviderUrl == "off") {
+        SPDLOG_INFO("Enclave attestation disabled in the config");
+    } else {
+        // 06/04/2022 - For the moment, the enclave held data is a dummy
+        // placeholder until we decide if we are going to use it or not.
+        std::vector<uint8_t> enclaveHeldData{
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06
+        };
+        attestEnclave(enclaveId, enclaveHeldData);
+        SPDLOG_INFO("Attested SGX enclave: {}", enclaveId);
+    }
 #endif
+
+    return enclaveId;
 }
 
-void tearDownEnclave()
+// This method checks that SGX is supported and initializes and enclave with
+// our trusted runtime
+sgx_enclave_id_t createEnclave()
 {
+    // First, sanity check that SGX is available
+    checkSgxSetup();
 
-    SPDLOG_DEBUG("Destroying enclave {}", globalEnclaveId);
-
-    sgx_status_t sgxReturnValue = sgx_destroy_enclave(globalEnclaveId);
-    processECallErrors("Unable to destroy enclave", sgxReturnValue);
-
-    globalEnclaveId = 0;
+    return doCreateEnclave();
 }
 
-void checkSgxCrypto()
+void destroyEnclave(sgx_enclave_id_t enclaveId)
+{
+    SPDLOG_DEBUG("Destroying enclave {}", enclaveId);
+
+    sgx_status_t sgxReturnValue = sgx_destroy_enclave(enclaveId);
+    processECallErrors("Unable to destroy enclave", sgxReturnValue);
+}
+
+void checkSgxCrypto(sgx_enclave_id_t enclaveId)
 {
     faasm_sgx_status_t faasmReturnValue;
     sgx_status_t sgxReturnValue;
 
-    sgxReturnValue = ecallCryptoChecks(globalEnclaveId, &faasmReturnValue);
+    sgxReturnValue = ecallCryptoChecks(enclaveId, &faasmReturnValue);
 
     processECallErrors(
       "Error running SGX crypto checks", sgxReturnValue, faasmReturnValue);

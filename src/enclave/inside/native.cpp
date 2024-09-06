@@ -20,6 +20,7 @@ void initialiseSGXWAMRNatives()
     doNativeSymbolRegistration(getFaasmFunctionsApi);
     doNativeSymbolRegistration(getFaasmMemoryApi);
     doNativeSymbolRegistration(getFaasmPthreadApi);
+    doNativeSymbolRegistration(getFaasmS3Api);
 
     doWasiSymbolRegistration(getFaasmWasiEnvApi);
     doWasiSymbolRegistration(getFaasmWasiFilesystemApi);

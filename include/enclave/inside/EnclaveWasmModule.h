@@ -6,56 +6,101 @@
 #include <wasm_runtime_common.h>
 
 #include <memory>
-#include <mutex>
-#include <unordered_map>
 #include <vector>
-
-#define ONE_KB_BYTES 1024
-#define ONE_MB_BYTES (1024 * 1024)
-
-#define FAASM_SGX_WAMR_HEAP_SIZE (32 * ONE_MB_BYTES)
-#define FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE 128
-#define FAASM_SGX_WAMR_INSTANCE_DEFAULT_HEAP_SIZE (8 * ONE_KB_BYTES)
-#define FAASM_SGX_WAMR_INSTANCE_DEFAULT_STACK_SIZE (8 * ONE_KB_BYTES)
-
-#define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
-#define WASM_ENTRY_FUNC "_start"
 
 namespace wasm {
 
 /*
  * Abstraction around a WebAssembly module running inside an SGX enclave with
- * the WAMR runtime.  */
+ * the WAMR runtime. An EnclaveWasmModule is bound to a unique user/function
+ * pair, and there is only one module inside an enclave.
+ * */
 class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 {
   public:
     static bool initialiseWAMRGlobally();
 
-    EnclaveWasmModule();
+    EnclaveWasmModule(const std::string& user, const std::string& func);
 
     ~EnclaveWasmModule();
 
-    bool loadWasm(void* wasmOpCodePtr, uint32_t wasmOpCodeSize);
+    // Called after every execution, leaves the module ready to execute another
+    // instance of the _same_ function.
+    bool reset();
 
-    bool callFunction(uint32_t argcIn, char** argvIn);
+    bool doBindToFunction(void* wasmOpCodePtr, uint32_t wasmOpCodeSize);
+
+    uint32_t callFunction(uint32_t argcIn, char** argvIn);
+
+    // TODO: remove duplication with WAMRWasmModule
+    int executeWasmFunction(const std::string& funcName);
 
     WASMModuleInstanceCommon* getModuleInstance();
 
+    std::string getBoundUser() const { return user; }
+
+    std::string getBoundFunction() const { return function; }
+
     void validateNativePointer(void* nativePtr, int size);
+
+    // ----- Exception handling -----
+    void doThrowException(std::exception& exc) const;
 
     // ---- argc/arv ----
 
-    uint32_t getArgc();
+    uint32_t getArgc() const;
 
     std::vector<std::string> getArgv();
 
-    size_t getArgvBufferSize();
+    size_t getArgvBufferSize() const;
+
+    // ---- Memory management ----
+    // TODO(csegarragonz): what bits of the memory management can we
+    // de-duplicate using the WAMR's module mixin?
+
+    uint32_t getCurrentBrk() const;
+
+    size_t getMemorySizeBytes();
+
+    uint8_t* getMemoryBase();
+
+    size_t getMaxMemoryPages();
+
+    uint32_t growMemory(size_t nBytes);
+
+    uint32_t shrinkMemory(size_t nBytes);
+
+    uint32_t mmapMemory(size_t nBytes);
+
+    uint32_t mmapFile(uint32_t fd, size_t length);
+
+    void unmapMemory(uint32_t offset, size_t nBytes);
+
+    // There are two ways to transfer data into the enclave. Either as an [in]
+    // buffer as an argument of an ECall or an [out] buffer as an argument of
+    // an OCall. The OCall situation is more common, as it is the enclave
+    // requesting information from the outside using an OCall. Unfortunately,
+    // OCall arguments are stored in the untrusted application's stack, meanng
+    // that we are limited to whatever the stack size is (usually a few KBs).
+    // On the other hand, ECall arguments are heap-allocated in the enclave
+    // memory, allowing arbitrarily large data transfers. We use by default the
+    // OCall mechanism, and fall-back to the ECall one if needed. The following
+    // two variables are used to stage data that is transferred in an OCall +
+    // ECall mechanism
+    uint8_t* dataXferPtr = nullptr;
+    size_t dataXferSize = 0;
 
   private:
-    char errorBuffer[FAASM_SGX_WAMR_MODULE_ERROR_BUFFER_SIZE];
+    char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
 
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
+
+    const std::string user;
+    const std::string function;
+
+    bool _isBound = false;
+    bool bindInternal();
 
     // Argc/argv
     uint32_t argc;
@@ -63,15 +108,15 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     size_t argvBufferSize;
 
     void prepareArgcArgv(uint32_t argcIn, char** argvIn);
+
+    // Memory management
+    uint32_t currentBrk = 0;
 };
 
-// Data structure to keep track of the modules currently loaded in the enclave.
-// And mutex to control concurrent accesses. Both objects have external
-// definition as they have to be accessed both when running an ECall, and
-// resolving a WAMR native symbol.
-extern std::unordered_map<uint32_t, std::shared_ptr<wasm::EnclaveWasmModule>>
-  moduleMap;
-extern std::mutex moduleMapMutex;
+// Data structure to keep track of the module currently loaded in the enclave.
+// Needs to have external definition as it needs to be accessed both when
+// running an ECall and resolving a WAMR native symbol
+extern std::shared_ptr<wasm::EnclaveWasmModule> enclaveWasmModule;
 
 // Return the EnclaveWasmModule that is executing in a given WASM execution
 // environment. This method relies on `wasm_exec_env_t` having a `module_inst`

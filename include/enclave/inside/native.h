@@ -8,6 +8,13 @@
 #include <wasm_export.h>
 #include <wasm_native.h>
 
+#define UNIMPLEMENTED_WASM_INTRINSIC(sym_name)                                 \
+    SPDLOG_ERROR_SGX("Unimlemented WASM import: %s", sym_name);                \
+    return 1
+
+#define UNIMPLEMENTED_WASM_INTRINSIC_VOID(sym_name)                            \
+    SPDLOG_ERROR_SGX("Unimlemented WASM import: %s", sym_name);
+
 #define REG_NATIVE_FUNC(func_name, signature)                                  \
     {                                                                          \
         #func_name, (void*)func_name##_wrapper, signature, nullptr             \
@@ -43,6 +50,8 @@ uint32_t getFaasmFunctionsApi(NativeSymbol** nativeSymbols);
 uint32_t getFaasmMemoryApi(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmPthreadApi(NativeSymbol** nativeSymbols);
+
+uint32_t getFaasmS3Api(NativeSymbol** nativeSymbols);
 
 uint32_t getFaasmStateApi(NativeSymbol** nativeSymbols);
 

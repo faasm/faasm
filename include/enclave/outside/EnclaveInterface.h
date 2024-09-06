@@ -24,9 +24,9 @@ class EnclaveInterface final : public WasmModule
 
     ~EnclaveInterface() override;
 
-    void doBindToFunction(faabric::Message& msg, bool cache) override;
+    void reset(faabric::Message& msg, const std::string& snapshotkey) override;
 
-    bool unbindFunction();
+    void doBindToFunction(faabric::Message& msg, bool cache) override;
 
     int32_t executeFunction(faabric::Message& msg) override;
 
@@ -36,7 +36,14 @@ class EnclaveInterface final : public WasmModule
 
     uint8_t* getMemoryBase() override;
 
-  private:
+    sgx_enclave_id_t getEnclaveId() const { return enclaveId; }
+
     uint32_t interfaceId = 0;
+
+  private:
+    // ID of the enclave associated with this interface
+    sgx_enclave_id_t enclaveId;
 };
+
+EnclaveInterface* getExecutingEnclaveInterface();
 }

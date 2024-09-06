@@ -173,12 +173,20 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         faasmConf.wasmVm = "wamr";
     }
 
+#ifndef FAASM_SGX_DISABLED_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
     REQUIRE(executeWithPoolGetBooleanResult(req));
 }
 
 TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test big mmap", "[wasm]")
 {
     auto req = setUpContext("demo", "mmap_big");
+    int timeoutMs = 1000;
 
     SECTION("WAVM")
     {
@@ -190,7 +198,18 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test big mmap", "[wasm]")
         faasmConf.wasmVm = "wamr";
     }
 
-    executeWithPool(req);
+#ifdef FAASM_SGX_HARDWARE_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+        // This test does a lot of new memory allocations, which patricularly
+        // stress SGX's EDMM feature. Therefore we can only run it in HW
+        // mode
+        timeoutMs = 20 * 1000;
+    }
+#endif
+
+    executeWithPool(req, timeoutMs);
 }
 
 TEST_CASE_METHOD(FunctionExecTestFixture,

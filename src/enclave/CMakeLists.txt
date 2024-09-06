@@ -26,10 +26,10 @@ endif()
 
 set(SGX_C_GLOBAL_FLAGS -m64)
 
-if(CMAKE_BUILD_TYPE EQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O0 -g)
 
-    add_definitions(-DFAASM_SGX_DEBUG)
+    add_compile_definitions(FAASM_SGX_DEBUG)
 else()
     set(SGX_C_GLOBAL_FLAGS ${SGX_C_GLOBAL_FLAGS} -O2)
 endif()
@@ -45,7 +45,10 @@ endif()
 # Set target platform details
 set(WAMR_BUILD_PLATFORM "linux-sgx")
 set(WAMR_BUILD_TARGET X86_64)
-set(WAMR_BUILD_SPEC_TEST)
+set(WAMR_BUILD_SPEC_TEST 0)
+
+# Top-level Faasm flag for WAMR
+add_definitions(-DWAMR_FAASM=1)
 
 # Set AOT mode, disable JIT
 set(WAMR_BUILD_AOT 1)
@@ -54,7 +57,7 @@ set(WAMR_BUILD_LAZY_JIT 0)
 
 # Set libraries
 set(WAMR_BUILD_LIBC_BUILTIN 1)
-set(WAMR_BUILD_LIBC_WASI 0)
+set(WAMR_BUILD_LIBC_WASI 1)
 set(WAMR_BUILD_LIB_PTHREAD 0)
 
 # Let WAMR do the including and importing of the sources

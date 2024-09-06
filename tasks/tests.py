@@ -44,6 +44,9 @@ TEST_ENV = {
             "suppressions={}/ub-sanitizer-ignorelist.txt".format(PROJ_ROOT),
         ]
     ),
+    # SGX options
+    "AZ_ATTESTATION_PROVIDER_URL": "https://faasmattprov.eus2.attest.azure.net",
+    "SGX_AESM_ADDR": "1",
 }
 
 # If executing in CI, give us some extra CPU cores to run the tests

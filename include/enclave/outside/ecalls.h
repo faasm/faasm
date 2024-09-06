@@ -18,15 +18,20 @@ extern "C"
     extern sgx_status_t ecallInitWamr(sgx_enclave_id_t enclaveId,
                                       faasm_sgx_status_t* retVal);
 
-    extern sgx_status_t ecallLoadModule(sgx_enclave_id_t enclaveId,
-                                        faasm_sgx_status_t* retVal,
-                                        const void* wasmOpCodePtr,
-                                        const uint32_t wasmOpCodeSize,
-                                        uint32_t faasletId);
+    extern sgx_status_t ecallReset(sgx_enclave_id_t enclaveId,
+                                   faasm_sgx_status_t* retVal);
 
-    extern sgx_status_t ecallUnloadModule(sgx_enclave_id_t enclaveId,
-                                          faasm_sgx_status_t* retVal,
-                                          uint32_t faasletId);
+    extern sgx_status_t ecallDoBindToFunction(sgx_enclave_id_t enclaveId,
+                                              faasm_sgx_status_t* retVal,
+                                              const char* user,
+                                              const char* func,
+                                              const void* wasmOpCodePtr,
+                                              const uint32_t wasmOpCodeSize,
+                                              uint32_t faasletId);
+
+    extern sgx_status_t ecallDestroyModule(sgx_enclave_id_t enclaveId,
+                                           faasm_sgx_status_t* retVal,
+                                           uint32_t faasletId);
 
     extern sgx_status_t ecallCallFunction(sgx_enclave_id_t enclaveId,
                                           faasm_sgx_status_t* retVal,
@@ -36,4 +41,9 @@ extern "C"
 
     extern sgx_status_t ecallCryptoChecks(sgx_enclave_id_t enclaveId,
                                           faasm_sgx_status_t* retVal);
+
+    extern sgx_status_t ecallCopyDataIn(sgx_enclave_id_t enclaveId,
+                                        faasm_sgx_status_t* retVal,
+                                        uint8_t* buffer,
+                                        uint32_t bufferSize);
 }

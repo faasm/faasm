@@ -190,21 +190,7 @@ static int32_t __faasm_read_input_wrapper(wasm_exec_env_t exec_env,
                                           char* inBuff,
                                           int32_t inLen)
 {
-    SPDLOG_DEBUG("S - faasm_read_input {} {}", inBuff, inLen);
-
-    faabric::Message& call = ExecutorContext::get()->getMsg();
-    std::vector<uint8_t> inputBytes =
-      faabric::util::stringToBytes(call.inputdata());
-
-    // If nothing, return nothing
-    if (inputBytes.empty()) {
-        return 0;
-    }
-
-    // Write to the wasm buffer
-    int inputSize = faabric::util::safeCopyToBuffer(
-      inputBytes, reinterpret_cast<uint8_t*>(inBuff), inLen);
-    return inputSize;
+    return wasm::doFaasmReadInput(inBuff, inLen);
 }
 
 static void __faasm_sm_critical_local_wrapper(wasm_exec_env_t execEnv)
@@ -233,13 +219,13 @@ static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env,
                                          char* outBuff,
                                          int32_t outLen)
 {
-    SPDLOG_DEBUG("S - faasm_write_output {} {}", outBuff, outLen);
+    SPDLOG_TRACE("S - faasm_write_output {} {}", outBuff, outLen);
 
     faabric::Message& call = ExecutorContext::get()->getMsg();
     call.set_outputdata(outBuff, outLen);
 }
 
-static NativeSymbol ns[] = {
+static NativeSymbol faasmNs[] = {
     REG_NATIVE_FUNC(__faasm_append_state, "(**i)"),
     REG_NATIVE_FUNC(__faasm_await_call, "(i)i"),
     REG_NATIVE_FUNC(__faasm_await_call_output, "(i**)i"),
@@ -259,7 +245,7 @@ static NativeSymbol ns[] = {
 
 uint32_t getFaasmFunctionsApi(NativeSymbol** nativeSymbols)
 {
-    *nativeSymbols = ns;
-    return sizeof(ns) / sizeof(NativeSymbol);
+    *nativeSymbols = faasmNs;
+    return sizeof(faasmNs) / sizeof(NativeSymbol);
 }
 }

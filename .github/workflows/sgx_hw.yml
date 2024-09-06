@@ -1,21 +1,52 @@
 name: "SGX Hardware Mode Tests"
 
 # This workflow runs the set of tests in SGX Hardware mode. We run them on a
-# latest-generation IceLake VM on Azure, so we only run them manually on
-# workflow dispatch.
+# latest-generation IceLake VM on Azure, and we run them every time we change
+# something in the enclave sub-tree
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 defaults:
   run:
     shell: bash
 
+# Cancel previous running actions for the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
+  sgx-changed:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    outputs:
+      has-sgx-changed: ${{ (steps.filter.outputs.sgx-changed == 'true') }}
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      # Check if any of the submodules have been modified
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            sgx-changed:
+              - './src/enclave/**'
+
   sgx-hw:
+    needs: sgx-changed
+    if: ${{ needs.sgx-changed.outputs.has-sgx-changed == 'true' }}
     runs-on: self-hosted
+    timeout-minutes: 60
     env:
-      VM_BASE_NAME: gha-sgx-hw-vm
       FAASM_VERSION: 0.27.0
+      FAASMCTL_BIN: /home/faasm/.local/bin/faasmctl
+      FAASMCTL_VERSION: 0.46.2
+      VM_CODE_DIR: /home/faasm/git/faasm/faasm
+      VM_BASE_NAME: gha-sgx-hw-vm
     steps:
       - name: "Check out the experiment-base code"
         uses: actions/checkout@v4
@@ -27,69 +58,75 @@ jobs:
         run: |
           ./bin/inv_wrapper.sh vm.create --sgx --region eastus2 --name ${{ env.VM_NAME }}
           ./bin/inv_wrapper.sh vm.inventory --prefix ${{ env.VM_NAME }}
-          ./bin/inv_wrapper.sh vm.setup
+          ./bin/inv_wrapper.sh vm.setup --sgx
       - name: "Fetch the branch code if necessary"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
+            --path ${{ env.VM_CODE_DIR }} \
             --cmd "git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'"
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
+            --path ${{ env.VM_CODE_DIR }} \
             --cmd "git fetch origin ${{ github.ref }}:ci-branch && git checkout -f ci-branch"
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
+            --path ${{ env.VM_CODE_DIR }} \
             --cmd "git submodule update --init -f"
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm/clients/python" \
+            --path ${{ env.VM_CODE_DIR }}/clients/python \
             --cmd "git submodule update --init -f third-party/cpp"
+      - name: "Install faasmctl"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "pip3 install faasmctl==${{ env.FAASMCTL_VERSION }}"
       - name: "Start the docker compose cluster"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "./bin/refresh_local.sh"
-          ./bin/inv_wrapper.sh vm.run-command \
-            --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "docker volume create --driver local --opt type=tmpfs --opt device=tmpfs --opt o=rw aesmd-socket"
-          ./bin/inv_wrapper.sh vm.run-command \
-            --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "FAASM_BUILD_MOUNT=/build/faasm FAASM_LOCAL_MOUNT=/usr/local/faasm FAASM_CLI_IMAGE=faasm/cli-sgx:${{ env.FAASM_VERSION }} SGX_DEVICE_MOUNT_DIR=/dev/sgx docker compose up --no-recreate -d aesmd faasm-cli"
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "${{ env.FAASMCTL_BIN }} deploy.compose --workers=0 --mount-source ." \
+            --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini" \
+            --env "FAASM_WASM_VM=sgx"
       - name: "Cross-compile CPP functions"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "FAASM_LOCAL_MOUNT=/usr/local/faasm docker compose run cpp ./bin/inv_wrapper.sh func.local libfake"
-      - name: "Cross-compile Python functions"
-        run: |
-          ./bin/inv_wrapper.sh vm.run-command \
-            --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "FAASM_LOCAL_MOUNT=/usr/local/faasm docker compose run python ./bin/inv_wrapper.sh cpython.func func.upload-all --local"
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "${{ env.FAASMCTL_BIN }} cli.cpp --cmd \"./bin/inv_wrapper.sh func.local --clean libfake\"" \
+            --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
       - name: "Build Faasm targets"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "docker compose exec faasm-cli ./bin/inv_wrapper.sh dev.tools --build Release --sgx Hardware"
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh dev.tools --build Release --sgx Hardware\"" \
+            --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
       - name: "Run codegen"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "docker compose exec faasm-cli ./bin/inv_wrapper.sh codegen.tests"
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh codegen.tests\"" \
+            --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
+      - name: "Run hello function"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh run demo hello\"" \
+            --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini" \
+            --env "FAASM_WASM_VM=sgx"
       - name: "Run tests"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
-            --path "code/faasm" \
-            --cmd "docker compose exec -e LOG_LEVEL=info -e AZ_ATTESTATION_PROVIDER_URL='' -e CGROUP_MODE=off -e HOST_TYPE=ci faasm-cli /build/faasm/bin/tests"
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh tests\"" \
+            --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
       - name: "Delete VM"
         if: always()
         run: ./bin/inv_wrapper.sh vm.delete --name ${{ env.VM_NAME }}

@@ -732,17 +732,6 @@ void WAMRWasmModule::writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm,
       wasmEnvironment.getVars(), envOffsetsWasm, envBuffWasm);
 }
 
-void WAMRWasmModule::validateWasmOffset(uint32_t wasmOffset, size_t size)
-{
-    if (!wasm_runtime_validate_app_addr(moduleInstance, wasmOffset, size)) {
-        SPDLOG_ERROR("WASM offset outside WAMR module instance memory"
-                     "(offset: {}, size: {})",
-                     wasmOffset,
-                     size);
-        throw std::runtime_error("Offset outside WAMR's memory");
-    }
-}
-
 uint8_t* WAMRWasmModule::wasmPointerToNative(uint32_t wasmPtr)
 {
     void* nativePtr = wasm_runtime_addr_app_to_native(moduleInstance, wasmPtr);
