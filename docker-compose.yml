@@ -86,7 +86,7 @@ services:
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}:/dev/sgx
     environment:
       - AZ_ATTESTATION_PROVIDER_URL=https://faasmattprov.eus2.attest.azure.net
-      - CAPTURE_STDOUT=${FAASM_CAPTURE_STDOUT:-on}
+      - CAPTURE_STDOUT=${FAASM_CAPTURE_STDOUT:-off}
       - CGROUP_MODE=on
       - DEPLOYMENT_TYPE=${FAASM_DEPLOYMENT_TYPE:-compose}
       - FAASM_WASM_VM=${FAASM_WASM_VM:-wamr}
