@@ -41,8 +41,6 @@ enclave{
             uint32_t faasletId
         );
 
-        public faasm_sgx_status_t ecallCryptoChecks(void);
-
         // ECall in buffers are allocated in the enclave's heap, whereas
         // OCall out buffers are allocated in the untrusted application's stack.
         // As a consequence, if we need to transfer large amounts of data into
@@ -50,6 +48,10 @@ enclave{
         public faasm_sgx_status_t ecallCopyDataIn(
             [in, size=bufferSize]   uint8_t* buffer,
             uint32_t                bufferSize
+        );
+
+        public faasm_sgx_status_t ecallRunInternalTest(
+            [in, string]    const char* testCase
         );
     };
 

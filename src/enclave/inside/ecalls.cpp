@@ -1,6 +1,7 @@
 #include <enclave/inside/EnclaveWasmModule.h>
 #include <enclave/inside/native.h>
 #include <enclave/inside/ocalls.h>
+#include <enclave/inside/tests.h>
 
 #include <memory>
 
@@ -133,5 +134,24 @@ extern "C"
         wasm::enclaveWasmModule->dataXferSize = bufferSize;
 
         return FAASM_SGX_SUCCESS;
+    }
+
+    faasm_sgx_status_t ecallRunInternalTest(const char* testCase)
+    {
+        if (wasm::enclaveWasmModule == nullptr) {
+            ocallLogError("Faaslet not bound to any module!");
+            return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
+        }
+
+        SPDLOG_DEBUG_SGX("Running test: %s", testCase);
+        if (std::string(testCase) == "hello-world") {
+            return tests::testHello();
+        }
+        if (std::string(testCase) == "cp-abe-crypto") {
+            return tests::testCpAbeCrypto();
+        }
+
+        // Unreachable
+        return FAASM_SGX_INTERNAL_TEST_ERROR;
     }
 }

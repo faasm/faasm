@@ -73,6 +73,7 @@ set(ENCLAVE_TRUSTED_SRC
     native.cpp
     pthread.cpp
     s3.cpp
+    tests.cpp
     ${ENCLAVE_TRUSTED_HEADERS}
 )
 
