@@ -58,7 +58,7 @@ spec:
             - name: LOG_LEVEL
               value: "info"
             - name: CAPTURE_STDOUT
-              value: "on"
+              value: "off"
             - name: CGROUP_MODE
               value: "off"
             - name: NETNS_MODE
