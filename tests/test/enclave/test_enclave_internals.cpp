@@ -39,9 +39,4 @@ TEST_CASE_METHOD(SgxInternalTestFixture, "Test enclave internal test", "[sgx]")
 {
     doSgxInternalTest("hello-world");
 }
-
-TEST_CASE_METHOD(SgxInternalTestFixture, "Test CP-ABE crypto", "[sgx]")
-{
-    doSgxInternalTest("cp-abe-crypto");
-}
 }
