@@ -76,10 +76,12 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fcntl", "[faaslet]")
         faasmConf.wasmVm = "wamr";
     }
 
+#ifndef FAASM_SGX_DISABLED_MODE
     SECTION("SGX")
     {
         faasmConf.wasmVm = "wamr";
     }
+#endif
 
     executeWithPool(req);
 }
@@ -98,10 +100,12 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
         faasmConf.wasmVm = "wamr";
     }
 
+#ifndef FAASM_SGX_DISABLED_MODE
     SECTION("SGX")
     {
         faasmConf.wasmVm = "sgx";
     }
+#endif
 
     executeWithPool(req);
 }
@@ -120,10 +124,12 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fstat", "[faaslet]")
         faasmConf.wasmVm = "wamr";
     }
 
+#ifndef FAASM_SGX_DISABLED_MODE
     SECTION("SGX")
     {
         faasmConf.wasmVm = "sgx";
     }
+#endif
 
     executeWithPool(req);
 }
@@ -144,10 +150,12 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         faasmConf.wasmVm = "wamr";
     }
 
+#ifndef FAASM_SGX_DISABLED_MODE
     SECTION("SGX")
     {
         faasmConf.wasmVm = "sgx";
     }
+#endif
 
     executeWithPool(req);
 }
@@ -168,10 +176,12 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         faasmConf.wasmVm = "wamr";
     }
 
+#ifndef FAASM_SGX_DISABLED_MODE
     SECTION("SGX")
     {
         faasmConf.wasmVm = "sgx";
     }
+#endif
 
     executeWithPool(req);
 }
