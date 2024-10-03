@@ -38,7 +38,7 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     wamrInitialised = true;
 
     // Set log level: BH_LOG_LEVEL_{FATAL,ERROR,WARNING,DEBUG,VERBOSE}
-    bh_log_set_verbose_level(BH_LOG_LEVEL_VERBOSE);
+    bh_log_set_verbose_level(BH_LOG_LEVEL_WARNING);
 
     return success;
 }
