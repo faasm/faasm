@@ -147,11 +147,6 @@ extern "C"
         if (std::string(testCase) == "hello-world") {
             return tests::testHello();
         }
-        /*
-        if (std::string(testCase) == "cp-abe-crypto") {
-            return tests::testCpAbeCrypto();
-        }
-        */
 
         // Unreachable
         return FAASM_SGX_INTERNAL_TEST_ERROR;

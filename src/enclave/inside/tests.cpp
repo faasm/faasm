@@ -26,27 +26,4 @@ faasm_sgx_status_t testHello()
 
     return FAASM_SGX_SUCCESS;
 }
-
-/*
-faasm_sgx_status_t testCpAbeCrypto()
-{
-    auto& ctx = sgx::CpAbeContextWrapper::get();
-
-    // Prepare encryption
-    std::string plainText = "dance like no one's watching, encrypt like everyone
-is!"; std::string policy = "\"A\" and \"B\""; auto cipherText =
-ctx.cpAbeEncrypt(policy, plainText);
-
-    // Prepare decryption
-    std::vector<std::string> attributes = {"A", "B"};
-    auto actualPlainText = ctx.cpAbeDecrypt(attributes, cipherText);
-
-    // Compare
-    std::string actualPlainTextStr;
-    actualPlainTextStr.assign(reinterpret_cast<char*>(actualPlainText.data()),
-actualPlainText.size()); REQUIRE(plainText == actualPlainTextStr);
-
-    return FAASM_SGX_SUCCESS;
-}
-*/
 }

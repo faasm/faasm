@@ -1,8 +1,3 @@
-# ----- Third-party Deps -----
-include(ExternalProject)
-
-# ----- Trusted cyrpto libraries -----
-
 set(ENCLAVE_TRUSTED_CRYPTO_HEADERS
     ${FAASM_INCLUDE_DIR}/enclave/inside/crypto/encryption.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/crypto/hash.h
@@ -10,7 +5,6 @@ set(ENCLAVE_TRUSTED_CRYPTO_HEADERS
 )
 
 set(ENCLAVE_TRUSTED_CRYPTO_SRC
-    # cp_abe.cpp
     encryption.cpp
     hash.cpp
     ${FAASM_SGX_CRYPTO_HEADERS}
@@ -31,7 +25,4 @@ target_include_directories(enclave_trusted_crypto PRIVATE
 target_link_libraries(enclave_trusted_crypto PUBLIC
     ${SGX_SDK_LIB_PATH}/libsgx_tstdc.a
     ${SGX_SDK_LIB_PATH}/libsgx_tcrypto.a
-    # TODO: not hardcode
-    # /usr/local/code/rabe/target/release/librabe.a
-    # /usr/local/code/rabe/target/x86_64-fortanix-unknown-sgx/release/librabe.a
 )
