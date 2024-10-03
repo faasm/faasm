@@ -3,7 +3,6 @@
 #include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
 
-#include <stdexcept>
 #include <sys/random.h>
 
 #include <wasm_export.h>

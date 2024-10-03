@@ -101,19 +101,6 @@ void destroyEnclave(sgx_enclave_id_t enclaveId)
     processECallErrors("Unable to destroy enclave", sgxReturnValue);
 }
 
-void checkSgxCrypto(sgx_enclave_id_t enclaveId)
-{
-    faasm_sgx_status_t faasmReturnValue;
-    sgx_status_t sgxReturnValue;
-
-    sgxReturnValue = ecallCryptoChecks(enclaveId, &faasmReturnValue);
-
-    processECallErrors(
-      "Error running SGX crypto checks", sgxReturnValue, faasmReturnValue);
-
-    SPDLOG_DEBUG("Succesful SGX crypto checks");
-}
-
 void processECallErrors(std::string errorMessage,
                         sgx_status_t sgxReturnValue,
                         faasm_sgx_status_t faasmReturnValue)

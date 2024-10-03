@@ -41,7 +41,9 @@ typedef enum _faasm_error
     FAASM_SGX_DECRYPTION_FAILED = FAASM_SGX_ERROR(0x20),
     FAASM_SGX_HASH_FAILED = FAASM_SGX_ERROR(0x21),
     // Attestation errors
-    FAASM_SGX_GENERATE_REPORT_FAILED = FAASM_SGX_ERROR(0x22)
+    FAASM_SGX_GENERATE_REPORT_FAILED = FAASM_SGX_ERROR(0x22),
+    // Internal test errors
+    FAASM_SGX_INTERNAL_TEST_ERROR = FAASM_SGX_ERROR(0x23)
 } faasm_sgx_status_t;
 
 #define FAASM_SGX_OCALL_ERROR(X)                                               \

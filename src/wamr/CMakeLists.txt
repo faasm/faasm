@@ -30,6 +30,7 @@ set(WAMR_BUILD_SIMD 1)
 
 set(WAMR_BUILD_MULTI_MODULE 1)
 set(WAMR_BUILD_BULK_MEMORY 1)
+set(WAMR_BUILD_REF_TYPES 1)
 
 # We must enable WAMR hardware bounds check here, otherwise WAMR uses malloc to
 # allocate memory, which is not page-aligned. This seems like a blunt instrument

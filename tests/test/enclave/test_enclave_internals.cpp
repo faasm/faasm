@@ -1,30 +1,42 @@
 #include <catch2/catch.hpp>
 
+#include <enclave/outside/EnclaveInterface.h>
+#include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
 
+#include "faasm_fixtures.h"
+
 namespace tests {
-class SgxTestFixture
+class SgxInternalTestFixture : public FunctionExecTestFixture
 {
   public:
-    SgxTestFixture() { enclaveId = sgx::createEnclave(); }
+    SgxInternalTestFixture()
+    {
+        auto req = setUpContext("demo", "hello");
+        faabric::Message& call = req->mutable_messages()->at(0);
 
-    ~SgxTestFixture() { sgx::destroyEnclave(enclaveId); }
+        enclaveInterface.bindToFunction(call);
+    }
+
+    ~SgxInternalTestFixture() {}
+
+    void doSgxInternalTest(const std::string& testName)
+    {
+        faasm_sgx_status_t returnValue;
+        sgx_status_t sgxReturnValue = ecallRunInternalTest(
+          enclaveInterface.getEnclaveId(), &returnValue, testName.c_str());
+        sgx::processECallErrors("Error running internal test: hello-world",
+                                sgxReturnValue,
+                                returnValue);
+        REQUIRE(returnValue == FAASM_SGX_SUCCESS);
+    }
 
   protected:
-    sgx_enclave_id_t enclaveId;
+    wasm::EnclaveInterface enclaveInterface;
 };
 
-TEST_CASE("Test enclave set up and tear down", "[.][sgx]")
+TEST_CASE_METHOD(SgxInternalTestFixture, "Test enclave internal test", "[sgx]")
 {
-    auto enclaveId = sgx::createEnclave();
-
-    REQUIRE(enclaveId != 0);
-
-    sgx::destroyEnclave(enclaveId);
-}
-
-TEST_CASE_METHOD(SgxTestFixture, "Test SGX crypto checks", "[.][sgx]")
-{
-    REQUIRE_NOTHROW(sgx::checkSgxCrypto(enclaveId));
+    doSgxInternalTest("hello-world");
 }
 }

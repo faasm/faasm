@@ -1,7 +1,7 @@
 set(ENCLAVE_TRUSTED_CRYPTO_HEADERS
+    ${FAASM_INCLUDE_DIR}/enclave/inside/crypto/encryption.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/crypto/hash.h
     ${FAASM_INCLUDE_DIR}/enclave/inside/crypto/types.h
-    ${FAASM_INCLUDE_DIR}/enclave/inside/crypto/encryption.h
 )
 
 set(ENCLAVE_TRUSTED_CRYPTO_SRC
