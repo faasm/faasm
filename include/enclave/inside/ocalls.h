@@ -65,12 +65,51 @@ extern "C"
 
     // ----- WASI Filesystem Calls -----
 
+    extern sgx_status_t SGX_CDECL ocallWasiFdDup(int32_t* returnValue,
+                                                 int32_t wasmFd);
+
     extern sgx_status_t SGX_CDECL
     ocallWasiFdFdstatGet(int32_t* returnValue,
                          int32_t wasmFd,
                          uint8_t* wasiFileType,
                          uint64_t* rightsBase,
                          uint64_t* rightsInheriting);
+
+    extern sgx_status_t SGX_CDECL ocallWasiFdFilestatGet(int32_t* returnValue,
+                                                         int32_t fd,
+                                                         uint8_t* wasiFiletype,
+                                                         uint64_t* st_dev,
+                                                         uint64_t* st_ino,
+                                                         uint64_t* st_nlink,
+                                                         uint64_t* st_size,
+                                                         uint64_t* st_atim,
+                                                         uint64_t* st_mtim,
+                                                         uint64_t* st_ctim);
+
+    extern sgx_status_t SGX_CDECL
+    ocallWasiFdPrestatDirName(int32_t* returnValue,
+                              int32_t wasmFd,
+                              char* path,
+                              int32_t pathLen);
+
+    extern sgx_status_t SGX_CDECL ocallWasiFdPrestatGet(int32_t* returnValue,
+                                                        int32_t wasmFd,
+                                                        uint8_t* prType,
+                                                        uint32_t* nameLen);
+
+    extern sgx_status_t SGX_CDECL ocallWasiFdRead(int32_t* returnValue,
+                                                  int32_t wasmFd,
+                                                  uint8_t* ioVecBases,
+                                                  int32_t ioVecBasesSize,
+                                                  int32_t* ioVecOffsets,
+                                                  int32_t ioVecCount,
+                                                  int32_t* bytesWritten);
+
+    extern sgx_status_t SGX_CDECL ocallWasiFdSeek(int32_t* returnValue,
+                                                  int32_t wasmFd,
+                                                  int64_t offset,
+                                                  int32_t whence,
+                                                  uint64_t* newOffset);
 
     extern sgx_status_t SGX_CDECL ocallWasiFdWrite(int32_t* returnValue,
                                                    int32_t wasmFd,
@@ -79,6 +118,52 @@ extern "C"
                                                    int32_t* ioVecOffsets,
                                                    int32_t ioVecCount,
                                                    int32_t* bytesWritten);
+
+    extern sgx_status_t SGX_CDECL
+    ocallWasiPathFilestatGet(int32_t* returnValue,
+                             int32_t wasmFd,
+                             char* path,
+                             int32_t pathLen,
+                             uint8_t* wasiFiletype,
+                             uint64_t* st_dev,
+                             uint64_t* st_ino,
+                             uint64_t* st_nlink,
+                             uint64_t* st_size,
+                             uint64_t* st_atim,
+                             uint64_t* st_mtim,
+                             uint64_t* st_ctim);
+
+    extern sgx_status_t SGX_CDECL ocallWasiPathOpen(int32_t* returnValue,
+                                                    int32_t fdNative,
+                                                    int32_t lookupFlags,
+                                                    char* path,
+                                                    int32_t pathLen,
+                                                    int32_t openFlags,
+                                                    int64_t rightsBase,
+                                                    int64_t rightsInheriting,
+                                                    int32_t fdFlags,
+                                                    int32_t* fdWasm);
+
+    extern sgx_status_t SGX_CDECL ocallWasiPathReadlink(int32_t* returnValue,
+                                                        int32_t wasmFd,
+                                                        char* path,
+                                                        int32_t pathLen,
+                                                        char* buf,
+                                                        int32_t bufLen,
+                                                        int32_t* resBytesUsed);
+
+    extern sgx_status_t SGX_CDECL ocallWasiPathRename(int32_t* returnValue,
+                                                      int32_t oldFd,
+                                                      char* oldPath,
+                                                      int32_t oldPathLen,
+                                                      int32_t newFd,
+                                                      char* newPath,
+                                                      int32_t newPathLen);
+
+    extern sgx_status_t SGX_CDECL ocallWasiPathUnlinkFile(int32_t* returnValue,
+                                                          int32_t wasmFd,
+                                                          char* path,
+                                                          int32_t pathLen);
 
     // ----- S3 Calls -----
 

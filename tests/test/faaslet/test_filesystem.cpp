@@ -76,6 +76,11 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fcntl", "[faaslet]")
         faasmConf.wasmVm = "wamr";
     }
 
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
+
     executeWithPool(req);
 }
 
@@ -93,6 +98,11 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fread", "[faaslet]")
         faasmConf.wasmVm = "wamr";
     }
 
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+
     executeWithPool(req);
 }
 
@@ -108,6 +118,11 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test fstat", "[faaslet]")
     SECTION("WAMR")
     {
         faasmConf.wasmVm = "wamr";
+    }
+
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
     }
 
     executeWithPool(req);
@@ -129,6 +144,11 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         faasmConf.wasmVm = "wamr";
     }
 
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+
     executeWithPool(req);
 }
 
@@ -146,6 +166,11 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     SECTION("WAMR")
     {
         faasmConf.wasmVm = "wamr";
+    }
+
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
     }
 
     executeWithPool(req);

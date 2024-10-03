@@ -75,14 +75,9 @@ class WAMRWasmModule final
     void doThrowException(std::exception& e) override;
 
     // ----- Helper functions -----
-    void writeStringToWasmMemory(const std::string& strHost, char* strWasm);
-
     void writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm, char* envBuffWasm);
 
     // ----- Address translation and validation -----
-    // Check if native pointer belongs to WASM memory
-    void validateNativePointer(void* nativePtr, int size);
-
     // Convert relative address to absolute address (pointer to memory)
     uint8_t* wasmPointerToNative(uint32_t wasmPtr) override;
 

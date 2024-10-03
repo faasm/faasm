@@ -44,7 +44,6 @@ extern "C"
                                         uint8_t* buffer,
                                         uint32_t bufferSize);
 
-
     extern sgx_status_t ecallRunInternalTest(sgx_enclave_id_t enclaveId,
                                              faasm_sgx_status_t* retVal,
                                              const char* testCase);

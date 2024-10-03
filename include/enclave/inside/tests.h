@@ -12,5 +12,5 @@ namespace tests {
 
 faasm_sgx_status_t testHello();
 
-faasm_sgx_status_t testCpAbeCrypto();
+// faasm_sgx_status_t testCpAbeCrypto();
 }

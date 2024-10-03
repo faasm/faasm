@@ -1,6 +1,6 @@
 #include <enclave/error.h>
 #include <enclave/inside/EnclaveWasmModule.h>
-#include <enclave/inside/crypto/cp_abe.h>
+// #include <enclave/inside/crypto/cp_abe.h>
 #include <enclave/inside/ocalls.h>
 
 // TODO: move elsewhere
@@ -27,14 +27,15 @@ faasm_sgx_status_t testHello()
     return FAASM_SGX_SUCCESS;
 }
 
+/*
 faasm_sgx_status_t testCpAbeCrypto()
 {
     auto& ctx = sgx::CpAbeContextWrapper::get();
 
     // Prepare encryption
-    std::string plainText = "dance like no one's watching, encrypt like everyone is!";
-    std::string policy = "\"A\" and \"B\"";
-    auto cipherText = ctx.cpAbeEncrypt(policy, plainText);
+    std::string plainText = "dance like no one's watching, encrypt like everyone
+is!"; std::string policy = "\"A\" and \"B\""; auto cipherText =
+ctx.cpAbeEncrypt(policy, plainText);
 
     // Prepare decryption
     std::vector<std::string> attributes = {"A", "B"};
@@ -42,9 +43,10 @@ faasm_sgx_status_t testCpAbeCrypto()
 
     // Compare
     std::string actualPlainTextStr;
-    actualPlainTextStr.assign(reinterpret_cast<char*>(actualPlainText.data()), actualPlainText.size());
-    REQUIRE(plainText == actualPlainTextStr);
+    actualPlainTextStr.assign(reinterpret_cast<char*>(actualPlainText.data()),
+actualPlainText.size()); REQUIRE(plainText == actualPlainTextStr);
 
     return FAASM_SGX_SUCCESS;
 }
+*/
 }

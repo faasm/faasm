@@ -99,11 +99,53 @@ enclave{
 
         // ----- WASI Filesystem Calls -----
 
+        int32_t ocallWasiFdDup(int32_t fd);
+
         int32_t ocallWasiFdFdstatGet(
                     int32_t fd,
             [out]   uint8_t* wasiFileType,
             [out]   uint64_t* rightsBase,
             [out]   uint64_t* rightsInheriting
+        );
+
+        int32_t ocallWasiFdFilestatGet(
+                    int32_t fd,
+            [out]   uint8_t* wasiFiletype,
+            [out]   uint64_t* st_dev,
+            [out]   uint64_t* st_ino,
+            [out]   uint64_t* st_nlink,
+            [out]   uint64_t* st_size,
+            [out]   uint64_t* st_atim,
+            [out]   uint64_t* st_mtim,
+            [out]   uint64_t* st_ctim
+        );
+
+        int32_t ocallWasiFdPrestatDirName(
+                                    int32_t fd,
+            [out, size=pathLen]     char* path,
+                                    int32_t pathLen
+        );
+
+        int32_t ocallWasiFdPrestatGet(
+                    int32_t fd,
+            [out]   uint8_t* prType,
+            [out]   uint32_t* nameLen
+        );
+
+        int32_t ocallWasiFdRead(
+                                            int32_t fd,
+            [in, out, count=ioVecBasesSize] uint8_t* ioVecBases, // out?
+                                            int32_t ioVecBasesSize,
+            [in, out, count=ioVecCount]     int32_t* ioVecOffsets, // in?
+                                            int32_t ioVecCount,
+            [out]                           int32_t* bytesRead
+        );
+
+        int32_t ocallWasiFdSeek(
+                    int32_t fd,
+                    int64_t offset,
+                    int32_t whence,
+            [out]   uint64_t* newOffset
         );
 
         int32_t ocallWasiFdWrite(
@@ -113,6 +155,56 @@ enclave{
             [in, count=ioVecCount]      int32_t* ioVecOffsets,
                                         int32_t ioVecCount,
             [out]                       int32_t* bytesWritten
+        );
+
+        int32_t ocallWasiPathFilestatGet(
+                                int32_t fd,
+            [in, size=pathLen]  char* path,
+                                int32_t pathLen,
+            [out]               uint8_t* wasiFiletype,
+            [out]               uint64_t* st_dev,
+            [out]               uint64_t* st_ino,
+            [out]               uint64_t* st_nlink,
+            [out]               uint64_t* st_size,
+            [out]               uint64_t* st_atim,
+            [out]               uint64_t* st_mtim,
+            [out]               uint64_t* st_ctim
+        );
+
+        int32_t ocallWasiPathOpen(
+                                int32_t fdNative,
+                                int32_t lookupFlags,
+            [in, size=pathLen]  char* path,
+                                int32_t pathLen,
+                                int32_t openFlags,
+                                int64_t rightsBase,
+                                int64_t rightsInheriting,
+                                int32_t fdFlags,
+            [out]               int32_t* fdWasm
+        );
+
+        int32_t ocallWasiPathReadlink(
+                                    int32_t fd,
+            [in, size=pathLen]      char* path,
+                                    int32_t pathLen,
+            [in, out, size=bufLen]  char* buf,
+                                    int32_t bufLen,
+            [out]                   int32_t* resBytesUsed
+        );
+
+        int32_t ocallWasiPathRename(
+                                    int32_t oldFd,
+            [in, size=oldPathLen]   char* oldPath,
+                                    int32_t oldPathLen,
+                                    int32_t newFd,
+            [in, size=newPathLen]   char* newPath,
+                                    int32_t newPathLen
+        );
+
+        int32_t ocallWasiPathUnlinkFile(
+                                int32_t fd,
+            [in, size=pathLen]  char* path,
+                                int32_t pathLen
         );
 
         // ----- S3 Calls -----

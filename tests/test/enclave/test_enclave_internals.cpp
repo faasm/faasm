@@ -23,12 +23,11 @@ class SgxInternalTestFixture : public FunctionExecTestFixture
     void doSgxInternalTest(const std::string& testName)
     {
         faasm_sgx_status_t returnValue;
-        sgx_status_t sgxReturnValue =
-          ecallRunInternalTest(enclaveInterface.getEnclaveId(),
-                               &returnValue,
-                               testName.c_str());
-        sgx::processECallErrors(
-          "Error running internal test: hello-world", sgxReturnValue, returnValue);
+        sgx_status_t sgxReturnValue = ecallRunInternalTest(
+          enclaveInterface.getEnclaveId(), &returnValue, testName.c_str());
+        sgx::processECallErrors("Error running internal test: hello-world",
+                                sgxReturnValue,
+                                returnValue);
         REQUIRE(returnValue == FAASM_SGX_SUCCESS);
     }
 
