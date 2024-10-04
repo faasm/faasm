@@ -7,6 +7,12 @@
 
 namespace sgx {
 
+// Get QE target info
+sgx_target_info_t getQuotingEnclaveTargetInfo();
+
+// Given an SGX report, get a quote from the Quoting Enclave
+std::vector<uint8_t> getQuoteFromReport(sgx_report_t report);
+
 // An enclave report is a signed measure of the enclave's memory contents. To
 // remotely attest the enclave report, it needs to be signed again by the
 // Quoting Enclave (QE), a (unique) Intel-provisioned enclave running in the

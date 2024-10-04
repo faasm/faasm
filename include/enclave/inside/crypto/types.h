@@ -3,6 +3,16 @@
 #include <sgx_tcrypto.h>
 
 // --------------------------------------
+// Public/Private Keys
+//
+// For performance reasons, we use ECC256
+// --------------------------------------
+
+typedef sgx_ec256_private_t FaasmPrivateKey;
+typedef sgx_ec256_public_t FaasmPublicKey;
+typedef sgx_ecc_state_handle_t FaasmKeyContext;
+
+// --------------------------------------
 // Symmetric Encryption types
 // --------------------------------------
 
