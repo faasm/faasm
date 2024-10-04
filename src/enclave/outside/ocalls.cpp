@@ -1,5 +1,7 @@
 #include <enclave/common.h>
 #include <enclave/outside/EnclaveInterface.h>
+#include <enclave/outside/attestation/AzureAttestationServiceClient.h>
+#include <enclave/outside/attestation/attestation.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
 #include <faabric/executor/ExecutorContext.h>
@@ -9,6 +11,15 @@
 
 #include <cstring>
 #include <optional>
+
+#ifdef FAASM_SGX_HARDWARE_MODE
+// #include <dlfcn.h>
+// #include <openssl/evp.h>
+#include <sgx_dcap_ql_wrapper.h>
+#include <sgx_ql_lib_common.h>
+// #include <sgx_report.h>
+// #include <sgx_urts.h>
+#endif
 
 // TODO: cannot seem to include the WAMR file with the WASI types, as it seems
 // to clash with some SGX definitions
@@ -653,5 +664,46 @@ extern "C"
         std::memcpy(buffer, data.data(), data.size());
 
         return data.size();
+    }
+
+    // ----- Attestation Calls -----
+
+    int32_t ocallAttGetQETargetInfo(void* buffer,
+                                    int32_t bufferSize)
+    {
+        sgx_target_info_t targetInfo = sgx::getQuotingEnclaveTargetInfo();
+
+        // Copy into enclave-provided buffer
+        assert(bufferSize == sizeof(targetInfo));
+        std::memcpy(buffer, &targetInfo, bufferSize);
+
+        return 0;
+    }
+
+    int32_t ocallAttValidateQuote(sgx_report_t report, int32_t* jwtResponseSize)
+    {
+        // First, generate quote
+        auto quoteBuffer = sgx::getQuoteFromReport(report);
+
+        // Now, validate it with the attestation service in Azure
+        sgx::AzureAttestationServiceClient aaClient(conf::getFaasmConfig().attestationProviderUrl);
+        std::string jwtResponse = aaClient.attestEnclave(quoteBuffer, report);
+        std::string jwt = aaClient.getTokenFromJwtResponse(jwtResponse);
+
+        // TODO: MAA should encrypt something using our public key
+
+        // JWTs tend to be rather large, so we always copy them using an ECall
+        faasm_sgx_status_t returnValue;
+        auto enclaveId =
+          wasm::getExecutingEnclaveInterface()->getEnclaveId();
+        sgx_status_t sgxReturnValue = ecallCopyDataIn(
+          enclaveId, &returnValue, (uint8_t*) jwt.c_str(), jwt.size());
+        sgx::processECallErrors("Error trying to copy data into enclave",
+                                sgxReturnValue,
+                                returnValue);
+
+        *jwtResponseSize = jwt.size();
+
+        return 0;
     }
 }

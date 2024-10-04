@@ -25,6 +25,44 @@ static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
     EVP_MD_CTX_free(ctx);
 }
 
+sgx_target_info_t getQuotingEnclaveTargetInfo()
+{
+    sgx_target_info_t targetInfo;
+    quote3_error_t qeReturnValue =
+      sgx_qe_get_target_info(&targetInfo);
+
+    if (qeReturnValue != SGX_QL_SUCCESS) {
+        SPDLOG_ERROR("Error getting the quoting enclave's info: 0x{:04X}",
+                     qeReturnValue);
+        throw std::runtime_error("Error getting the QE's info");
+    }
+
+    return targetInfo;
+}
+
+std::vector<uint8_t> getQuoteFromReport(sgx_report_t enclaveReport)
+{
+    uint32_t quoteSize = 0;
+    quote3_error_t qeReturnValue = sgx_qe_get_quote_size(&quoteSize);
+    if (qeReturnValue != SGX_QL_SUCCESS) {
+        SPDLOG_ERROR("Error getting enclave'squote size: 0x{:04X}",
+                     qeReturnValue);
+        throw std::runtime_error("Error getting enclave's quote size");
+    }
+
+    std::vector<uint8_t> quoteBuffer(quoteSize, 0);
+    qeReturnValue =
+      sgx_qe_get_quote(&enclaveReport, quoteSize, quoteBuffer.data());
+    if (qeReturnValue != SGX_QL_SUCCESS) {
+        SPDLOG_ERROR("Error in getting enclave's quote: 0x{:04X}",
+                     qeReturnValue);
+        throw std::runtime_error("Error getting enclave's quote");
+    }
+
+    return quoteBuffer;
+}
+
+
 // To generate an enclave quote we need to do four steps:
 // 1. Query the state of the Quoting Enclave (QE)
 // 2. Generate the enclave report
@@ -36,23 +74,15 @@ EnclaveInfo generateQuote(int enclaveId,
                           const std::vector<uint8_t>& enclaveHeldData)
 {
     // Step 1: query the state of the Quoting Enclave (QE)
-    sgx_target_info_t quotingEnclaveTargetInfo;
-    quote3_error_t qeReturnValue =
-      sgx_qe_get_target_info(&quotingEnclaveTargetInfo);
-    if (qeReturnValue != SGX_QL_SUCCESS) {
-        SPDLOG_ERROR("Error getting the quoting enclave's info: 0x{:04X}",
-                     qeReturnValue);
-        throw std::runtime_error("Error getting the QE's info");
-    }
-    SPDLOG_DEBUG("Success communicating with the Quoting Enclave");
+    sgx_target_info_t quotingEnclaveTargetInfo = getQuotingEnclaveTargetInfo();
 
     // The enclave held data is an additional piece of information that can be
     // included as part of the attestation process
     sgx_report_data_t enclaveHeldDataHashed;
     sha256sum(
-      &enclaveHeldData[0], enclaveHeldData.size(), enclaveHeldDataHashed.d);
+      enclaveHeldData.data(), enclaveHeldData.size(), enclaveHeldDataHashed.d);
 
-    // Step 2: generate the enclave report
+    // Generate enclave report
     sgx_report_t enclaveReport;
     faasm_sgx_status_t returnValue;
     sgx_status_t sgxReturnValue = ecallCreateReport(enclaveId,
@@ -62,29 +92,12 @@ EnclaveInfo generateQuote(int enclaveId,
                                                     &enclaveReport);
     if (sgxReturnValue != SGX_SUCCESS) {
         SPDLOG_ERROR("Error creating enclave's report: 0x{:04X}",
-                     qeReturnValue);
+                     sgxReturnValue);
         throw std::runtime_error("Error creating enclave's report");
     }
     SPDLOG_DEBUG("Success generating enclave's report");
 
-    // Step 3: prepare the enclave quote buffer
-    uint32_t quoteSize = 0;
-    qeReturnValue = sgx_qe_get_quote_size(&quoteSize);
-    if (qeReturnValue != SGX_QL_SUCCESS) {
-        SPDLOG_ERROR("Error getting enclave'squote size: 0x{:04X}",
-                     qeReturnValue);
-        throw std::runtime_error("Error getting enclave's quote size");
-    }
-
-    // Step 4: send the enclave report to the QE to get the quote in return
-    std::vector<uint8_t> quoteBuffer(quoteSize, 0);
-    qeReturnValue =
-      sgx_qe_get_quote(&enclaveReport, quoteSize, &quoteBuffer[0]);
-    if (qeReturnValue != SGX_QL_SUCCESS) {
-        SPDLOG_ERROR("Error in getting enclave's quote: 0x{:04X}",
-                     qeReturnValue);
-        throw std::runtime_error("Error getting enclave's quote");
-    }
+    auto quoteBuffer = getQuoteFromReport(enclaveReport);
 
     // Wrap the received information in a convinient wrapper
     EnclaveInfo enclaveInfo(enclaveReport, quoteBuffer, enclaveHeldData);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <enclave/inside/crypto/types.h>
 #include <wamr/WAMRModuleMixin.h>
 
 #include <iwasm/aot/aot_runtime.h>
@@ -96,6 +97,10 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     uint8_t* dataXferAuxPtr = nullptr;
     size_t dataXferAuxSize = 0;
 
+    // ---- Crypto management ----
+
+    FaasmPublicKey getPubKey() { return publicKey; }
+
   private:
     char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
 
@@ -123,6 +128,11 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     // Memory management
     uint32_t currentBrk = 0;
+
+    // Cypto
+    FaasmKeyContext keyContext;
+    FaasmPrivateKey privateKey;
+    FaasmPublicKey publicKey;
 };
 
 // Data structure to keep track of the module currently loaded in the enclave.
