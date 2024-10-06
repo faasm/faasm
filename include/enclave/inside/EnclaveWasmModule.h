@@ -95,6 +95,9 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     FaasmPublicKey getPubKey() { return publicKey; }
 
+    // SGX
+    std::shared_ptr<sgx_report_t> cachedSgxReport = nullptr;
+
   private:
     char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
 
