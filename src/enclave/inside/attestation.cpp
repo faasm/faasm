@@ -1,6 +1,8 @@
 #include <enclave/inside/EnclaveWasmModule.h>
 #include <enclave/inside/native.h>
 
+#include <memory>
+
 #include <sgx_report.h>
 #include <sgx_utils.h>
 
@@ -61,6 +63,12 @@ static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv, int32_t* 
     sgxReturnValue =
       sgx_create_report(&quotingEnclaveTargetInfo, &enclaveData, &enclaveReport);
 
+    // Cache it for further (re)use
+    if (wasmModule->cachedSgxReport == nullptr) {
+        wasmModule->cachedSgxReport = std::make_shared<sgx_report_t>();
+        std::memcpy(wasmModule->cachedSgxReport.get(), &enclaveReport, sizeof(sgx_report_t));
+    }
+
     switch (sgxReturnValue) {
         case SGX_SUCCESS:
             break;
@@ -108,8 +116,6 @@ static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv, int32_t* 
     wasmModule->dataXferPtr = nullptr;
     wasmModule->dataXferSize = 0;
 
-    SPDLOG_DEBUG_SGX("native ptr: %s\n", (char*) nativePtr);
-
     int32_t* newJwtPtr =
           (int32_t*)wasmModule->wasmOffsetToNativePointer(jwtPtrOffset);
     *newJwtPtr = wasmOffset;
@@ -117,12 +123,40 @@ static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv, int32_t* 
     int32_t* newJwtSizePtr =
           (int32_t*)wasmModule->wasmOffsetToNativePointer(jwtSizeOffset);
     *newJwtSizePtr = jwtResponseSize;
+}
 
-    SPDLOG_DEBUG_SGX("soo far soo good");
+static void tless_get_mrenclave_wrapper(wasm_exec_env_t execEnv, int32_t* buf, int32_t bufSize)
+{
+    auto wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
+
+    // We know the size of the MRENCLAVE at compile time (it is a SHA256 digest)
+    // so we don't need to do any heap allocations outside WASM. WASM code
+    // can already pre-allocate the right buffer.
+    assert(bufSize == sizeof(sgx_measurement_t));
+    assert(bufSize == sizeof(wasmModule->cachedSgxReport->body.mr_enclave));
+
+    if (wasmModule->cachedSgxReport == nullptr) {
+        SPDLOG_ERROR_SGX("Trying to get MR ENCLAVE but no cached report!");
+        auto exc = std::runtime_error("Cannot find cached SGX report!");
+        wasmModule->doThrowException(exc);
+    }
+
+    std::memcpy(buf, &wasmModule->cachedSgxReport->body.mr_enclave, sizeof(sgx_measurement_t));
+}
+
+static int32_t tless_is_enabled_wrapper(wasm_exec_env_t execEnv)
+{
+    auto wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
+
+    // TODO: finish me
+
+    return 0;
 }
 
 static NativeSymbol funcsNs[] = {
     REG_FAASM_NATIVE_FUNC(tless_get_attestation_jwt, "(**)"),
+    REG_FAASM_NATIVE_FUNC(tless_get_mrenclave, "(*i)"),
+    REG_FAASM_NATIVE_FUNC(tless_is_enabled, "()i"),
 };
 
 uint32_t getFaasmAttestationApi(NativeSymbol** nativeSymbols)
