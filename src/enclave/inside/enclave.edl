@@ -26,9 +26,8 @@ enclave{
         public faasm_sgx_status_t ecallDoBindToFunction(
             [in, string]                const char* user,
             [in, string]                const char* func,
-            [in, size=wasmOpCodeSize]   void *wasmOpCodePtr,
-                                        uint32_t wasmOpCodeSize,
-                                        uint32_t faasletId
+            [in, size=wasmBytesSize]    void *wasmBytes,
+                                        uint32_t wasmBytesSize
         );
 
         public faasm_sgx_status_t ecallCallFunction(

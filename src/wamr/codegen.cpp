@@ -5,7 +5,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <stdexcept>
-#include <type_traits>
 
 #include <aot_export.h>
 #include <wasm_export.h>
@@ -74,14 +73,10 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
     option.enable_ref_types = true;
     option.is_jit_mode = false;
     option.enable_simd = true;
-    option.enable_ref_types = true;
-    // TODO: this option breaks chaining by pointer
-    // option.segue_flags = 0x1F1F;
 
     if (isSgx) {
         option.size_level = 1;
         option.is_sgx_platform = true;
-        option.enable_thread_mgr = false;
     }
 
     using aot_comp_context =

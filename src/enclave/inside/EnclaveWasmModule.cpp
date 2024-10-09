@@ -64,23 +64,23 @@ bool EnclaveWasmModule::reset()
     }
 
     SPDLOG_DEBUG_SGX(
-      "SSGX-WAMR resetting after %s/%s", user.c_str(), function.c_str());
+      "SGX-WAMR resetting after %s/%s", user.c_str(), function.c_str());
     wasm_runtime_deinstantiate(moduleInstance);
     sucess = bindInternal();
 
     return sucess;
 }
 
-bool EnclaveWasmModule::doBindToFunction(void* wasmOpCodePtr,
-                                         uint32_t wasmOpCodeSize)
+bool EnclaveWasmModule::doBindToFunction(void* wasmBytesPtr,
+                                         uint32_t wasmBytesSize)
 {
     if (_isBound) {
         SPDLOG_ERROR_SGX("EnclaveWasmModule already bound!");
         return false;
     }
 
-    std::vector<uint8_t> wasmBytes((uint8_t*)wasmOpCodePtr,
-                                   (uint8_t*)wasmOpCodePtr + wasmOpCodeSize);
+    std::vector<uint8_t> wasmBytes((uint8_t*)wasmBytesPtr,
+                                   (uint8_t*)wasmBytesPtr + wasmBytesSize);
 
     wasmModule = wasm_runtime_load(
       wasmBytes.data(), wasmBytes.size(), errorBuffer, WAMR_ERROR_BUFFER_SIZE);
