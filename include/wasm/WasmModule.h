@@ -16,8 +16,6 @@
 #include <mutex>
 #include <string>
 #include <sys/uio.h>
-#include <thread>
-#include <tuple>
 
 namespace wasm {
 
