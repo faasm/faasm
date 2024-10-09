@@ -64,7 +64,7 @@ bool EnclaveWasmModule::reset()
     }
 
     SPDLOG_DEBUG_SGX(
-      "SGX-WAMR resetting after %s/%s", user.c_str(), function.c_str());
+      "SSGX-WAMR resetting after %s/%s", user.c_str(), function.c_str());
     wasm_runtime_deinstantiate(moduleInstance);
     sucess = bindInternal();
 
@@ -86,8 +86,10 @@ bool EnclaveWasmModule::doBindToFunction(void* wasmOpCodePtr,
       wasmBytes.data(), wasmBytes.size(), errorBuffer, WAMR_ERROR_BUFFER_SIZE);
 
     if (wasmModule == nullptr) {
-        SPDLOG_ERROR_SGX(
-          "Error loading WASM for %s/%s: %s", user.c_str(), function.c_str(), errorBuffer);
+        SPDLOG_ERROR_SGX("Error loading WASM for %s/%s: %s",
+                         user.c_str(),
+                         function.c_str(),
+                         errorBuffer);
         return false;
     }
 
