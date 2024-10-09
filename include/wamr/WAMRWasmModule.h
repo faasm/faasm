@@ -72,7 +72,7 @@ class WAMRWasmModule final
     void destroyThreadsExecEnv(bool destroyMainExecEnv = false);
 
     // ----- Exception handling -----
-    void doThrowException(std::exception& e) override;
+    void doThrowException(std::exception& exc) override;
 
     // ----- Helper functions -----
     void writeWasmEnvToWamrMemory(uint32_t* envOffsetsWasm, char* envBuffWasm);
@@ -82,7 +82,7 @@ class WAMRWasmModule final
     uint8_t* wasmPointerToNative(uint32_t wasmPtr) override;
 
     // ----- Memory management -----
-    uint32_t mmapFile(uint32_t fp, size_t length) override;
+    uint32_t mmapFile(uint32_t hostFd, size_t length) override;
 
     size_t getMemorySizeBytes() override;
 

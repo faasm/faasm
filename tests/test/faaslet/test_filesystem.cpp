@@ -59,6 +59,16 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
 {
     auto req = setUpContext("demo", "listdir");
 
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
+
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
+
     executeWithPool(req);
 }
 

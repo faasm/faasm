@@ -671,32 +671,32 @@ bool WAMRWasmModule::executeCatchException(int threadPoolIdx,
 // Exception handling
 // -----
 
-void WAMRWasmModule::doThrowException(std::exception& e)
+void WAMRWasmModule::doThrowException(std::exception& exc)
 {
     // Switch over the different exception types we support. Unfortunately,
     // the setjmp/longjmp mechanism to catch C++ exceptions only lets us
     // change the return value of setjmp, but we can't propagate the string
     // associated to the exception
-    if (dynamic_cast<faabric::util::FunctionMigratedException*>(&e) !=
+    if (dynamic_cast<faabric::util::FunctionMigratedException*>(&exc) !=
         nullptr) {
         // Make sure to explicitly call the exceptions destructor explicitly
         // to avoid memory leaks when longjmp-ing
-        e.~exception();
+        exc.~exception();
         longjmp(wamrExceptionJmpBuf,
                 WAMRExceptionTypes::FunctionMigratedException);
-    } else if (dynamic_cast<faabric::util::FunctionFrozenException*>(&e) !=
+    } else if (dynamic_cast<faabric::util::FunctionFrozenException*>(&exc) !=
                nullptr) {
         // Make sure to explicitly call the exceptions destructor explicitly
         // to avoid memory leaks when longjmp-ing
-        e.~exception();
+        exc.~exception();
         longjmp(wamrExceptionJmpBuf,
                 WAMRExceptionTypes::FunctionFrozenException);
-    } else if (dynamic_cast<faabric::util::QueueTimeoutException*>(&e) !=
+    } else if (dynamic_cast<faabric::util::QueueTimeoutException*>(&exc) !=
                nullptr) {
-        e.~exception();
+        exc.~exception();
         longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::QueueTimeoutException);
     } else {
-        e.~exception();
+        exc.~exception();
         longjmp(wamrExceptionJmpBuf, WAMRExceptionTypes::DefaultException);
     }
 }
@@ -764,9 +764,20 @@ std::vector<std::string> WAMRWasmModule::getArgv()
     return argv;
 }
 
-uint32_t WAMRWasmModule::mmapFile(uint32_t fp, size_t length)
+uint32_t WAMRWasmModule::mmapFile(uint32_t hostFd, size_t length)
 {
-    // TODO - implement
-    return 0;
+    // Create a new memory region in WASM
+    int32_t wasmOffset = mmapMemory(length);
+    uint8_t* nativePtr = wasmPointerToNative(wasmOffset);
+
+    // Instead of ::munmap + ::map with a fd (which is not too robust), just
+    // read the file contents into our newly mmap-ed memory
+    auto bytesRead = read(hostFd, nativePtr, length);
+    if (bytesRead == -1) {
+        SPDLOG_ERROR("Error reading from fd {}", hostFd);
+        throw std::runtime_error("Error reading from file descriptor");
+    }
+
+    return wasmOffset;
 }
 }
