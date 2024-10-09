@@ -87,7 +87,7 @@ bool EnclaveWasmModule::doBindToFunction(void* wasmOpCodePtr,
 
     if (wasmModule == nullptr) {
         SPDLOG_ERROR_SGX(
-          "Error loading WASM for %s/%s", user.c_str(), function.c_str());
+          "Error loading WASM for %s/%s: %s", user.c_str(), function.c_str(), errorBuffer);
         return false;
     }
 
@@ -111,9 +111,10 @@ bool EnclaveWasmModule::bindInternal()
       wasmModule, WAMR_STACK_SIZE, 0, errorBuffer, WAMR_ERROR_BUFFER_SIZE);
 
     if (moduleInstance == nullptr) {
-        SPDLOG_ERROR_SGX("Null-pointing module instance for %s/%s",
+        SPDLOG_ERROR_SGX("Null-pointing module instance for %s/%s: %s",
                          user.c_str(),
-                         function.c_str());
+                         function.c_str(),
+                         errorBuffer);
         return false;
     }
 
@@ -165,7 +166,7 @@ int EnclaveWasmModule::executeWasmFunction(const std::string& funcName)
                      funcName.c_str());
 
     WASMFunctionInstanceCommon* func =
-      wasm_runtime_lookup_function(moduleInstance, funcName.c_str(), nullptr);
+      wasm_runtime_lookup_function(moduleInstance, funcName.c_str());
     if (func == nullptr) {
         SPDLOG_ERROR_SGX("Did not find function %s", funcName.c_str());
         throw std::runtime_error("Did not find named wasm function");
