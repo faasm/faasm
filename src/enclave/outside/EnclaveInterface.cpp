@@ -79,8 +79,7 @@ void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
                                                 msg.user().c_str(),
                                                 msg.function().c_str(),
                                                 (void*)wasmBytes.data(),
-                                                (uint32_t)wasmBytes.size(),
-                                                interfaceId);
+                                                (uint32_t)wasmBytes.size());
     processECallErrors("Unable to enter enclave", status, returnValue);
 
     // Set up the thread stacks

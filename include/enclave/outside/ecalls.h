@@ -25,9 +25,8 @@ extern "C"
                                               faasm_sgx_status_t* retVal,
                                               const char* user,
                                               const char* func,
-                                              const void* wasmOpCodePtr,
-                                              const uint32_t wasmOpCodeSize,
-                                              uint32_t faasletId);
+                                              const void* wasmBytes,
+                                              uint32_t wasmBytesSize);
 
     extern sgx_status_t ecallDestroyModule(sgx_enclave_id_t enclaveId,
                                            faasm_sgx_status_t* retVal,

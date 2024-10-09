@@ -193,7 +193,7 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
         faasmConf.wasmVm = "wamr";
     }
 
-#ifndef FAASM_SGX_DISABLED_MODE
+#ifdef FAASM_SGX_HARDWARE_MODE
     SECTION("SGX")
     {
         faasmConf.wasmVm = "sgx";
@@ -270,5 +270,79 @@ TEST_CASE_METHOD(FunctionExecTestFixture,
     }
 
     REQUIRE(failed);
+}
+
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test memcpy", "[memory]")
+{
+    auto req = setUpContext("demo", "memcpy");
+
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
+
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
+
+#ifdef FAASM_SGX_HARDWARE_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
+    executeWithPool(req);
+}
+
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
+                 "Test memmove",
+                 "[memory]")
+{
+    auto req = setUpContext("demo", "memmove");
+
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
+
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
+
+#ifdef FAASM_SGX_HARDWARE_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
+    executeWithPool(req);
+}
+
+TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture, "Test calloc", "[memory]")
+{
+    auto req = setUpContext("demo", "calloc");
+
+    SECTION("WAVM")
+    {
+        faasmConf.wasmVm = "wavm";
+    }
+
+    SECTION("WAMR")
+    {
+        faasmConf.wasmVm = "wamr";
+    }
+
+#ifdef FAASM_SGX_HARDWARE_MODE
+    SECTION("SGX")
+    {
+        faasmConf.wasmVm = "sgx";
+    }
+#endif
+
+    executeWithPool(req);
 }
 }

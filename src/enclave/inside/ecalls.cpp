@@ -56,25 +56,26 @@ extern "C"
 
     faasm_sgx_status_t ecallDoBindToFunction(const char* user,
                                              const char* func,
-                                             void* wasmOpCodePtr,
-                                             uint32_t wasmOpCodeSize,
-                                             uint32_t faasletId)
+                                             void* wasmBytes,
+                                             uint32_t wasmBytesSize)
     {
-        SPDLOG_DEBUG_SGX("Binding to %s/%s (%i)", user, func, faasletId);
+        SPDLOG_DEBUG_SGX("Binding to %s/%s", user, func);
 
         // Check if passed wasm opcode size or wasm opcode ptr is zero
-        if (!wasmOpCodeSize) {
+        if (!wasmBytesSize) {
             return FAASM_SGX_INVALID_OPCODE_SIZE;
         }
-        if (!wasmOpCodePtr) {
+        if (!wasmBytes) {
             return FAASM_SGX_INVALID_PTR;
         }
+
+        SPDLOG_DEBUG_SGX("module has size: %u", wasmBytesSize);
 
         wasm::enclaveWasmModule =
           std::make_shared<wasm::EnclaveWasmModule>(user, func);
 
-        if (!wasm::enclaveWasmModule->doBindToFunction(wasmOpCodePtr,
-                                                       wasmOpCodeSize)) {
+        if (!wasm::enclaveWasmModule->doBindToFunction(wasmBytes,
+                                                       wasmBytesSize)) {
             SPDLOG_ERROR_SGX(
               "Error binding SGX-WAMR module to %s/%s", user, func);
             return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
