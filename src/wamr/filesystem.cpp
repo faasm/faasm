@@ -295,13 +295,28 @@ static int32_t wasi_fd_read(wasm_exec_env_t exec_env,
 }
 
 static int32_t wasi_fd_readdir(wasm_exec_env_t exec_env,
-                               int32_t a,
-                               int32_t* b,
-                               char* c,
-                               int64_t d,
-                               int32_t e)
+                               int32_t wasmFd,
+                               uint8_t* buffer,
+                               int32_t bufLen,
+                               int64_t startCookie,
+                               int32_t* resPtr)
 {
-    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("fd_readdir");
+    auto& fileDesc =
+      getExecutingWAMRModule()->getFileSystem().getFileDescriptor(wasmFd);
+    SPDLOG_TRACE("S - fd_readdir {}", wasmFd);
+
+    bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
+    if (fileDesc.iterStarted() && isStartCookie) {
+        // Return invalid if we've already started the iterator but also get the
+        // start cookie
+        return __WASI_EINVAL;
+    }
+    if (!fileDesc.iterStarted() && !isStartCookie) {
+        throw std::runtime_error(
+          "No directory iterator exists, and this is not the start cookie");
+    }
+
+    *resPtr = fileDesc.copyDirentsToWasiBuffer(buffer, bufLen);
 
     return 0;
 }
