@@ -1,2 +1,4 @@
 # Silence UB in cpprestsdk after version upgrade
 vptr:include/cpprest/astreambuf.h
+# UB in WAMR's internal struct alignment
+alignment:wasm::getFuncTypeFromFuncPtr

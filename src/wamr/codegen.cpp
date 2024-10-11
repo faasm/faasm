@@ -5,7 +5,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <stdexcept>
-#include <type_traits>
 
 #include <aot_export.h>
 #include <wasm_export.h>
@@ -51,10 +50,8 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
 
     using aot_comp_data = std::pointer_traits<aot_comp_data_t>::element_type;
     std::unique_ptr<aot_comp_data, decltype(&aot_destroy_comp_data)>
-      compileData(aot_create_comp_data(wasmModule.get()),
+      compileData(aot_create_comp_data(wasmModule.get(), "x86_64", false),
                   &aot_destroy_comp_data);
-    // TODO(wamr-bump): replace by
-    // compileData(aot_create_comp_data(wasmModule.get(), "x86_64", false),
     if (compileData == nullptr) {
         SPDLOG_ERROR("WAMR failed to create compilation data: {}",
                      aot_get_last_error());
@@ -76,13 +73,14 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
     option.enable_ref_types = true;
     option.is_jit_mode = false;
     option.enable_simd = true;
-    option.enable_ref_types = true;
-    // TODO: this option breaks chaining by pointer
-    // option.segue_flags = 0x1F1F;
 
     if (isSgx) {
-        option.size_level = 1;
+        // Setting size_level = 1 sometimes gives errors during re-location
+        // due to the size of the .rodata. This temporarily fixes it, but i
+        // may be just a temporary workaround
+        option.size_level = 0;
         option.is_sgx_platform = true;
+        option.enable_thread_mgr = false;
     }
 
     using aot_comp_context =

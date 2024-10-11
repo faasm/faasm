@@ -105,6 +105,13 @@ extern "C"
                                                   int32_t ioVecCount,
                                                   int32_t* bytesWritten);
 
+    extern sgx_status_t SGX_CDECL ocallWasiFdReadDir(int32_t* returnValue,
+                                                     int32_t wasmFd,
+                                                     char* buf,
+                                                     uint32_t bufLen,
+                                                     int64_t startCookie,
+                                                     int32_t* resSizePtr);
+
     extern sgx_status_t SGX_CDECL ocallWasiFdSeek(int32_t* returnValue,
                                                   int32_t wasmFd,
                                                   int64_t offset,

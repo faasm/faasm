@@ -26,9 +26,8 @@ enclave{
         public faasm_sgx_status_t ecallDoBindToFunction(
             [in, string]                const char* user,
             [in, string]                const char* func,
-            [in, size=wasmOpCodeSize]   void *wasmOpCodePtr,
-                                        uint32_t wasmOpCodeSize,
-                                        uint32_t faasletId
+            [in, size=wasmBytesSize]    void *wasmBytes,
+                                        uint32_t wasmBytesSize
         );
 
         public faasm_sgx_status_t ecallCallFunction(
@@ -139,6 +138,14 @@ enclave{
             [in, out, count=ioVecCount]     int32_t* ioVecOffsets, // in?
                                             int32_t ioVecCount,
             [out]                           int32_t* bytesRead
+        );
+
+        int32_t ocallWasiFdReadDir(
+                                    int32_t wasmFd,
+            [in, out, size=bufLen]  char* buf,
+                                    int32_t bufLen,
+                                    int64_t startCookie,
+            [out]                   int32_t* resSizePtr
         );
 
         int32_t ocallWasiFdSeek(
