@@ -7,11 +7,13 @@
 #include "faasm_fixtures.h"
 
 namespace tests {
-class SgxInternalTestFixture : public FunctionExecTestFixture
+class SgxInternalTestFixture : public MultiRuntimeFunctionExecTestFixture
 {
   public:
     SgxInternalTestFixture()
     {
+        faasmConf.wasmVm = "sgx";
+
         auto req = setUpContext("demo", "hello");
         faabric::Message& call = req->mutable_messages()->at(0);
 
