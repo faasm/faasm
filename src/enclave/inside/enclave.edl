@@ -45,8 +45,10 @@ enclave{
         // As a consequence, if we need to transfer large amounts of data into
         // the enclave, we need to use an ECall, and not a pointer in an OCall.
         public faasm_sgx_status_t ecallCopyDataIn(
-            [in, size=bufferSize]   uint8_t* buffer,
-            uint32_t                bufferSize
+            [in, size=bufferSize]       uint8_t* buffer,
+                                        uint32_t bufferSize,
+            [in, size=auxBufferSize]    uint8_t* auxBuffer,
+                                        uint32_t auxBufferSize
         );
 
         public faasm_sgx_status_t ecallRunInternalTest(

@@ -524,9 +524,13 @@ extern "C"
         // First, calculate the total amount of data to transfer to know if the
         // OCall buffer will be enough or not
         size_t totalSize = 0;
+        size_t totalLensSize = 0;
         for (const auto& key : keysList) {
             totalSize += key.size();
+            totalLensSize += sizeof(int32_t);
         }
+
+        SPDLOG_WARN("total size: {} - total lens size: {}", totalSize, totalLensSize);
 
         // If we need to use an ECall to transfer data overwrite the provided
         // buffer by a big-enough buffer. Part of it will still be copied as
@@ -535,6 +539,15 @@ extern "C"
         if (mustUseECall) {
             buffer = (uint8_t*)faabric::util::malloc(totalSize);
         }
+
+        // We may also need to use an aux. ECall to transfer the lengths of
+        // all keys. This may happen if we have many keys
+        bool mustUseAuxECall = totalLensSize > MAX_OCALL_BUFFER_SIZE;
+        if (mustUseAuxECall) {
+            bufferLens = (uint8_t*)faabric::util::malloc(totalLensSize);
+        }
+
+        SPDLOG_DEBUG("will use: (ecall: {}) (aux ecall: {})", mustUseECall, mustUseAuxECall);
 
         size_t writtenOffset = 0;
         for (int i = 0; i < keysList.size(); i++) {
@@ -552,12 +565,32 @@ extern "C"
             faasm_sgx_status_t returnValue;
             auto enclaveId =
               wasm::getExecutingEnclaveInterface()->getEnclaveId();
-            sgx_status_t sgxReturnValue =
-              ecallCopyDataIn(enclaveId, &returnValue, buffer, totalSize);
+            mustUseAuxECall = false;
+            sgx_status_t sgxReturnValue = ecallCopyDataIn(
+                enclaveId,
+                &returnValue,
+                buffer,
+                totalSize + totalLensSize,
+                mustUseAuxECall ? bufferLens : nullptr,
+                mustUseAuxECall ? totalLensSize : 0
+            );
             sgx::processECallErrors("Error trying to copy data into enclave",
                                     sgxReturnValue,
                                     returnValue);
         }
+
+        /*
+        if (mustUseAuxECall) {
+            faasm_sgx_status_t returnValue;
+            auto enclaveId =
+              wasm::getExecutingEnclaveInterface()->getEnclaveId();
+            sgx_status_t sgxReturnValue =
+              ecallCopyDataIn(enclaveId, &returnValue, bufferLens, totalLensSize, true);
+            sgx::processECallErrors("Error trying to copy data into enclave",
+                                    sgxReturnValue,
+                                    returnValue);
+        }
+        */
 
         return keysList.size();
     }
@@ -600,7 +633,7 @@ extern "C"
             auto enclaveId =
               wasm::getExecutingEnclaveInterface()->getEnclaveId();
             sgx_status_t sgxReturnValue = ecallCopyDataIn(
-              enclaveId, &returnValue, data.data(), data.size());
+              enclaveId, &returnValue, data.data(), data.size(), nullptr, 0);
             sgx::processECallErrors("Error trying to copy data into enclave",
                                     sgxReturnValue,
                                     returnValue);

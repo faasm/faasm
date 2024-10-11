@@ -44,12 +44,13 @@ extern "C"
 
     faasm_sgx_status_t ecallReset()
     {
-        if (wasm::enclaveWasmModule == nullptr) {
+        auto* enclaveWasmModule = wasm::getExecutingEnclaveWasmModule();
+        if (enclaveWasmModule == nullptr) {
             ocallLogError("Faaslet not bound to any module!");
             return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }
 
-        wasm::enclaveWasmModule->reset();
+        enclaveWasmModule->reset();
 
         return FAASM_SGX_SUCCESS;
     }
@@ -71,11 +72,8 @@ extern "C"
 
         SPDLOG_DEBUG_SGX("module has size: %u", wasmBytesSize);
 
-        wasm::enclaveWasmModule =
-          std::make_shared<wasm::EnclaveWasmModule>(user, func);
-
-        if (!wasm::enclaveWasmModule->doBindToFunction(wasmBytes,
-                                                       wasmBytesSize)) {
+        auto* enclaveWasmModule = wasm::getExecutingEnclaveWasmModule();
+        if (!enclaveWasmModule->doBindToFunction(user, func, wasmBytes, wasmBytesSize)) {
             SPDLOG_ERROR_SGX(
               "Error binding SGX-WAMR module to %s/%s", user, func);
             return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
@@ -86,13 +84,14 @@ extern "C"
 
     faasm_sgx_status_t ecallDestroyModule(uint32_t faasletId)
     {
-        if (wasm::enclaveWasmModule == nullptr) {
+        auto* enclaveWasmModule = wasm::getExecutingEnclaveWasmModule();
+        if (enclaveWasmModule == nullptr) {
             ocallLogError("Faaslet not bound to any module!");
             return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }
 
         // Call the destructor on the module
-        wasm::enclaveWasmModule.reset();
+        enclaveWasmModule->reset();
 
         return FAASM_SGX_SUCCESS;
     }
@@ -101,15 +100,15 @@ extern "C"
                                          uint32_t argc,
                                          char** argv)
     {
-        if (wasm::enclaveWasmModule == nullptr) {
+        auto* enclaveWasmModule = wasm::getExecutingEnclaveWasmModule();
+        if (enclaveWasmModule == nullptr) {
             ocallLogError("Faaslet not bound to any module!");
             return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }
 
         // Call the function without a lock on the module map, to allow for
         // chaining on the same enclave
-        uint32_t returnValue =
-          wasm::enclaveWasmModule->callFunction(argc, argv);
+        uint32_t returnValue = enclaveWasmModule->callFunction(argc, argv);
         if (returnValue != 0) {
             SPDLOG_ERROR_SGX("Error trying to call function. Return value: %i",
                              returnValue);
@@ -119,27 +118,60 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t ecallCopyDataIn(uint8_t* buffer, uint32_t bufferSize)
+    faasm_sgx_status_t ecallCopyDataIn(
+        uint8_t* buffer, uint32_t bufferSize, uint8_t* auxBuffer, uint32_t auxBufferSize)
     {
-        if (wasm::enclaveWasmModule == nullptr) {
+        auto* enclaveWasmModule = wasm::getExecutingEnclaveWasmModule();
+        if (enclaveWasmModule == nullptr) {
             ocallLogError("Faaslet not bound to any module!");
             return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }
 
-        // TODO: this ECall is triggered by the untrsuted host, so we should
-        // sanitize that we are not malloc-ing something ridiculous. Ideally
-        // we should be able to know the data we expect to receive before
-        // hand, and double-check it here
-        wasm::enclaveWasmModule->dataXferPtr = (uint8_t*)malloc(bufferSize);
-        memcpy(wasm::enclaveWasmModule->dataXferPtr, buffer, bufferSize);
-        wasm::enclaveWasmModule->dataXferSize = bufferSize;
+        void* nativePtr;
+        int wasmOffset = enclaveWasmModule->wasmModuleMalloc(30, &nativePtr);
+        if (nativePtr == nullptr || wasmOffset == 0) {
+            SPDLOG_ERROR_SGX("first ecall malloc failed!");
+        } else {
+            SPDLOG_ERROR_SGX("first ecall malloc succeded!");
+        }
+
+        ocallLogDebug("copy num 1");
+        SPDLOG_DEBUG_SGX("pre-mallocing at ptr %p (size: %i)\n", (void*) enclaveWasmModule->dataXferPtr, bufferSize);
+        enclaveWasmModule->dataXferPtr = (uint8_t*)malloc(bufferSize);
+        SPDLOG_DEBUG_SGX("post-mallocing at ptr %p (size: %i)\n", (void*) enclaveWasmModule->dataXferPtr, bufferSize);
+        memcpy(enclaveWasmModule->dataXferPtr, buffer, bufferSize);
+        enclaveWasmModule->dataXferSize = bufferSize;
+
+        nativePtr = nullptr;
+        wasmOffset = enclaveWasmModule->wasmModuleMalloc(30, &nativePtr);
+        if (nativePtr == nullptr || wasmOffset == 0) {
+            SPDLOG_ERROR_SGX("second ecall malloc failllled!");
+        } else {
+            SPDLOG_ERROR_SGX("second ecall malloc succeded!");
+        }
+
+        if (auxBuffer != nullptr) {
+            ocallLogDebug("copy num 2");
+            enclaveWasmModule->dataXferAuxPtr = (uint8_t*)malloc(auxBufferSize);
+            memcpy(enclaveWasmModule->dataXferAuxPtr, auxBuffer, auxBufferSize);
+            enclaveWasmModule->dataXferAuxSize = auxBufferSize;
+        }
+
+        nativePtr = nullptr;
+        wasmOffset = enclaveWasmModule->wasmModuleMalloc(30, &nativePtr);
+        if (nativePtr == nullptr || wasmOffset == 0) {
+            SPDLOG_ERROR_SGX("third ecall malloc failed!");
+        } else {
+            SPDLOG_ERROR_SGX("third ecall malloc succeded!");
+        }
 
         return FAASM_SGX_SUCCESS;
     }
 
     faasm_sgx_status_t ecallRunInternalTest(const char* testCase)
     {
-        if (wasm::enclaveWasmModule == nullptr) {
+        auto* enclaveWasmModule = wasm::getExecutingEnclaveWasmModule();
+        if (enclaveWasmModule == nullptr) {
             ocallLogError("Faaslet not bound to any module!");
             return FAASM_SGX_WAMR_MODULE_NOT_BOUND;
         }

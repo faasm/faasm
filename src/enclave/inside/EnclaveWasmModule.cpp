@@ -8,7 +8,7 @@
 
 namespace wasm {
 
-std::shared_ptr<wasm::EnclaveWasmModule> enclaveWasmModule = nullptr;
+// std::shared_ptr<wasm::EnclaveWasmModule> enclaveWasmModule = nullptr;
 
 static bool wamrInitialised = false;
 
@@ -43,11 +43,7 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     return success;
 }
 
-EnclaveWasmModule::EnclaveWasmModule(const std::string& user,
-                                     const std::string& func)
-  : user(user)
-  , function(func)
-{}
+EnclaveWasmModule::EnclaveWasmModule() {}
 
 EnclaveWasmModule::~EnclaveWasmModule()
 {
@@ -71,13 +67,18 @@ bool EnclaveWasmModule::reset()
     return sucess;
 }
 
-bool EnclaveWasmModule::doBindToFunction(void* wasmBytesPtr,
+bool EnclaveWasmModule::doBindToFunction(const char* user,
+                                         const char* function,
+                                         void* wasmBytesPtr,
                                          uint32_t wasmBytesSize)
 {
     if (_isBound) {
         SPDLOG_ERROR_SGX("EnclaveWasmModule already bound!");
         return false;
     }
+
+    this->user = std::string(user);
+    this->function = std::string(function);
 
     std::vector<uint8_t> wasmBytes((uint8_t*)wasmBytesPtr,
                                    (uint8_t*)wasmBytesPtr + wasmBytesSize);
@@ -87,15 +88,14 @@ bool EnclaveWasmModule::doBindToFunction(void* wasmBytesPtr,
 
     if (wasmModule == nullptr) {
         SPDLOG_ERROR_SGX("Error loading WASM for %s/%s: %s",
-                         user.c_str(),
-                         function.c_str(),
+                         user,
+                         function,
                          errorBuffer);
         return false;
     }
 
     if (!bindInternal()) {
-        SPDLOG_ERROR_SGX(
-          "Error instantiating WASM for %s/%s", user.c_str(), function.c_str());
+        SPDLOG_ERROR_SGX("Error instantiating WASM for %s/%s", user, function);
         return false;
     }
 
@@ -458,13 +458,16 @@ void EnclaveWasmModule::doThrowException(std::exception& exc) const
     throw exc;
 }
 
-std::shared_ptr<EnclaveWasmModule> getExecutingEnclaveWasmModule(
+EnclaveWasmModule* getExecutingEnclaveWasmModule()
+{
+    static EnclaveWasmModule enclaveWasmModule;
+    return &enclaveWasmModule;
+}
+
+EnclaveWasmModule* getExecutingEnclaveWasmModule(
   wasm_exec_env_t execEnv)
 {
-    if (enclaveWasmModule == nullptr) {
-        ocallLogError("Enclave WASM module has not been initialized!");
-        return nullptr;
-    }
+    auto* enclaveWasmModule = getExecutingEnclaveWasmModule();
 
     // Sanity-check in debug mode
 #ifdef FAASM_SGX_DEBUG

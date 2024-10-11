@@ -105,6 +105,19 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
     }
 }
 
+    // DELETE ME
+static void doRandomMalloc(wasm_exec_env_t execEnv)
+{
+    auto module = wasm::getExecutingEnclaveWasmModule(execEnv);
+    void* nativePtr;
+    int wasmOffset = module->wasmModuleMalloc(30, &nativePtr);
+    if (nativePtr == nullptr || wasmOffset == 0) {
+        SPDLOG_ERROR_SGX("malloc failed!");
+    } else {
+        SPDLOG_ERROR_SGX("malloc succeded!");
+    }
+}
+
 static int32_t faasm_s3_get_num_keys_wrapper(wasm_exec_env_t execEnv,
                                              const char* bucketName)
 {
@@ -117,6 +130,9 @@ static int32_t faasm_s3_get_num_keys_wrapper(wasm_exec_env_t execEnv,
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
+    // DELETE ME
+    doRandomMalloc(execEnv);
+
     return returnValue;
 }
 
@@ -127,6 +143,9 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
 {
     SPDLOG_DEBUG_SGX("S - faasm_s3_list_keys (bucket: %s)", bucketName);
     auto module = wasm::getExecutingEnclaveWasmModule(execEnv);
+
+    // DELETE ME
+    doRandomMalloc(execEnv);
 
     // Get the offset for the buffer pointers so that they are not invalidated
     // after memory growth
@@ -142,6 +161,8 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
     std::vector<uint8_t> tmpBufferLens(bufferLen);
     assert(module->dataXferPtr == nullptr);
     assert(module->dataXferSize == 0);
+    assert(module->dataXferAuxPtr == nullptr);
+    assert(module->dataXferAuxSize == 0);
 
     sgx_status_t sgxReturnValue;
     int32_t returnValue;
@@ -152,6 +173,9 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
                                           bufferLen)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
+
+    // DELETE ME
+    doRandomMalloc(execEnv);
 
     // Work-out if we have had to use an ECall to transfer data in, or we can
     // use the temporary buffer
@@ -166,6 +190,19 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
         readBuffer = tmpBuffer.data();
     }
 
+    // Similarly, work-out if we have also used the auxiliary buffer for the
+    // bufferLens (this may happen if we have a very large number of keys)
+    uint8_t* readBufferLens;
+    bool haveUsedAuxECallTwice =
+      module->dataXferAuxSize != 0 && module->dataXferAuxPtr != nullptr;
+    if (haveUsedAuxECallTwice) {
+        // If we have used the ECall, we need to copy from the heap-allocated
+        // data xfer buffer
+        readBufferLens = module->dataXferAuxPtr;
+    } else {
+        readBufferLens = tmpBufferLens.data();
+    }
+
     // Sanity check that each pointer-to-array is large enough
     module->validateWasmOffset(keysBufferOffset, returnValue * sizeof(char*));
     module->validateWasmOffset(keysBufferLenOffset,
@@ -174,13 +211,16 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
     // Return value holds the number of different keys
     size_t readOffset = 0;
     for (int i = 0; i < returnValue; i++) {
-        int32_t thisKeyLen = *(tmpBufferLens.data() + i * sizeof(int32_t));
+        int32_t thisKeyLen = *(readBufferLens + i * sizeof(int32_t));
 
-        // Allocate memory in WASM's heap to copy the buffer into
+        // Allocate memory in WASM's heap to copy the buffer into. The lengths
+        // buffer is of int32_t, so we were able to allocate the array in the
+        // caller's stack
+        SPDLOG_DEBUG_SGX("allocating for key with length %i", thisKeyLen);
         void* nativePtr = nullptr;
         auto wasmOffset = module->wasmModuleMalloc(thisKeyLen, &nativePtr);
         if (wasmOffset == 0 || nativePtr == nullptr) {
-            SPDLOG_ERROR_SGX("Error allocating memory in WASM module");
+            SPDLOG_ERROR_SGX("Error allocating memory in WASM module: %s", wasm_runtime_get_exception(module->getModuleInstance()));
             auto exc = std::runtime_error("Error allocating memory in module!");
             module->doThrowException(exc);
         }
@@ -207,6 +247,12 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
         free(module->dataXferPtr);
         module->dataXferPtr = nullptr;
         module->dataXferSize = 0;
+    }
+
+    if (haveUsedAuxECallTwice) {
+        free(module->dataXferAuxPtr);
+        module->dataXferAuxPtr = nullptr;
+        module->dataXferAuxSize = 0;
     }
 }
 

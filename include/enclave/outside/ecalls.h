@@ -41,7 +41,9 @@ extern "C"
     extern sgx_status_t ecallCopyDataIn(sgx_enclave_id_t enclaveId,
                                         faasm_sgx_status_t* retVal,
                                         uint8_t* buffer,
-                                        uint32_t bufferSize);
+                                        uint32_t bufferSize,
+                                        uint8_t* auxBuffer,
+                                        uint32_t auxBufferSize);
 
     extern sgx_status_t ecallRunInternalTest(sgx_enclave_id_t enclaveId,
                                              faasm_sgx_status_t* retVal,
