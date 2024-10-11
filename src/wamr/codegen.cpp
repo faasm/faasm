@@ -75,8 +75,12 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
     option.enable_simd = true;
 
     if (isSgx) {
-        option.size_level = 1;
+        // Setting size_level = 1 sometimes gives errors during re-location
+        // due to the size of the .rodata. This temporarily fixes it, but i
+        // may be just a temporary workaround
+        option.size_level = 0;
         option.is_sgx_platform = true;
+        option.enable_thread_mgr = false;
     }
 
     using aot_comp_context =

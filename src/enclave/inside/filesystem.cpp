@@ -241,6 +241,30 @@ static int32_t wasi_fd_read(wasm_exec_env_t execEnv,
     return returnValue;
 }
 
+static int32_t wasi_fd_readdir(wasm_exec_env_t execEnv,
+                               int32_t wasmFd,
+                               char* buf,
+                               uint32_t bufLen,
+                               int64_t startCookie,
+                               int32_t* resSizePtr)
+{
+    SPDLOG_DEBUG_SGX("S - wasi_fd_readdir %i", wasmFd);
+    GET_EXECUTING_MODULE_AND_CHECK(execEnv);
+
+    module->validateNativePointer(reinterpret_cast<void*>(resSizePtr),
+                                  sizeof(int32_t));
+
+    int returnValue;
+    sgx_status_t sgxReturnValue;
+    if ((sgxReturnValue = ocallWasiFdReadDir(
+           &returnValue, wasmFd, buf, bufLen, startCookie, resSizePtr)) !=
+        SGX_SUCCESS) {
+        SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
+    }
+
+    return returnValue;
+}
+
 static int wasi_fd_seek(wasm_exec_env_t execEnv,
                         int32_t wasmFd,
                         int64_t offset,
@@ -557,6 +581,7 @@ static NativeSymbol wasiNs[] = {
     REG_WASI_NATIVE_FUNC(fd_prestat_dir_name, "(i*~)i"),
     REG_WASI_NATIVE_FUNC(fd_prestat_get, "(i*)i"),
     REG_WASI_NATIVE_FUNC(fd_read, "(i*i*)i"),
+    REG_WASI_NATIVE_FUNC(fd_readdir, "(i*~I*)i"),
     REG_WASI_NATIVE_FUNC(fd_seek, "(iIi*)i"),
     REG_WASI_NATIVE_FUNC(fd_write, "(iiii)i"),
     REG_WASI_NATIVE_FUNC(path_filestat_get, "(ii*~*)i"),

@@ -12,8 +12,11 @@
 // TODO: cannot seem to include the WAMR file with the WASI types, as it seems
 // to clash with some SGX definitions
 typedef uint64_t __wasi_filesize_t;
-#define __WASI_ESUCCESS (0)
+#define __WASI_DIRCOOKIE_START (0)
+
 #define __WASI_EBADF (8)
+#define __WASI_EINVAL (28)
+#define __WASI_ESUCCESS (0)
 
 using namespace faabric::executor;
 
@@ -265,6 +268,36 @@ extern "C"
         // Do the read
         *bytesRead =
           ::readv(fileDesc.getLinuxFd(), ioVecNative.data(), ioVecCount);
+
+        return __WASI_ESUCCESS;
+    }
+
+    int32_t ocallWasiFdReadDir(int32_t wasmFd,
+                               char* buf,
+                               int32_t bufLen,
+                               int64_t startCookie,
+                               int32_t* resSizePtr)
+    {
+        auto* enclaveInt = wasm::getExecutingEnclaveInterface();
+        auto& fileSystem = enclaveInt->getFileSystem();
+        std::string path = fileSystem.getPathForFd(wasmFd);
+        storage::FileDescriptor& fileDesc =
+          fileSystem.getFileDescriptor(wasmFd);
+
+        bool isStartCookie = startCookie == __WASI_DIRCOOKIE_START;
+        if (fileDesc.iterStarted() && isStartCookie) {
+            // Return invalid if we've already started the iterator but also get
+            // the start cookie
+            return __WASI_EINVAL;
+        }
+        if (!fileDesc.iterStarted() && !isStartCookie) {
+            throw std::runtime_error(
+              "No directory iterator exists, and this is not the start cookie");
+        }
+
+        size_t bytesCopied =
+          fileDesc.copyDirentsToWasiBuffer((uint8_t*)buf, bufLen);
+        *resSizePtr = bytesCopied;
 
         return __WASI_ESUCCESS;
     }

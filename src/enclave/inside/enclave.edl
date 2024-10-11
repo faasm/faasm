@@ -140,6 +140,14 @@ enclave{
             [out]                           int32_t* bytesRead
         );
 
+        int32_t ocallWasiFdReadDir(
+                                    int32_t wasmFd,
+            [in, out, size=bufLen]  char* buf,
+                                    int32_t bufLen,
+                                    int64_t startCookie,
+            [out]                   int32_t* resSizePtr
+        );
+
         int32_t ocallWasiFdSeek(
                     int32_t fd,
                     int64_t offset,
