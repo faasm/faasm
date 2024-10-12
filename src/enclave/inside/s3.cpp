@@ -21,7 +21,7 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
                                           int32_t* bucketsBufferLen)
 {
     SPDLOG_DEBUG_SGX("faasm_s3_list_buckets");
-    auto module = wasm::getExecutingEnclaveWasmModule(execEnv);
+    auto* module = wasm::getExecutingEnclaveWasmModule(execEnv);
 
     // Get the offset for the buffer pointers so that they are not invalidated
     // after memory growth
@@ -108,7 +108,7 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
     // DELETE ME
 static void doRandomMalloc(wasm_exec_env_t execEnv)
 {
-    auto module = wasm::getExecutingEnclaveWasmModule(execEnv);
+    auto* module = wasm::getExecutingEnclaveWasmModule(execEnv);
     void* nativePtr;
     int wasmOffset = module->wasmModuleMalloc(30, &nativePtr);
     if (nativePtr == nullptr || wasmOffset == 0) {
@@ -118,34 +118,71 @@ static void doRandomMalloc(wasm_exec_env_t execEnv)
     }
 }
 
-static int32_t faasm_s3_get_num_keys_wrapper(wasm_exec_env_t execEnv,
-                                             const char* bucketName)
+static int32_t doGetNumKeys(wasm_exec_env_t execEnv, const char* bucketName, const char* prefix, bool cache)
 {
-    SPDLOG_DEBUG_SGX("S - faasm_s3_get_num_keys (bucket: %s)", bucketName);
+    SPDLOG_DEBUG_SGX("S - faasm_s3_get_num_keys (bucket: %s, prefix: %s)", bucketName, prefix);
+
+    // TODO:
+    // 1. allow caching
+    // 2. cache the total size as well
+    int32_t totalKeysSize;
 
     sgx_status_t sgxReturnValue;
-    int32_t returnValue;
-    if ((sgxReturnValue = ocallS3GetNumKeys(&returnValue, bucketName)) !=
+    int32_t numKeys;
+    if ((sgxReturnValue = ocallS3GetNumKeys(&numKeys, bucketName, prefix, &totalKeysSize, cache)) !=
         SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
-    // DELETE ME
-    doRandomMalloc(execEnv);
+    int32_t totalKeyLensSize = numKeys * sizeof(int32_t);
 
-    return returnValue;
+    if (cache) {
+        auto* module = wasm::getExecutingEnclaveWasmModule(execEnv);
+        doRandomMalloc(execEnv);
+
+        if (totalKeysSize > MAX_OCALL_BUFFER_SIZE) {
+            SPDLOG_DEBUG_SGX("Pre-allocating keys buffer for %s/%s (size: %i)",
+                             bucketName,
+                             prefix,
+                             totalKeysSize);
+            module->dataXferPtr = (uint8_t*) malloc(totalKeysSize);
+            module->dataXferSize = totalKeysSize;
+        }
+
+        if (totalKeyLensSize > MAX_OCALL_BUFFER_SIZE) {
+            SPDLOG_DEBUG_SGX("Pre-allocating key lens buffer for %s/%s (size: %i)",
+                             bucketName, prefix, totalKeyLensSize);
+            module->dataXferAuxPtr = (uint8_t*) malloc(totalKeyLensSize);
+            module->dataXferAuxSize = totalKeyLensSize;
+        }
+
+        doRandomMalloc(execEnv);
+    }
+
+    return numKeys;
 }
 
-static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
-                                       char* bucketName,
-                                       int32_t* keysBuffer,
-                                       int32_t* keysBufferLen)
+static int32_t faasm_s3_get_num_keys_wrapper(wasm_exec_env_t execEnv,
+                                             const char* bucketName)
 {
-    SPDLOG_DEBUG_SGX("S - faasm_s3_list_keys (bucket: %s)", bucketName);
-    auto module = wasm::getExecutingEnclaveWasmModule(execEnv);
+    return doGetNumKeys(execEnv, bucketName, "", false);
+}
 
-    // DELETE ME
-    doRandomMalloc(execEnv);
+static int32_t faasm_s3_get_num_keys_with_prefix_wrapper(wasm_exec_env_t execEnv,
+                                                         const char* bucketName,
+                                                         const char* prefix)
+{
+    return doGetNumKeys(execEnv, bucketName, prefix, true);
+}
+
+static void doListKeys(wasm_exec_env_t execEnv,
+                       const char* bucketName,
+                       const char* prefix,
+                       int32_t* keysBuffer,
+                       int32_t* keysBufferLen)
+{
+    SPDLOG_DEBUG_SGX("S - faasm_s3_list_keys (bucket: %s, prefix: %s)", bucketName, prefix);
+    auto* module = wasm::getExecutingEnclaveWasmModule(execEnv);
 
     // Get the offset for the buffer pointers so that they are not invalidated
     // after memory growth
@@ -153,24 +190,14 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
     int32_t keysBufferLenOffset =
       module->nativePointerToWasmOffset(keysBufferLen);
 
-    // Do an OCall with two sufficiently large buffers that we are gonna read
-    // and use to populate the WASM provided pointers. We use the return
-    // value of the OCall to know how many keys there are.
-    size_t bufferLen = MAX_OCALL_BUFFER_SIZE;
-    std::vector<uint8_t> tmpBuffer(bufferLen);
-    std::vector<uint8_t> tmpBufferLens(bufferLen);
-    assert(module->dataXferPtr == nullptr);
-    assert(module->dataXferSize == 0);
-    assert(module->dataXferAuxPtr == nullptr);
-    assert(module->dataXferAuxSize == 0);
+    // DELETE ME
+    doRandomMalloc(execEnv);
 
     sgx_status_t sgxReturnValue;
     int32_t returnValue;
     if ((sgxReturnValue = ocallS3ListKeys(&returnValue,
                                           bucketName,
-                                          tmpBuffer.data(),
-                                          tmpBufferLens.data(),
-                                          bufferLen)) != SGX_SUCCESS) {
+                                          prefix)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
@@ -179,29 +206,14 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
 
     // Work-out if we have had to use an ECall to transfer data in, or we can
     // use the temporary buffer
-    uint8_t* readBuffer;
-    bool haveUsedAuxECall =
-      module->dataXferSize != 0 && module->dataXferPtr != nullptr;
-    if (haveUsedAuxECall) {
-        // If we have used the ECall, we need to copy from the heap-allocated
-        // data xfer buffer
-        readBuffer = module->dataXferPtr;
-    } else {
-        readBuffer = tmpBuffer.data();
+    if (module->dataXferSize == 0 || module->dataXferPtr == nullptr) {
+        SPDLOG_ERROR_SGX("errorrrrr");
     }
+    uint8_t* readBuffer = module->dataXferPtr;
 
     // Similarly, work-out if we have also used the auxiliary buffer for the
     // bufferLens (this may happen if we have a very large number of keys)
-    uint8_t* readBufferLens;
-    bool haveUsedAuxECallTwice =
-      module->dataXferAuxSize != 0 && module->dataXferAuxPtr != nullptr;
-    if (haveUsedAuxECallTwice) {
-        // If we have used the ECall, we need to copy from the heap-allocated
-        // data xfer buffer
-        readBufferLens = module->dataXferAuxPtr;
-    } else {
-        readBufferLens = tmpBufferLens.data();
-    }
+    uint8_t* readBufferLens = module->dataXferAuxPtr;
 
     // Sanity check that each pointer-to-array is large enough
     module->validateWasmOffset(keysBufferOffset, returnValue * sizeof(char*));
@@ -243,17 +255,30 @@ static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
         readOffset += keysBufferLen[i];
     }
 
-    if (haveUsedAuxECall) {
-        free(module->dataXferPtr);
-        module->dataXferPtr = nullptr;
-        module->dataXferSize = 0;
-    }
+    free(module->dataXferPtr);
+    module->dataXferPtr = nullptr;
+    module->dataXferSize = 0;
 
-    if (haveUsedAuxECallTwice) {
-        free(module->dataXferAuxPtr);
-        module->dataXferAuxPtr = nullptr;
-        module->dataXferAuxSize = 0;
-    }
+    free(module->dataXferAuxPtr);
+    module->dataXferAuxPtr = nullptr;
+    module->dataXferAuxSize = 0;
+}
+
+static void faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
+                                       const char* bucketName,
+                                       int32_t* keysBuffer,
+                                       int32_t* keysBufferLen)
+{
+    doListKeys(execEnv, bucketName, "", keysBuffer, keysBufferLen);
+}
+
+static void faasm_s3_list_keys_with_prefix_wrapper(wasm_exec_env_t execEnv,
+                                                   const char* bucketName,
+                                                   const char* prefix,
+                                                   int32_t* keysBuffer,
+                                                   int32_t* keysBufferLen)
+{
+    doListKeys(execEnv, bucketName, prefix, keysBuffer, keysBufferLen);
 }
 
 static int32_t faasm_s3_add_key_bytes_wrapper(wasm_exec_env_t execEnv,
@@ -376,7 +401,9 @@ static NativeSymbol s3Ns[] = {
     REG_FAASM_NATIVE_FUNC(faasm_s3_get_num_buckets, "()i"),
     REG_FAASM_NATIVE_FUNC(faasm_s3_list_buckets, "(**)"),
     REG_FAASM_NATIVE_FUNC(faasm_s3_get_num_keys, "($)i"),
+    REG_FAASM_NATIVE_FUNC(faasm_s3_get_num_keys_with_prefix, "($$)i"),
     REG_FAASM_NATIVE_FUNC(faasm_s3_list_keys, "($**)"),
+    REG_FAASM_NATIVE_FUNC(faasm_s3_list_keys_with_prefix, "($$**)"),
     REG_FAASM_NATIVE_FUNC(faasm_s3_add_key_bytes, "($$*~)i"),
     REG_FAASM_NATIVE_FUNC(faasm_s3_get_key_bytes, "($$**)i"),
 };

@@ -27,7 +27,7 @@ class S3Wrapper
 
     std::vector<std::string> listBuckets();
 
-    std::vector<std::string> listKeys(const std::string& bucketName);
+    std::vector<std::string> listKeys(const std::string& bucketName, const std::string& prefix = "");
 
     void deleteKey(const std::string& bucketName, const std::string& keyName);
 

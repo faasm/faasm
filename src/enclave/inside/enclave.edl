@@ -227,14 +227,18 @@ enclave{
         );
 
         int32_t ocallS3GetNumKeys(
-            [in, string]   const char* bucketName
+            [in, string]    const char* bucketName,
+            [in, string]    const char* prefix,
+            [out]           int32_t* totalSize,
+                            bool cache
         );
 
         int32_t ocallS3ListKeys(
             [in, string]            const char* bucketName,
-            [out, size=bufferSize]  uint8_t* buffer,
-            [out, size=bufferSize]  uint8_t* bufferLens,
-                                    int32_t bufferSize
+            [in, string]            const char* prefix
+            // [out, size=bufferSize]  uint8_t* buffer,
+            // [out, size=bufferSize]  uint8_t* bufferLens,
+                                    // int32_t bufferSize
         ) allow(ecallCopyDataIn);
 
         int32_t ocallS3AddKeyBytes(

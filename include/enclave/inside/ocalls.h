@@ -182,13 +182,17 @@ extern "C"
                                                      int32_t bufferSize);
 
     extern sgx_status_t SGX_CDECL ocallS3GetNumKeys(int32_t* returnValue,
-                                                    const char* bucketName);
+                                                    const char* bucketName,
+                                                    const char* prefix,
+                                                    int32_t* totalSize,
+                                                    bool cache);
 
     extern sgx_status_t SGX_CDECL ocallS3ListKeys(int32_t* returnValue,
                                                   const char* bucketName,
-                                                  uint8_t* buffer,
-                                                  uint8_t* bufferLens,
-                                                  int32_t bufferSize);
+                                                  const char* prefix);
+                                                  // uint8_t* buffer,
+                                                  // uint8_t* bufferLens,
+                                                  // int32_t bufferSize);
 
     extern sgx_status_t SGX_CDECL ocallS3AddKeyBytes(int32_t* returnValue,
                                                      const char* bucketName,

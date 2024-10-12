@@ -9,11 +9,11 @@ int doS3GetNumBuckets()
     return s3cli.listBuckets().size();
 }
 
-int doS3GetNumKeys(const char* bucketName)
+int doS3GetNumKeys(const char* bucketName, const char* prefix)
 {
     storage::S3Wrapper s3cli;
 
-    return s3cli.listKeys(bucketName).size();
+    return s3cli.listKeys(bucketName, prefix).size();
 }
 
 void doS3AddKeyBytes(const char* bucketName,

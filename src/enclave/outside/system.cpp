@@ -101,6 +101,7 @@ void destroyEnclave(sgx_enclave_id_t enclaveId)
     processECallErrors("Unable to destroy enclave", sgxReturnValue);
 }
 
+// TODO: make this return an int, don't throw exceptions in WAMR
 void processECallErrors(std::string errorMessage,
                         sgx_status_t sgxReturnValue,
                         faasm_sgx_status_t faasmReturnValue)
@@ -108,7 +109,7 @@ void processECallErrors(std::string errorMessage,
     if (sgxReturnValue != SGX_SUCCESS) {
         std::string errorText = "(SGX Error) " + errorMessage;
         SPDLOG_ERROR("{}: {}", errorText, sgxErrorString(sgxReturnValue));
-        throw std::runtime_error(errorText);
+        // throw std::runtime_error(errorText);
     }
 
     if (faasmReturnValue != FAASM_SGX_SUCCESS) {

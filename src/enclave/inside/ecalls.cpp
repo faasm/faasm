@@ -3,8 +3,6 @@
 #include <enclave/inside/ocalls.h>
 #include <enclave/inside/tests.h>
 
-#include <memory>
-
 #include <sgx_report.h>
 #include <sgx_trts.h>
 #include <sgx_utils.h>
@@ -12,7 +10,6 @@
 // Implementation of the ECalls API
 extern "C"
 {
-    // TODO: probably we want to handle all this logic from inside the enclave
     faasm_sgx_status_t ecallCreateReport(const sgx_target_info_t* qeTarget,
                                          const sgx_report_data_t* heldData,
                                          sgx_report_t* report)
@@ -119,7 +116,7 @@ extern "C"
     }
 
     faasm_sgx_status_t ecallCopyDataIn(
-        uint8_t* buffer, uint32_t bufferSize, uint8_t* auxBuffer, uint32_t auxBufferSize)
+        uint8_t* buffer, uint32_t bufferSize) // , uint8_t* auxBuffer, uint32_t auxBufferSize)
     {
         auto* enclaveWasmModule = wasm::getExecutingEnclaveWasmModule();
         if (enclaveWasmModule == nullptr) {
@@ -135,12 +132,15 @@ extern "C"
             SPDLOG_ERROR_SGX("first ecall malloc succeded!");
         }
 
-        ocallLogDebug("copy num 1");
-        SPDLOG_DEBUG_SGX("pre-mallocing at ptr %p (size: %i)\n", (void*) enclaveWasmModule->dataXferPtr, bufferSize);
-        enclaveWasmModule->dataXferPtr = (uint8_t*)malloc(bufferSize);
-        SPDLOG_DEBUG_SGX("post-mallocing at ptr %p (size: %i)\n", (void*) enclaveWasmModule->dataXferPtr, bufferSize);
+        if (enclaveWasmModule->dataXferPtr == nullptr) {
+            ocallLogDebug("copy num 1");
+            SPDLOG_DEBUG_SGX("pre-mallocing at ptr %p (size: %i)\n", (void*) enclaveWasmModule->dataXferPtr, bufferSize);
+            // TODO: can we get away _without_ mallocing again here?
+            enclaveWasmModule->dataXferPtr = (uint8_t*)malloc(bufferSize);
+            SPDLOG_DEBUG_SGX("post-mallocing at ptr %p (size: %i)\n", (void*) enclaveWasmModule->dataXferPtr, bufferSize);
+            enclaveWasmModule->dataXferSize = bufferSize;
+        }
         memcpy(enclaveWasmModule->dataXferPtr, buffer, bufferSize);
-        enclaveWasmModule->dataXferSize = bufferSize;
 
         nativePtr = nullptr;
         wasmOffset = enclaveWasmModule->wasmModuleMalloc(30, &nativePtr);
@@ -150,12 +150,16 @@ extern "C"
             SPDLOG_ERROR_SGX("second ecall malloc succeded!");
         }
 
-        if (auxBuffer != nullptr) {
+        /*
+        if (enclaveWasmModule->dataXferAuxPtr == nullptr) {
             ocallLogDebug("copy num 2");
             enclaveWasmModule->dataXferAuxPtr = (uint8_t*)malloc(auxBufferSize);
-            memcpy(enclaveWasmModule->dataXferAuxPtr, auxBuffer, auxBufferSize);
             enclaveWasmModule->dataXferAuxSize = auxBufferSize;
         }
+
+        // TODO: assert sizes
+        memcpy(enclaveWasmModule->dataXferAuxPtr, auxBuffer, auxBufferSize);
+        */
 
         nativePtr = nullptr;
         wasmOffset = enclaveWasmModule->wasmModuleMalloc(30, &nativePtr);
