@@ -130,3 +130,4 @@ jobs:
       - name: "Delete VM"
         if: always()
         run: ./bin/inv_wrapper.sh vm.delete --name ${{ env.VM_NAME }}
+        continue-on-error: true
