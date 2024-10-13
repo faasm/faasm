@@ -42,7 +42,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 60
     env:
-      FAASM_VERSION: 0.27.0
+      FAASM_VERSION: 0.28.0
       FAASMCTL_BIN: /home/faasm/.local/bin/faasmctl
       FAASMCTL_VERSION: 0.46.2
       VM_CODE_DIR: /home/faasm/git/faasm/faasm
@@ -130,3 +130,4 @@ jobs:
       - name: "Delete VM"
         if: always()
         run: ./bin/inv_wrapper.sh vm.delete --name ${{ env.VM_NAME }}
+        continue-on-error: true
