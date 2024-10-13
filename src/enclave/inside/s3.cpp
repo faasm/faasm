@@ -105,14 +105,19 @@ static void faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
     }
 }
 
-static int32_t doGetNumKeys(wasm_exec_env_t execEnv, const char* bucketName, const char* prefix, bool cache)
+static int32_t doGetNumKeys(wasm_exec_env_t execEnv,
+                            const char* bucketName,
+                            const char* prefix,
+                            bool cache)
 {
-    SPDLOG_DEBUG_SGX("S - faasm_s3_get_num_keys (bucket: %s, prefix: %s)", bucketName, prefix);
+    SPDLOG_DEBUG_SGX(
+      "S - faasm_s3_get_num_keys (bucket: %s, prefix: %s)", bucketName, prefix);
 
     int32_t totalKeysSize;
     sgx_status_t sgxReturnValue;
     int32_t numKeys;
-    if ((sgxReturnValue = ocallS3GetNumKeys(&numKeys, bucketName, prefix, &totalKeysSize, cache)) !=
+    if ((sgxReturnValue = ocallS3GetNumKeys(
+           &numKeys, bucketName, prefix, &totalKeysSize, cache)) !=
         SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
@@ -127,14 +132,17 @@ static int32_t doGetNumKeys(wasm_exec_env_t execEnv, const char* bucketName, con
                              bucketName,
                              prefix,
                              totalKeysSize);
-            module->dataXferPtr = (uint8_t*) malloc(totalKeysSize);
+            module->dataXferPtr = (uint8_t*)malloc(totalKeysSize);
             module->dataXferSize = totalKeysSize;
         }
 
         if (totalKeyLensSize > MAX_OCALL_BUFFER_SIZE) {
-            SPDLOG_DEBUG_SGX("Pre-allocating key lens buffer for %s/%s (size: %i)",
-                             bucketName, prefix, totalKeyLensSize);
-            module->dataXferAuxPtr = (uint8_t*) malloc(totalKeyLensSize);
+            SPDLOG_DEBUG_SGX(
+              "Pre-allocating key lens buffer for %s/%s (size: %i)",
+              bucketName,
+              prefix,
+              totalKeyLensSize);
+            module->dataXferAuxPtr = (uint8_t*)malloc(totalKeyLensSize);
             module->dataXferAuxSize = totalKeyLensSize;
         }
     }
@@ -148,10 +156,11 @@ static int32_t faasm_s3_get_num_keys_wrapper(wasm_exec_env_t execEnv,
     return doGetNumKeys(execEnv, bucketName, "", false);
 }
 
-static int32_t faasm_s3_get_num_keys_with_prefix_wrapper(wasm_exec_env_t execEnv,
-                                                         const char* bucketName,
-                                                         const char* prefix,
-                                                         int* totalSize)
+static int32_t faasm_s3_get_num_keys_with_prefix_wrapper(
+  wasm_exec_env_t execEnv,
+  const char* bucketName,
+  const char* prefix,
+  int* totalSize)
 {
     return doGetNumKeys(execEnv, bucketName, prefix, true);
 }
@@ -162,7 +171,8 @@ static void doListKeys(wasm_exec_env_t execEnv,
                        int32_t* keysBuffer,
                        int32_t* keysBufferLen)
 {
-    SPDLOG_DEBUG_SGX("S - faasm_s3_list_keys (bucket: %s, prefix: %s)", bucketName, prefix);
+    SPDLOG_DEBUG_SGX(
+      "S - faasm_s3_list_keys (bucket: %s, prefix: %s)", bucketName, prefix);
     auto* module = wasm::getExecutingEnclaveWasmModule(execEnv);
 
     // Get the offset for the buffer pointers so that they are not invalidated
@@ -173,37 +183,37 @@ static void doListKeys(wasm_exec_env_t execEnv,
 
     sgx_status_t sgxReturnValue;
     int32_t numKeys;
-    if ((sgxReturnValue = ocallS3ListKeys(&numKeys,
-                                          bucketName,
-                                          prefix)) != SGX_SUCCESS) {
+    if ((sgxReturnValue = ocallS3ListKeys(&numKeys, bucketName, prefix)) !=
+        SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
-    // Work-out if we have had to use an ECall to transfer data in, or we can
-    // use the temporary buffer
-    if (module->dataXferSize == 0 || module->dataXferPtr == nullptr) {
-        SPDLOG_ERROR_SGX("errorrrrr");
-    }
-    if (module->dataXferAuxSize == 0 || module->dataXferAuxPtr == nullptr) {
-        SPDLOG_ERROR_SGX("errorrrrr");
+    if (module->dataXferSize == 0 || module->dataXferPtr == nullptr ||
+        module->dataXferAuxSize == 0 || module->dataXferAuxPtr == nullptr) {
+        SPDLOG_ERROR_SGX(
+          "S3 list keys expects the auxiliary buffers to be populated!");
+        auto exc = std::runtime_error(
+          "S3 list keys expects the auxiliary buffers to be populated!");
+        module->doThrowException(exc);
     }
     uint8_t* readBuffer = module->dataXferPtr;
     uint8_t* readBufferLens = module->dataXferAuxPtr;
 
     // Sanity check that each pointer-to-array is large enough
     module->validateWasmOffset(keysBufferOffset, numKeys * sizeof(char*));
-    module->validateWasmOffset(keysBufferLenOffset,
-                               numKeys * sizeof(int32_t));
+    module->validateWasmOffset(keysBufferLenOffset, numKeys * sizeof(int32_t));
 
     // The caller has allocated space for the vector of ints and char*. We now
     // need to heap-allocate space for all the strings (i.e. the pointed-to
     // values in the char* array. We do it in one chunk to prevent issues with
     // memory growths invalidating pointers to WASM memory
-    SPDLOG_DEBUG_SGX("Will malloc %li bytes for all %i keys", module->dataXferSize, numKeys);
     uint8_t* nativePtr = nullptr;
-    auto wasmOffset = module->wasmModuleMalloc(module->dataXferSize, (void**)&nativePtr);
+    auto wasmOffset =
+      module->wasmModuleMalloc(module->dataXferSize, (void**)&nativePtr);
     if (wasmOffset == 0 || nativePtr == nullptr) {
-        SPDLOG_ERROR_SGX("Error allocating memory in WASM module: %s", wasm_runtime_get_exception(module->getModuleInstance()));
+        SPDLOG_ERROR_SGX(
+          "Error allocating memory in WASM module: %s",
+          wasm_runtime_get_exception(module->getModuleInstance()));
         auto exc = std::runtime_error("Error allocating memory in module!");
         module->doThrowException(exc);
     }
@@ -221,10 +231,12 @@ static void doListKeys(wasm_exec_env_t execEnv,
         int32_t thisKeyLen = *(readBufferLens + i * sizeof(int32_t));
 
         // Copy the string payload into WASM memory
-        std::memcpy(nativePtr + readOffset, readBuffer + readOffset, thisKeyLen);
+        std::memcpy(
+          nativePtr + readOffset, readBuffer + readOffset, thisKeyLen);
 
         // Copy the buffer size and buffer length
-        auto thisWasmOffset = module->nativePointerToWasmOffset(nativePtr + readOffset);
+        auto thisWasmOffset =
+          module->nativePointerToWasmOffset(nativePtr + readOffset);
         keysBufferPtr[i] = thisWasmOffset;
         keysBufferLenPtr[i] = thisKeyLen;
 

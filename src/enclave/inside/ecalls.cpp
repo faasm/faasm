@@ -70,7 +70,8 @@ extern "C"
         SPDLOG_DEBUG_SGX("module has size: %u", wasmBytesSize);
 
         auto* enclaveWasmModule = wasm::getExecutingEnclaveWasmModule();
-        if (!enclaveWasmModule->doBindToFunction(user, func, wasmBytes, wasmBytesSize)) {
+        if (!enclaveWasmModule->doBindToFunction(
+              user, func, wasmBytes, wasmBytesSize)) {
             SPDLOG_ERROR_SGX(
               "Error binding SGX-WAMR module to %s/%s", user, func);
             return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
@@ -115,8 +116,10 @@ extern "C"
         return FAASM_SGX_SUCCESS;
     }
 
-    faasm_sgx_status_t ecallCopyDataIn(
-        uint8_t* buffer, uint32_t bufferSize, uint8_t* auxBuffer, uint32_t auxBufferSize)
+    faasm_sgx_status_t ecallCopyDataIn(uint8_t* buffer,
+                                       uint32_t bufferSize,
+                                       uint8_t* auxBuffer,
+                                       uint32_t auxBufferSize)
     {
         auto* enclaveWasmModule = wasm::getExecutingEnclaveWasmModule();
         if (enclaveWasmModule == nullptr) {
@@ -140,7 +143,8 @@ extern "C"
             // Check if we need to malloc, or it has been malloc-ed for us
             // in advance
             if (enclaveWasmModule->dataXferAuxPtr == nullptr) {
-                enclaveWasmModule->dataXferAuxPtr = (uint8_t*)malloc(auxBufferSize);
+                enclaveWasmModule->dataXferAuxPtr =
+                  (uint8_t*)malloc(auxBufferSize);
                 enclaveWasmModule->dataXferAuxSize = auxBufferSize;
             }
 

@@ -512,7 +512,10 @@ extern "C"
         return bucketList.size();
     }
 
-    int32_t ocallS3GetNumKeys(const char* bucketName, const char* prefix, int32_t* totalSize, bool cache)
+    int32_t ocallS3GetNumKeys(const char* bucketName,
+                              const char* prefix,
+                              int32_t* totalSize,
+                              bool cache)
     {
         storage::S3Wrapper s3cli;
         auto keysList = s3cli.listKeys(bucketName, prefix);
@@ -532,26 +535,7 @@ extern "C"
         return wasm::doS3GetNumKeys(bucketName, prefix);
     }
 
-    static void doRandomEcallIn()
-    {
-        faasm_sgx_status_t returnValue;
-        auto enclaveId =
-          wasm::getExecutingEnclaveInterface()->getEnclaveId();
-        sgx_status_t sgxReturnValue = ecallCopyDataIn(
-            enclaveId,
-            &returnValue,
-            nullptr,
-            0,
-            nullptr,
-            0
-        );
-        sgx::processECallErrors("Error trying to copy data into enclave",
-                                sgxReturnValue,
-                                returnValue);
-    }
-
-    int32_t ocallS3ListKeys(const char* bucketName,
-                            const char* prefix)
+    int32_t ocallS3ListKeys(const char* bucketName, const char* prefix)
     {
         std::vector<std::string> keysList;
 
@@ -564,102 +548,45 @@ extern "C"
             keysList = s3cli.listKeys(bucketName, prefix);
         }
 
-        SPDLOG_WARN("test ecall in #1");
-        doRandomEcallIn();
-
-        // First, calculate the total amount of data to transfer to know if the
-        // OCall buffer will be enough or not
+        // First, calculate the total amount of data to transfer. For
+        // simplicity, we always use an ECall to transfer the data in
         size_t totalSize = 0;
         size_t totalLensSize = 0;
         for (const auto& key : keysList) {
             totalSize += key.size();
             totalLensSize += sizeof(int32_t);
         }
+        std::vector<uint8_t> auxBuffer = std::vector<uint8_t>(totalSize);
+        std::vector<uint8_t> auxLensBuffer =
+          std::vector<uint8_t>(totalLensSize);
 
-        SPDLOG_WARN("total size: {} - total lens size: {}", totalSize, totalLensSize);
-
-        SPDLOG_WARN("test ecall in #2");
-        doRandomEcallIn();
-
-        // If we need to use an ECall to transfer data overwrite the provided
-        // buffer by a big-enough buffer. Part of it will still be copied as
-        // a result of the OCall, but just 1 KB
-        // TODO: right now we MUST always USE aux
-        bool mustUseECall = totalSize > MAX_OCALL_BUFFER_SIZE;
-        std::vector<uint8_t> auxBuffer;
-        if (mustUseECall) {
-            // Try no malloc here
-            auxBuffer = std::vector<uint8_t>(totalSize);
-            // buffer = auxBuffer.data();
-            // buffer = (uint8_t*)faabric::util::malloc(totalSize);
-        }
-
-        SPDLOG_WARN("test ecall in #3");
-        doRandomEcallIn();
-
-        // We may also need to use an aux. ECall to transfer the lengths of
-        // all keys. This may happen if we have many keys
-        // TODO: we now ALWAYS USE ECall (revert?)
-        bool mustUseAuxECall = totalLensSize > MAX_OCALL_BUFFER_SIZE;
-        std::vector<uint8_t> auxLensBuffer;
-        if (mustUseAuxECall) {
-            auxLensBuffer = std::vector<uint8_t>(totalLensSize);
-            // bufferLens = auxLensBuffer.data();
-        }
-
-        SPDLOG_DEBUG("will use: (ecall: {}) (aux ecall: {})", mustUseECall, mustUseAuxECall);
-
-        SPDLOG_WARN("test ecall in #4");
-        doRandomEcallIn();
-
+        // Serialise keys into buffer to transfer via ECall
         size_t writtenOffset = 0;
         for (int i = 0; i < keysList.size(); i++) {
             int thisKeySize = keysList.at(i).size();
 
-            std::memcpy(
-              auxLensBuffer.data() + i * sizeof(int32_t), &thisKeySize, sizeof(int32_t));
-            std::memcpy(
-              auxBuffer.data() + writtenOffset, keysList.at(i).c_str(), thisKeySize);
+            std::memcpy(auxLensBuffer.data() + i * sizeof(int32_t),
+                        &thisKeySize,
+                        sizeof(int32_t));
+            std::memcpy(auxBuffer.data() + writtenOffset,
+                        keysList.at(i).c_str(),
+                        thisKeySize);
 
             writtenOffset += thisKeySize;
         }
 
-        SPDLOG_WARN("test ecall in #5");
-        doRandomEcallIn();
-
-        SPDLOG_WARN("real ecall!");
-        if (mustUseECall) {
-            faasm_sgx_status_t returnValue;
-            auto enclaveId =
-              wasm::getExecutingEnclaveInterface()->getEnclaveId();
-            sgx_status_t sgxReturnValue = ecallCopyDataIn(
-                enclaveId,
-                &returnValue,
-                auxBuffer.data(),
-                auxBuffer.size(),
-                mustUseAuxECall ? auxLensBuffer.data() : nullptr,
-                mustUseAuxECall ? auxLensBuffer.size() : 0
-            );
-            sgx::processECallErrors("Error trying to copy data into enclave",
-                                    sgxReturnValue,
-                                    returnValue);
-        }
-
-        SPDLOG_WARN("test ecall in #6");
-        doRandomEcallIn();
-
-        /*
-        if (mustUseAuxECall) {
-            faasm_sgx_status_t returnValue;
-            auto enclaveId =
-              wasm::getExecutingEnclaveInterface()->getEnclaveId();
-            sgx_status_t sgxReturnValue =
-              ecallCopyDataIn(enclaveId, &returnValue, bufferLens, totalLensSize, true);
-            sgx::processECallErrors("Error trying to copy data into enclave",
-                                    sgxReturnValue,
-                                    returnValue);
-        }
-        */
+        // Perform the ECall
+        faasm_sgx_status_t returnValue;
+        auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
+        sgx_status_t sgxReturnValue = ecallCopyDataIn(enclaveId,
+                                                      &returnValue,
+                                                      auxBuffer.data(),
+                                                      auxBuffer.size(),
+                                                      auxLensBuffer.data(),
+                                                      auxLensBuffer.size());
+        sgx::processECallErrors("Error trying to copy data into enclave",
+                                sgxReturnValue,
+                                returnValue);
 
         return keysList.size();
     }

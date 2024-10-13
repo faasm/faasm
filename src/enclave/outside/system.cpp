@@ -109,7 +109,7 @@ void processECallErrors(std::string errorMessage,
     if (sgxReturnValue != SGX_SUCCESS) {
         std::string errorText = "(SGX Error) " + errorMessage;
         SPDLOG_ERROR("{}: {}", errorText, sgxErrorString(sgxReturnValue));
-        // throw std::runtime_error(errorText);
+        throw std::runtime_error(errorText);
     }
 
     if (faasmReturnValue != FAASM_SGX_SUCCESS) {

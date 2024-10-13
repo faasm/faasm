@@ -27,7 +27,10 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     // instance of the _same_ function.
     bool reset();
 
-    bool doBindToFunction(const char* user, const char* function, void* wasmOpCodePtr, uint32_t wasmOpCodeSize);
+    bool doBindToFunction(const char* user,
+                          const char* function,
+                          void* wasmOpCodePtr,
+                          uint32_t wasmOpCodeSize);
 
     uint32_t callFunction(uint32_t argcIn, char** argvIn);
 

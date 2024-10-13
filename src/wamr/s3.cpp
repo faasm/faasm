@@ -57,11 +57,13 @@ static int32_t __faasm_s3_get_num_keys_wrapper(wasm_exec_env_t execEnv,
     return wasm::doS3GetNumKeys(bucketName);
 }
 
-static int32_t __faasm_s3_get_num_keys_with_prefix_wrapper(wasm_exec_env_t execEnv,
-                                                           const char* bucketName,
-                                                           const char* prefix)
+static int32_t __faasm_s3_get_num_keys_with_prefix_wrapper(
+  wasm_exec_env_t execEnv,
+  const char* bucketName,
+  const char* prefix)
 {
-    SPDLOG_DEBUG("S - faasm_s3_get_num_keys (bucket: {}, prefix: {})", bucketName, prefix);
+    SPDLOG_DEBUG(
+      "S - faasm_s3_get_num_keys (bucket: {}, prefix: {})", bucketName, prefix);
 
     return wasm::doS3GetNumKeys(bucketName, prefix);
 }
@@ -72,7 +74,8 @@ void doListKeys(wasm_exec_env_t execEnv,
                 int32_t* keysBuffer,
                 int32_t* keysBufferLen)
 {
-    SPDLOG_DEBUG("S - faasm_s3_list_keys (bucket: {}, prefix: {})", bucketName, prefix);
+    SPDLOG_DEBUG(
+      "S - faasm_s3_list_keys (bucket: {}, prefix: {})", bucketName, prefix);
 
     storage::S3Wrapper s3cli;
     auto keyList = s3cli.listKeys(bucketName, prefix);

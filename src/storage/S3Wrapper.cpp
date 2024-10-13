@@ -165,7 +165,8 @@ std::vector<std::string> S3Wrapper::listBuckets()
     return bucketNames;
 }
 
-std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName, const std::string& prefix)
+std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName,
+                                             const std::string& prefix)
 {
     SPDLOG_TRACE("Listing keys in bucket {} (prefix: {})", bucketName, prefix);
 

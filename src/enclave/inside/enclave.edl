@@ -236,9 +236,6 @@ enclave{
         int32_t ocallS3ListKeys(
             [in, string]            const char* bucketName,
             [in, string]            const char* prefix
-            // [out, size=bufferSize]  uint8_t* buffer,
-            // [out, size=bufferSize]  uint8_t* bufferLens,
-                                    // int32_t bufferSize
         ) allow(ecallCopyDataIn);
 
         int32_t ocallS3AddKeyBytes(

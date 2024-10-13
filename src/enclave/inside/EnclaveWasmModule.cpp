@@ -8,8 +8,6 @@
 
 namespace wasm {
 
-// std::shared_ptr<wasm::EnclaveWasmModule> enclaveWasmModule = nullptr;
-
 static bool wamrInitialised = false;
 
 bool EnclaveWasmModule::initialiseWAMRGlobally()
@@ -87,10 +85,8 @@ bool EnclaveWasmModule::doBindToFunction(const char* user,
       wasmBytes.data(), wasmBytes.size(), errorBuffer, WAMR_ERROR_BUFFER_SIZE);
 
     if (wasmModule == nullptr) {
-        SPDLOG_ERROR_SGX("Error loading WASM for %s/%s: %s",
-                         user,
-                         function,
-                         errorBuffer);
+        SPDLOG_ERROR_SGX(
+          "Error loading WASM for %s/%s: %s", user, function, errorBuffer);
         return false;
     }
 
@@ -464,8 +460,7 @@ EnclaveWasmModule* getExecutingEnclaveWasmModule()
     return &enclaveWasmModule;
 }
 
-EnclaveWasmModule* getExecutingEnclaveWasmModule(
-  wasm_exec_env_t execEnv)
+EnclaveWasmModule* getExecutingEnclaveWasmModule(wasm_exec_env_t execEnv)
 {
     auto* enclaveWasmModule = getExecutingEnclaveWasmModule();
 
