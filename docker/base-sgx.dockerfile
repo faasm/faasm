@@ -62,27 +62,26 @@ ARG DCAP_VERSION=1.22
 RUN git clone -b DCAP_${DCAP_VERSION} \
         https://github.com/intel/SGXDataCenterAttestationPrimitives.git \
         /opt/intel/sgxdcap \
+    && . /opt/intel/sgxsdk/environment \
+    # Annoyingly, it seems that the QuoteGeneration build relies on some 3rd
+    # party libraries installed when building the QuoteValidation library
+    && cd /opt/intel/sgxdcap \
+    && git submodule update --init \
     &&  cd /opt/intel/sgxdcap/QuoteGeneration \
     && ./download_prebuilt.sh \
-    && make
-#     # We need this soft-link as otherwise the runtime linking fails
-#     && ln -s /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so \
-    #         /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so.1 \
-    #     # Install manually the libraries under `/usr/lib` for a lack of a `make install`
-#     # recipe
-#     && cp /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so* \
-    #         /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_pce_logic.so \
-    #         /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_qe3_logic.so \
-    #         /usr/lib/ \
-    #     # Add another two soft-links to fix runtime linking issues
-#     && ln -sf /usr/lib/libsgx_urts.so /usr/lib/libsgx_urts.so.2 \
-    #     && ln -sf /usr/lib/libsgx_pce_logic.so /usr/lib/libsgx_pce_logic.so.1
-#
-# # Build Faasm with SGX enabled
-# ARG FAASM_SGX_MODE
-# RUN cd /usr/local/code/faasm \
-    #     && source venv/bin/activate \
-    #     && inv dev.tools \
-    #         --clean \
-    #         --build Release \
-    #         --sgx ${FAASM_SGX_MODE}
+    && make \
+    # Install manually the libraries under `/usr/lib` for a lack of a `make install`
+    # recipe
+    && cp /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so* \
+        /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_pce_logic.so \
+        /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_qe3_logic.so \
+        /usr/lib/
+
+# Build Faasm with SGX enabled
+ARG FAASM_SGX_MODE
+RUN cd /usr/local/code/faasm \
+    && source venv/bin/activate \
+    && inv dev.tools \
+        --clean \
+        --build Release \
+        --sgx ${FAASM_SGX_MODE}

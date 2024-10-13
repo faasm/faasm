@@ -37,7 +37,7 @@ RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
  # Terminal colours
-ENV TERM xterm-256color
+ENV TERM=xterm-256color
 
 # GDB config, allow loading repo-specific config
 RUN touch /root/.gdbinit
