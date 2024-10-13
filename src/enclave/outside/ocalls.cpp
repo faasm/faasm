@@ -584,6 +584,7 @@ extern "C"
         // If we need to use an ECall to transfer data overwrite the provided
         // buffer by a big-enough buffer. Part of it will still be copied as
         // a result of the OCall, but just 1 KB
+        // TODO: right now we MUST always USE aux
         bool mustUseECall = totalSize > MAX_OCALL_BUFFER_SIZE;
         std::vector<uint8_t> auxBuffer;
         if (mustUseECall) {
@@ -598,6 +599,7 @@ extern "C"
 
         // We may also need to use an aux. ECall to transfer the lengths of
         // all keys. This may happen if we have many keys
+        // TODO: we now ALWAYS USE ECall (revert?)
         bool mustUseAuxECall = totalLensSize > MAX_OCALL_BUFFER_SIZE;
         std::vector<uint8_t> auxLensBuffer;
         if (mustUseAuxECall) {
@@ -630,7 +632,6 @@ extern "C"
             faasm_sgx_status_t returnValue;
             auto enclaveId =
               wasm::getExecutingEnclaveInterface()->getEnclaveId();
-            mustUseAuxECall = false;
             sgx_status_t sgxReturnValue = ecallCopyDataIn(
                 enclaveId,
                 &returnValue,
