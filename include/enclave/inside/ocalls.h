@@ -195,7 +195,8 @@ extern "C"
                                                      const char* bucketName,
                                                      const char* keyName,
                                                      uint8_t* keyBuffer,
-                                                     int32_t keyBufferLen);
+                                                     int32_t keyBufferLen,
+                                                     bool overwrite);
 
     extern sgx_status_t SGX_CDECL ocallS3GetKeySize(int32_t* returnValue,
                                                     const char* bucketName,

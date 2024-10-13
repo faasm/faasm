@@ -132,7 +132,7 @@ void doFaasmSmReduce(int32_t varPtr,
 
 int32_t doFaasmReadInput(char* inBuff, int32_t inBuffLen)
 {
-    SPDLOG_DEBUG("S - faasm_read_input {} {}", inBuff, inBuffLen);
+    SPDLOG_DEBUG("S - faasm_read_input (len: {})", inBuffLen);
 
     faabric::Message& call =
       faabric::executor::ExecutorContext::get()->getMsg();

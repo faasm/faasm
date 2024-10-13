@@ -274,16 +274,20 @@ static int32_t faasm_s3_add_key_bytes_wrapper(wasm_exec_env_t execEnv,
                                               const char* bucketName,
                                               const char* keyName,
                                               uint8_t* keyBuffer,
-                                              int32_t keyBufferLen)
+                                              int32_t keyBufferLen,
+                                              bool overwrite)
 {
     SPDLOG_DEBUG_SGX(
       "faasm_s3_add_key_bytes (bucket: %s, key: %s)", bucketName, keyName);
 
     sgx_status_t sgxReturnValue;
     int32_t returnValue;
-    if ((sgxReturnValue = ocallS3AddKeyBytes(
-           &returnValue, bucketName, keyName, keyBuffer, keyBufferLen)) !=
-        SGX_SUCCESS) {
+    if ((sgxReturnValue = ocallS3AddKeyBytes(&returnValue,
+                                             bucketName,
+                                             keyName,
+                                             keyBuffer,
+                                             keyBufferLen,
+                                             overwrite)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
@@ -393,7 +397,7 @@ static NativeSymbol s3Ns[] = {
     REG_FAASM_NATIVE_FUNC(faasm_s3_get_num_keys_with_prefix, "($$)i"),
     REG_FAASM_NATIVE_FUNC(faasm_s3_list_keys, "($**)"),
     REG_FAASM_NATIVE_FUNC(faasm_s3_list_keys_with_prefix, "($$**)"),
-    REG_FAASM_NATIVE_FUNC(faasm_s3_add_key_bytes, "($$*~)i"),
+    REG_FAASM_NATIVE_FUNC(faasm_s3_add_key_bytes, "($$*~i)i"),
     REG_FAASM_NATIVE_FUNC(faasm_s3_get_key_bytes, "($$**)i"),
 };
 

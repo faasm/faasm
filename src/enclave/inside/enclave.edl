@@ -242,7 +242,8 @@ enclave{
             [in, string]            const char* bucketName,
             [in, string]            const char* keyName,
             [in, size=keyBufferLen] uint8_t* keyBuffer,
-                                    int32_t keyBufferLen
+                                    int32_t keyBufferLen,
+                                    bool overwrite
         );
 
         int32_t ocallS3GetKeySize(

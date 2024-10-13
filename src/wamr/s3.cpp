@@ -126,10 +126,12 @@ static int32_t __faasm_s3_add_key_bytes_wrapper(wasm_exec_env_t execEnv,
                                                 const char* bucketName,
                                                 const char* keyName,
                                                 void* keyBuffer,
-                                                int32_t keyBufferLen)
+                                                int32_t keyBufferLen,
+                                                bool overwrite)
 {
     try {
-        wasm::doS3AddKeyBytes(bucketName, keyName, keyBuffer, keyBufferLen);
+        wasm::doS3AddKeyBytes(
+          bucketName, keyName, keyBuffer, keyBufferLen, overwrite);
     } catch (std::exception& e) {
         auto* module = getExecutingWAMRModule();
         module->doThrowException(e);
@@ -186,7 +188,7 @@ static NativeSymbol s3_ns[] = {
     REG_NATIVE_FUNC(__faasm_s3_get_num_keys_with_prefix, "($$)i"),
     REG_NATIVE_FUNC(__faasm_s3_list_keys, "($**)"),
     REG_NATIVE_FUNC(__faasm_s3_list_keys_with_prefix, "($$**)"),
-    REG_NATIVE_FUNC(__faasm_s3_add_key_bytes, "($$*~)i"),
+    REG_NATIVE_FUNC(__faasm_s3_add_key_bytes, "($$*~i)i"),
     REG_NATIVE_FUNC(__faasm_s3_get_key_bytes, "($$**)i"),
 };
 

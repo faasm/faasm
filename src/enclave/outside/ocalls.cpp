@@ -594,10 +594,11 @@ extern "C"
     int32_t ocallS3AddKeyBytes(const char* bucketName,
                                const char* keyName,
                                uint8_t* keyBuffer,
-                               int32_t keyBufferLen)
+                               int32_t keyBufferLen,
+                               bool overwrite)
     {
         wasm::doS3AddKeyBytes(
-          bucketName, keyName, (void*)keyBuffer, keyBufferLen);
+          bucketName, keyName, (void*)keyBuffer, keyBufferLen, overwrite);
 
         return 0;
     }
