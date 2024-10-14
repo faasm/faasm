@@ -57,15 +57,28 @@ static int32_t __faasm_s3_get_num_keys_wrapper(wasm_exec_env_t execEnv,
     return wasm::doS3GetNumKeys(bucketName);
 }
 
-static void __faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
-                                         char* bucketName,
-                                         int32_t* keysBuffer,
-                                         int32_t* keysBufferLen)
+static int32_t __faasm_s3_get_num_keys_with_prefix_wrapper(
+  wasm_exec_env_t execEnv,
+  const char* bucketName,
+  const char* prefix)
 {
-    SPDLOG_DEBUG("S - faasm_s3_list_keys (bucket: {})", bucketName);
+    SPDLOG_DEBUG(
+      "S - faasm_s3_get_num_keys (bucket: {}, prefix: {})", bucketName, prefix);
+
+    return wasm::doS3GetNumKeys(bucketName, prefix);
+}
+
+void doListKeys(wasm_exec_env_t execEnv,
+                const char* bucketName,
+                const char* prefix,
+                int32_t* keysBuffer,
+                int32_t* keysBufferLen)
+{
+    SPDLOG_DEBUG(
+      "S - faasm_s3_list_keys (bucket: {}, prefix: {})", bucketName, prefix);
 
     storage::S3Wrapper s3cli;
-    auto keyList = s3cli.listKeys(bucketName);
+    auto keyList = s3cli.listKeys(bucketName, prefix);
 
     auto* module = getExecutingWAMRModule();
     for (int i = 0; i < keyList.size(); i++) {
@@ -92,14 +105,33 @@ static void __faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
     }
 }
 
+static void __faasm_s3_list_keys_wrapper(wasm_exec_env_t execEnv,
+                                         const char* bucketName,
+                                         int32_t* keysBuffer,
+                                         int32_t* keysBufferLen)
+{
+    doListKeys(execEnv, bucketName, "", keysBuffer, keysBufferLen);
+}
+
+static void __faasm_s3_list_keys_with_prefix_wrapper(wasm_exec_env_t execEnv,
+                                                     const char* bucketName,
+                                                     const char* prefix,
+                                                     int32_t* keysBuffer,
+                                                     int32_t* keysBufferLen)
+{
+    doListKeys(execEnv, bucketName, prefix, keysBuffer, keysBufferLen);
+}
+
 static int32_t __faasm_s3_add_key_bytes_wrapper(wasm_exec_env_t execEnv,
                                                 const char* bucketName,
                                                 const char* keyName,
                                                 void* keyBuffer,
-                                                int32_t keyBufferLen)
+                                                int32_t keyBufferLen,
+                                                bool overwrite)
 {
     try {
-        wasm::doS3AddKeyBytes(bucketName, keyName, keyBuffer, keyBufferLen);
+        wasm::doS3AddKeyBytes(
+          bucketName, keyName, keyBuffer, keyBufferLen, overwrite);
     } catch (std::exception& e) {
         auto* module = getExecutingWAMRModule();
         module->doThrowException(e);
@@ -153,8 +185,10 @@ static NativeSymbol s3_ns[] = {
     REG_NATIVE_FUNC(__faasm_s3_get_num_buckets, "()i"),
     REG_NATIVE_FUNC(__faasm_s3_list_buckets, "(**)"),
     REG_NATIVE_FUNC(__faasm_s3_get_num_keys, "($)i"),
+    REG_NATIVE_FUNC(__faasm_s3_get_num_keys_with_prefix, "($$)i"),
     REG_NATIVE_FUNC(__faasm_s3_list_keys, "($**)"),
-    REG_NATIVE_FUNC(__faasm_s3_add_key_bytes, "($$*~)i"),
+    REG_NATIVE_FUNC(__faasm_s3_list_keys_with_prefix, "($$**)"),
+    REG_NATIVE_FUNC(__faasm_s3_add_key_bytes, "($$*~i)i"),
     REG_NATIVE_FUNC(__faasm_s3_get_key_bytes, "($$**)i"),
 };
 

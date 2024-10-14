@@ -45,8 +45,10 @@ enclave{
         // As a consequence, if we need to transfer large amounts of data into
         // the enclave, we need to use an ECall, and not a pointer in an OCall.
         public faasm_sgx_status_t ecallCopyDataIn(
-            [in, size=bufferSize]   uint8_t* buffer,
-            uint32_t                bufferSize
+            [in, size=bufferSize]       uint8_t* buffer,
+                                        uint32_t bufferSize,
+            [in, size=auxBufferSize]    uint8_t* auxBuffer,
+                                        uint32_t auxBufferSize
         );
 
         public faasm_sgx_status_t ecallRunInternalTest(
@@ -225,21 +227,23 @@ enclave{
         );
 
         int32_t ocallS3GetNumKeys(
-            [in, string]   const char* bucketName
+            [in, string]    const char* bucketName,
+            [in, string]    const char* prefix,
+            [out]           int32_t* totalSize,
+                            bool cache
         );
 
         int32_t ocallS3ListKeys(
             [in, string]            const char* bucketName,
-            [out, size=bufferSize]  uint8_t* buffer,
-            [out, size=bufferSize]  uint8_t* bufferLens,
-                                    int32_t bufferSize
+            [in, string]            const char* prefix
         ) allow(ecallCopyDataIn);
 
         int32_t ocallS3AddKeyBytes(
             [in, string]            const char* bucketName,
             [in, string]            const char* keyName,
             [in, size=keyBufferLen] uint8_t* keyBuffer,
-                                    int32_t keyBufferLen
+                                    int32_t keyBufferLen,
+                                    bool overwrite
         );
 
         int32_t ocallS3GetKeySize(

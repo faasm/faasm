@@ -165,12 +165,16 @@ std::vector<std::string> S3Wrapper::listBuckets()
     return bucketNames;
 }
 
-std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName)
+std::vector<std::string> S3Wrapper::listKeys(const std::string& bucketName,
+                                             const std::string& prefix)
 {
-    SPDLOG_TRACE("Listing keys in bucket {}", bucketName);
+    SPDLOG_TRACE("Listing keys in bucket {} (prefix: {})", bucketName, prefix);
 
     minio::s3::ListObjectsArgs args;
     args.bucket = bucketName;
+    if (!prefix.empty()) {
+        args.prefix = prefix;
+    }
     args.recursive = true;
     auto response = client.ListObjects(args);
 

@@ -111,9 +111,9 @@ faabric::Message awaitChainedCallOutput(unsigned int messageId)
 
     faabric::Message result;
     try {
-        auto msg = exec->getChainedMessage(messageId);
+        int appId = exec->getBoundMessage().appid();
         auto& plannerCli = faabric::planner::getPlannerClient();
-        result = plannerCli.getMessageResult(msg, callTimeoutMs);
+        result = plannerCli.getMessageResult(appId, messageId, callTimeoutMs);
     } catch (faabric::executor::ChainedCallException& e) {
         SPDLOG_ERROR(
           "Error awaiting for chained call {}: {}", messageId, e.what());

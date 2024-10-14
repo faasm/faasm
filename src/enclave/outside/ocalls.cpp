@@ -8,6 +8,7 @@
 #include <wasm/s3.h>
 
 #include <cstring>
+#include <optional>
 
 // TODO: cannot seem to include the WAMR file with the WASI types, as it seems
 // to clash with some SGX definitions
@@ -19,6 +20,9 @@ typedef uint64_t __wasi_filesize_t;
 #define __WASI_ESUCCESS (0)
 
 using namespace faabric::executor;
+
+// Cache to re-use data between successive OCall invocations
+std::optional<std::vector<std::string>> s3ListKeysCache;
 
 extern "C"
 {
@@ -508,56 +512,81 @@ extern "C"
         return bucketList.size();
     }
 
-    int32_t ocallS3GetNumKeys(const char* bucketName)
-    {
-        return wasm::doS3GetNumKeys(bucketName);
-    }
-
-    int32_t ocallS3ListKeys(const char* bucketName,
-                            uint8_t* buffer,
-                            uint8_t* bufferLens,
-                            int32_t bufferSize)
+    int32_t ocallS3GetNumKeys(const char* bucketName,
+                              const char* prefix,
+                              int32_t* totalSize,
+                              bool cache)
     {
         storage::S3Wrapper s3cli;
-        auto keysList = s3cli.listKeys(bucketName);
+        auto keysList = s3cli.listKeys(bucketName, prefix);
 
-        // First, calculate the total amount of data to transfer to know if the
-        // OCall buffer will be enough or not
+        if (cache) {
+            s3ListKeysCache = keysList;
+        }
+
+        // Pre-calculate the total size of the keys so that the caller can
+        // malloc buffers up-front
+        int32_t totalKeysSize = 0;
+        for (const auto& key : keysList) {
+            totalKeysSize += key.size();
+        }
+        *totalSize = totalKeysSize;
+
+        return wasm::doS3GetNumKeys(bucketName, prefix);
+    }
+
+    int32_t ocallS3ListKeys(const char* bucketName, const char* prefix)
+    {
+        std::vector<std::string> keysList;
+
+        if (s3ListKeysCache.has_value()) {
+            SPDLOG_DEBUG("Using cached key list for {}/{}", bucketName, prefix);
+            keysList = *s3ListKeysCache;
+            s3ListKeysCache.reset();
+        } else {
+            storage::S3Wrapper s3cli;
+            keysList = s3cli.listKeys(bucketName, prefix);
+        }
+
+        // First, calculate the total amount of data to transfer. For
+        // simplicity, we always use an ECall to transfer the data in
         size_t totalSize = 0;
+        size_t totalLensSize = 0;
         for (const auto& key : keysList) {
             totalSize += key.size();
+            totalLensSize += sizeof(int32_t);
         }
+        std::vector<uint8_t> auxBuffer = std::vector<uint8_t>(totalSize);
+        std::vector<uint8_t> auxLensBuffer =
+          std::vector<uint8_t>(totalLensSize);
 
-        // If we need to use an ECall to transfer data overwrite the provided
-        // buffer by a big-enough buffer. Part of it will still be copied as
-        // a result of the OCall, but just 1 KB
-        bool mustUseECall = totalSize > MAX_OCALL_BUFFER_SIZE;
-        if (mustUseECall) {
-            buffer = (uint8_t*)faabric::util::malloc(totalSize);
-        }
-
+        // Serialise keys into buffer to transfer via ECall
         size_t writtenOffset = 0;
         for (int i = 0; i < keysList.size(); i++) {
             int thisKeySize = keysList.at(i).size();
 
-            std::memcpy(
-              bufferLens + i * sizeof(int32_t), &thisKeySize, sizeof(int32_t));
-            std::memcpy(
-              buffer + writtenOffset, keysList.at(i).c_str(), thisKeySize);
+            std::memcpy(auxLensBuffer.data() + i * sizeof(int32_t),
+                        &thisKeySize,
+                        sizeof(int32_t));
+            std::memcpy(auxBuffer.data() + writtenOffset,
+                        keysList.at(i).c_str(),
+                        thisKeySize);
 
             writtenOffset += thisKeySize;
         }
 
-        if (mustUseECall) {
-            faasm_sgx_status_t returnValue;
-            auto enclaveId =
-              wasm::getExecutingEnclaveInterface()->getEnclaveId();
-            sgx_status_t sgxReturnValue =
-              ecallCopyDataIn(enclaveId, &returnValue, buffer, totalSize);
-            sgx::processECallErrors("Error trying to copy data into enclave",
-                                    sgxReturnValue,
-                                    returnValue);
-        }
+        // Perform the ECall
+        faasm_sgx_status_t returnValue;
+        auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
+        sgx_status_t sgxReturnValue = ecallCopyDataIn(enclaveId,
+                                                      &returnValue,
+                                                      auxBuffer.data(),
+                                                      auxBuffer.size(),
+                                                      auxLensBuffer.data(),
+                                                      auxLensBuffer.size());
+        sgx::processECallErrors("Error trying to copy data into enclave",
+                                sgxReturnValue,
+                                returnValue);
 
         return keysList.size();
     }
@@ -565,10 +594,11 @@ extern "C"
     int32_t ocallS3AddKeyBytes(const char* bucketName,
                                const char* keyName,
                                uint8_t* keyBuffer,
-                               int32_t keyBufferLen)
+                               int32_t keyBufferLen,
+                               bool overwrite)
     {
         wasm::doS3AddKeyBytes(
-          bucketName, keyName, (void*)keyBuffer, keyBufferLen);
+          bucketName, keyName, (void*)keyBuffer, keyBufferLen, overwrite);
 
         return 0;
     }
@@ -600,7 +630,7 @@ extern "C"
             auto enclaveId =
               wasm::getExecutingEnclaveInterface()->getEnclaveId();
             sgx_status_t sgxReturnValue = ecallCopyDataIn(
-              enclaveId, &returnValue, data.data(), data.size());
+              enclaveId, &returnValue, data.data(), data.size(), nullptr, 0);
             sgx::processECallErrors("Error trying to copy data into enclave",
                                     sgxReturnValue,
                                     returnValue);

@@ -20,15 +20,17 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
   public:
     static bool initialiseWAMRGlobally();
 
-    EnclaveWasmModule(const std::string& user, const std::string& func);
-
+    EnclaveWasmModule();
     ~EnclaveWasmModule();
 
     // Called after every execution, leaves the module ready to execute another
     // instance of the _same_ function.
     bool reset();
 
-    bool doBindToFunction(void* wasmOpCodePtr, uint32_t wasmOpCodeSize);
+    bool doBindToFunction(const char* user,
+                          const char* function,
+                          void* wasmOpCodePtr,
+                          uint32_t wasmOpCodeSize);
 
     uint32_t callFunction(uint32_t argcIn, char** argvIn);
 
@@ -36,6 +38,8 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     int executeWasmFunction(const std::string& funcName);
 
     WASMModuleInstanceCommon* getModuleInstance();
+
+    bool isBound() const { return _isBound; };
 
     std::string getBoundUser() const { return user; }
 
@@ -90,14 +94,17 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     uint8_t* dataXferPtr = nullptr;
     size_t dataXferSize = 0;
 
+    uint8_t* dataXferAuxPtr = nullptr;
+    size_t dataXferAuxSize = 0;
+
   private:
     char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
 
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
 
-    const std::string user;
-    const std::string function;
+    std::string user;
+    std::string function;
 
     bool _isBound = false;
     bool bindInternal();
@@ -116,13 +123,13 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 // Data structure to keep track of the module currently loaded in the enclave.
 // Needs to have external definition as it needs to be accessed both when
 // running an ECall and resolving a WAMR native symbol
-extern std::shared_ptr<wasm::EnclaveWasmModule> enclaveWasmModule;
+// extern std::shared_ptr<wasm::EnclaveWasmModule> enclaveWasmModule;
+extern "C" EnclaveWasmModule* getExecutingEnclaveWasmModule();
 
 // Return the EnclaveWasmModule that is executing in a given WASM execution
 // environment. This method relies on `wasm_exec_env_t` having a `module_inst`
 // property, pointint to the instantiated module.
-std::shared_ptr<wasm::EnclaveWasmModule> getExecutingEnclaveWasmModule(
-  wasm_exec_env_t execEnv);
+EnclaveWasmModule* getExecutingEnclaveWasmModule(wasm_exec_env_t execEnv);
 }
 
 // Given that we can not throw exceptions, we wrap the call to the method to
@@ -130,8 +137,7 @@ std::shared_ptr<wasm::EnclaveWasmModule> getExecutingEnclaveWasmModule(
 // be used in the implementation of native symbols, where returning 1 is
 // interpreted as a failure.
 #define GET_EXECUTING_MODULE_AND_CHECK(execEnv)                                \
-    std::shared_ptr<wasm::EnclaveWasmModule> module =                          \
-      wasm::getExecutingEnclaveWasmModule(execEnv);                            \
+    auto* module = wasm::getExecutingEnclaveWasmModule(execEnv);               \
     if (module == nullptr) {                                                   \
         ocallLogError(                                                         \
           "Error linking execution environment to registered modules");        \
