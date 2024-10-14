@@ -114,8 +114,9 @@ int doRunner(int argc, char* argv[])
 
     for (const auto& msgResult : msgResults) {
         if (msgResult.returnvalue() != 0) {
-            SPDLOG_ERROR(
-              "Message ({}) returned error code: {}", msgResult.id(), msgResult.returnvalue());
+            SPDLOG_ERROR("Message ({}) returned error code: {}",
+                         msgResult.id(),
+                         msgResult.returnvalue());
             return msgResult.returnvalue();
         }
     }
