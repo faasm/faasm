@@ -9,7 +9,7 @@
 #include <runner/runner_utils.h>
 #include <storage/S3Wrapper.h>
 
-#define TIMEOUT_MS 5 * 60 * 1000
+#define TIMEOUT_MS 60 * 60 * 1000
 
 std::vector<faabric::Message> waitForBatchResults(bool isThreads,
                                                   int appId,
@@ -92,31 +92,32 @@ std::vector<faabric::Message> executeWithPool(
 
 int doRunner(int argc, char* argv[])
 {
-    auto vm = runner::parseRunnerCmdLine(argc, argv);
-    std::string user = vm["user"].as<std::string>();
-    std::string function = vm["function"].as<std::string>();
+    auto cmdVm = runner::parseRunnerCmdLine(argc, argv);
+    std::string user = cmdVm["user"].as<std::string>();
+    std::string function = cmdVm["function"].as<std::string>();
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(user, function, 1);
     faabric::Message& msg = req->mutable_messages()->at(0);
 
-    if (vm.count("input-data")) {
-        msg.set_inputdata(vm["input-data"].as<std::string>());
+    if (cmdVm.count("input-data")) {
+        msg.set_inputdata(cmdVm["input-data"].as<std::string>());
     }
-    if (vm.count("cmdline")) {
-        msg.set_cmdline(vm["cmdline"].as<std::string>());
+    if (cmdVm.count("cmdline")) {
+        msg.set_cmdline(cmdVm["cmdline"].as<std::string>());
     }
-    if (vm.count("mpi-world-size")) {
+    if (cmdVm.count("mpi-world-size")) {
         msg.set_ismpi(true);
-        msg.set_mpiworldsize(vm["mpi-world-size"].as<int>());
+        msg.set_mpiworldsize(cmdVm["mpi-world-size"].as<int>());
     }
 
     auto msgResults = executeWithPool(req);
 
-    for (const auto& m : msgResults) {
-        if (m.returnvalue() != 0) {
-            SPDLOG_ERROR(
-              "Message ({}) returned error code: {}", m.id(), m.returnvalue());
-            return m.returnvalue();
+    for (const auto& msgResult : msgResults) {
+        if (msgResult.returnvalue() != 0) {
+            SPDLOG_ERROR("Message ({}) returned error code: {}",
+                         msgResult.id(),
+                         msgResult.returnvalue());
+            return msgResult.returnvalue();
         }
     }
 
@@ -135,17 +136,21 @@ int main(int argc, char* argv[])
     plannerServer.start();
     faabric::planner::getPlannerClient().ping();
 
+    // Set timeout
+    auto& faasmConf = conf::getFaasmConfig();
+    faasmConf.chainedCallTimeout = TIMEOUT_MS;
+
     // Second, start a regular pool runner
-    conf::getFaasmConfig().print();
+    faasmConf.print();
     auto fac = std::make_shared<faaslet::FaasletFactory>();
-    faabric::runner::FaabricMain m(fac);
-    m.startBackground();
+    faabric::runner::FaabricMain faabricMain(fac);
+    faabricMain.startBackground();
 
     // Third, actually run the request
     auto retVal = doRunner(argc, argv);
 
     // Clean-up
-    m.shutdown();
+    faabricMain.shutdown();
     plannerServer.stop();
     storage::shutdownFaasmS3();
 

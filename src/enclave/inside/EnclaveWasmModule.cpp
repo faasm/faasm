@@ -47,6 +47,12 @@ EnclaveWasmModule::~EnclaveWasmModule()
 {
     wasm_runtime_deinstantiate(moduleInstance);
     wasm_runtime_unload(wasmModule);
+    // Free the module bytes
+    if (wasmModuleBytes != nullptr) {
+        free(wasmModuleBytes);
+    }
+    wasmModuleBytes = nullptr;
+    wasmModuleBytesSize = 0;
 }
 
 bool EnclaveWasmModule::reset()
@@ -67,7 +73,7 @@ bool EnclaveWasmModule::reset()
 
 bool EnclaveWasmModule::doBindToFunction(const char* user,
                                          const char* function,
-                                         void* wasmBytesPtr,
+                                         uint8_t* wasmBytesPtr,
                                          uint32_t wasmBytesSize)
 {
     if (_isBound) {
@@ -78,11 +84,16 @@ bool EnclaveWasmModule::doBindToFunction(const char* user,
     this->user = std::string(user);
     this->function = std::string(function);
 
-    std::vector<uint8_t> wasmBytes((uint8_t*)wasmBytesPtr,
-                                   (uint8_t*)wasmBytesPtr + wasmBytesSize);
+    // According to the docs, the byte array we give to wasm_runtime_load
+    // must be usable until we call wasm_runtime_unload
+    this->wasmModuleBytes = (uint8_t*)malloc(wasmBytesSize);
+    this->wasmModuleBytesSize = wasmBytesSize;
+    memcpy(this->wasmModuleBytes, wasmBytesPtr, this->wasmModuleBytesSize);
 
-    wasmModule = wasm_runtime_load(
-      wasmBytes.data(), wasmBytes.size(), errorBuffer, WAMR_ERROR_BUFFER_SIZE);
+    wasmModule = wasm_runtime_load(this->wasmModuleBytes,
+                                   this->wasmModuleBytesSize,
+                                   errorBuffer,
+                                   WAMR_ERROR_BUFFER_SIZE);
 
     if (wasmModule == nullptr) {
         SPDLOG_ERROR_SGX(
