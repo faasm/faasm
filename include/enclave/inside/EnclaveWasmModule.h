@@ -5,7 +5,6 @@
 #include <iwasm/aot/aot_runtime.h>
 #include <wasm_runtime_common.h>
 
-#include <memory>
 #include <vector>
 
 namespace wasm {
@@ -29,7 +28,7 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     bool doBindToFunction(const char* user,
                           const char* function,
-                          void* wasmOpCodePtr,
+                          uint8_t* wasmOpCodePtr,
                           uint32_t wasmOpCodeSize);
 
     uint32_t callFunction(uint32_t argcIn, char** argvIn);
@@ -102,6 +101,12 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     WASMModuleCommon* wasmModule;
     WASMModuleInstanceCommon* moduleInstance;
+
+    // Heap pointer to the bytes for the WASM module. These are the bytes that
+    // we fit to wasm_runtime_load, and they need to be available
+    // until we call wasm_runtime_unload
+    uint8_t* wasmModuleBytes = nullptr;
+    int32_t wasmModuleBytesSize = 0;
 
     std::string user;
     std::string function;

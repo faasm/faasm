@@ -67,11 +67,9 @@ extern "C"
             return FAASM_SGX_INVALID_PTR;
         }
 
-        SPDLOG_DEBUG_SGX("module has size: %u", wasmBytesSize);
-
         auto* enclaveWasmModule = wasm::getExecutingEnclaveWasmModule();
         if (!enclaveWasmModule->doBindToFunction(
-              user, func, wasmBytes, wasmBytesSize)) {
+              user, func, (uint8_t*)wasmBytes, wasmBytesSize)) {
             SPDLOG_ERROR_SGX(
               "Error binding SGX-WAMR module to %s/%s", user, func);
             return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
