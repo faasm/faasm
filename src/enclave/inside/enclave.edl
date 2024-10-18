@@ -257,5 +257,17 @@ enclave{
             [out, size=bufferSize]  uint8_t* buffer,
                                     int32_t bufferSize
         ) allow(ecallCopyDataIn);
+
+        // ----- Attestation Calls -----
+
+        int32_t ocallAttGetQETargetInfo(
+            [out, size=bufferSize]  uint8_t* buffer,
+                                    int32_t bufferSize
+        );
+
+        int32_t ocallAttValidateQuote(
+                                    sgx_report_t report,
+            [out]                   int32_t* responseSIze
+        ) allow(ecallCopyDataIn);
     };
 };

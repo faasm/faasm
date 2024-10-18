@@ -207,4 +207,14 @@ extern "C"
                                                      const char* keyName,
                                                      uint8_t* buffer,
                                                      int32_t bufferSize);
+
+    // ----- Attestation Calls -----
+
+    extern sgx_status_t SGX_CDECL ocallAttGetQETargetInfo(int32_t* returnValue,
+                                                          void* buffer,
+                                                          int32_t bufferSize);
+
+    extern sgx_status_t SGX_CDECL ocallAttValidateQuote(int32_t* returnValue,
+                                                        sgx_report_t report,
+                                                        int32_t* responseSize);
 }
