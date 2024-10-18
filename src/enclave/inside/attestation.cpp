@@ -24,7 +24,7 @@ namespace sgx {
 // 2. Need to configure MAA to sign something using the public key we provide
 static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv, int32_t* jwtPtrPtr, int32_t* jwtSizePtr)
 {
-    auto wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
+    auto* wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
     SPDLOG_DEBUG_SGX("Generating TEE certificate for enclave %s/%s",
                      wasmModule->getBoundUser().c_str(),
                      wasmModule->getBoundFunction().c_str());
@@ -127,7 +127,7 @@ static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv, int32_t* 
 
 static void tless_get_mrenclave_wrapper(wasm_exec_env_t execEnv, int32_t* buf, int32_t bufSize)
 {
-    auto wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
+    auto* wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
 
     // We know the size of the MRENCLAVE at compile time (it is a SHA256 digest)
     // so we don't need to do any heap allocations outside WASM. WASM code
@@ -146,7 +146,7 @@ static void tless_get_mrenclave_wrapper(wasm_exec_env_t execEnv, int32_t* buf, i
 
 static int32_t tless_is_enabled_wrapper(wasm_exec_env_t execEnv)
 {
-    auto wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
+    [[maybe_unused]] auto* wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
 
     // TODO: finish me
 

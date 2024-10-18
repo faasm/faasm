@@ -697,7 +697,7 @@ extern "C"
         auto enclaveId =
           wasm::getExecutingEnclaveInterface()->getEnclaveId();
         sgx_status_t sgxReturnValue = ecallCopyDataIn(
-          enclaveId, &returnValue, (uint8_t*) jwt.c_str(), jwt.size());
+          enclaveId, &returnValue, (uint8_t*) jwt.c_str(), jwt.size(), nullptr, 0);
         sgx::processECallErrors("Error trying to copy data into enclave",
                                 sgxReturnValue,
                                 returnValue);
