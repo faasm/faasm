@@ -22,7 +22,9 @@ namespace sgx {
 // TODO:
 // 1. can we cache the JWT we get here? At least surely the SGX report
 // 2. Need to configure MAA to sign something using the public key we provide
-static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv, int32_t* jwtPtrPtr, int32_t* jwtSizePtr)
+static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv,
+                                              int32_t* jwtPtrPtr,
+                                              int32_t* jwtSizePtr)
 {
     auto* wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
     SPDLOG_DEBUG_SGX("Generating TEE certificate for enclave %s/%s",
@@ -39,9 +41,10 @@ static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv, int32_t* 
     sgx_target_info_t quotingEnclaveTargetInfo;
     int32_t returnValue;
     sgx_status_t sgxReturnValue;
-    if ((sgxReturnValue = ocallAttGetQETargetInfo(
-            &returnValue, (void*) &quotingEnclaveTargetInfo, sizeof(sgx_target_info_t))) !=
-        SGX_SUCCESS) {
+    if ((sgxReturnValue =
+           ocallAttGetQETargetInfo(&returnValue,
+                                   (void*)&quotingEnclaveTargetInfo,
+                                   sizeof(sgx_target_info_t))) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     } else if (returnValue != 0) {
         SPDLOG_ERROR_SGX("Error getting QE info");
@@ -60,20 +63,23 @@ static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv, int32_t* 
 
     // Generate a report for this enclave
     sgx_report_t enclaveReport;
-    sgxReturnValue =
-      sgx_create_report(&quotingEnclaveTargetInfo, &enclaveData, &enclaveReport);
+    sgxReturnValue = sgx_create_report(
+      &quotingEnclaveTargetInfo, &enclaveData, &enclaveReport);
 
     // Cache it for further (re)use
     if (wasmModule->cachedSgxReport == nullptr) {
         wasmModule->cachedSgxReport = std::make_shared<sgx_report_t>();
-        std::memcpy(wasmModule->cachedSgxReport.get(), &enclaveReport, sizeof(sgx_report_t));
+        std::memcpy(wasmModule->cachedSgxReport.get(),
+                    &enclaveReport,
+                    sizeof(sgx_report_t));
     }
 
     switch (sgxReturnValue) {
         case SGX_SUCCESS:
             break;
         case SGX_ERROR_INVALID_PARAMETER:
-            SPDLOG_ERROR_SGX("Error generating enclave report: invalid parameter");
+            SPDLOG_ERROR_SGX(
+              "Error generating enclave report: invalid parameter");
             return;
         default:
             SPDLOG_ERROR_SGX("Error generating enclave report");
@@ -92,8 +98,7 @@ static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv, int32_t* 
     assert(wasmModule->dataXferSize == 0);
 
     if ((sgxReturnValue = ocallAttValidateQuote(
-            &returnValue, enclaveReport, &jwtResponseSize)) !=
-        SGX_SUCCESS) {
+           &returnValue, enclaveReport, &jwtResponseSize)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     } else if (returnValue != 0) {
         SPDLOG_ERROR_SGX("Error validating enclave quote");
@@ -117,15 +122,17 @@ static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv, int32_t* 
     wasmModule->dataXferSize = 0;
 
     int32_t* newJwtPtr =
-          (int32_t*)wasmModule->wasmOffsetToNativePointer(jwtPtrOffset);
+      (int32_t*)wasmModule->wasmOffsetToNativePointer(jwtPtrOffset);
     *newJwtPtr = wasmOffset;
 
     int32_t* newJwtSizePtr =
-          (int32_t*)wasmModule->wasmOffsetToNativePointer(jwtSizeOffset);
+      (int32_t*)wasmModule->wasmOffsetToNativePointer(jwtSizeOffset);
     *newJwtSizePtr = jwtResponseSize;
 }
 
-static void tless_get_mrenclave_wrapper(wasm_exec_env_t execEnv, int32_t* buf, int32_t bufSize)
+static void tless_get_mrenclave_wrapper(wasm_exec_env_t execEnv,
+                                        int32_t* buf,
+                                        int32_t bufSize)
 {
     auto* wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
 
@@ -141,16 +148,17 @@ static void tless_get_mrenclave_wrapper(wasm_exec_env_t execEnv, int32_t* buf, i
         wasmModule->doThrowException(exc);
     }
 
-    std::memcpy(buf, &wasmModule->cachedSgxReport->body.mr_enclave, sizeof(sgx_measurement_t));
+    std::memcpy(buf,
+                &wasmModule->cachedSgxReport->body.mr_enclave,
+                sizeof(sgx_measurement_t));
 }
 
+// This function returns 0 is TLess is enabled
 static int32_t tless_is_enabled_wrapper(wasm_exec_env_t execEnv)
 {
-    [[maybe_unused]] auto* wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
+    auto* wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);
 
-    // TODO: finish me
-
-    return 0;
+    return wasmModule->isTlessEnabled() ? 0 : 1;
 }
 
 static NativeSymbol funcsNs[] = {

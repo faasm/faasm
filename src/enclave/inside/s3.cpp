@@ -298,7 +298,8 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
                                               const char* bucketName,
                                               const char* keyName,
                                               int32_t* keyBuffer,
-                                              int32_t* keyBufferLen)
+                                              int32_t* keyBufferLen,
+                                              bool tolerateMissing)
 {
     // Make a copy to the native stack to avoid pointer invalidations
     std::string bucketNameStr(bucketName);
@@ -319,10 +320,17 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
     // then heap-allocate the reception buffer
     sgx_status_t sgxReturnValue;
     int32_t keySize;
-    if ((sgxReturnValue = ocallS3GetKeySize(
-           &keySize, bucketNameStr.c_str(), keyNameStr.c_str())) !=
-        SGX_SUCCESS) {
+    if ((sgxReturnValue = ocallS3GetKeySize(&keySize,
+                                            bucketNameStr.c_str(),
+                                            keyNameStr.c_str(),
+                                            tolerateMissing)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
+    }
+
+    // Handle quickly the case where we tolerate a missing key
+    if (tolerateMissing && keySize == 0) {
+        *keyBufferLen = 0;
+        return 0;
     }
 
     // If the key is larger than what we can fit in the untrusted app's stack,
@@ -348,8 +356,8 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
                                              bucketNameStr.c_str(),
                                              keyNameStr.c_str(),
                                              (uint8_t*)nativePtr,
-                                             mustUseAuxECall ? 0 : keySize)) !=
-        SGX_SUCCESS) {
+                                             mustUseAuxECall ? 0 : keySize,
+                                             tolerateMissing)) != SGX_SUCCESS) {
         SET_ERROR(FAASM_SGX_OCALL_ERROR(sgxReturnValue));
     }
 
@@ -398,7 +406,7 @@ static NativeSymbol s3Ns[] = {
     REG_FAASM_NATIVE_FUNC(faasm_s3_list_keys, "($**)"),
     REG_FAASM_NATIVE_FUNC(faasm_s3_list_keys_with_prefix, "($$**)"),
     REG_FAASM_NATIVE_FUNC(faasm_s3_add_key_bytes, "($$*~i)i"),
-    REG_FAASM_NATIVE_FUNC(faasm_s3_get_key_bytes, "($$**)i"),
+    REG_FAASM_NATIVE_FUNC(faasm_s3_get_key_bytes, "($$**i)i"),
 };
 
 uint32_t getFaasmS3Api(NativeSymbol** nativeSymbols)

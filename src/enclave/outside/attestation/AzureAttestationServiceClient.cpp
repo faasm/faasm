@@ -142,8 +142,8 @@ static BeastHttpResponse doRequest(const std::string& url,
 }
 
 std::string AzureAttestationServiceClient::attestEnclave(
-    const std::vector<uint8_t>& quote,
-    sgx_report_t& report)
+  const std::vector<uint8_t>& quote,
+  sgx_report_t& report)
 {
     std::vector<uint8_t> heldData(sizeof(sgx_report_data_t));
     std::memcpy(heldData.data(), &report.body.report_data, heldData.size());
@@ -181,7 +181,8 @@ std::string AzureAttestationServiceClient::attestEnclave(
     return response.body();
 }
 
-std::string AzureAttestationServiceClient::getTokenFromJwtResponse(const std::string& jwtResponse)
+std::string AzureAttestationServiceClient::getTokenFromJwtResponse(
+  const std::string& jwtResponse)
 {
     rapidjson::Document doc;
     doc.Parse(jwtResponse.c_str());
@@ -283,7 +284,8 @@ void AzureAttestationServiceClient::validateJwtSignature(
     SPDLOG_DEBUG("Validated JWT's issuer");
 }
 
-DecodedJwt AzureAttestationServiceClient::getDecodedJwtFromJwtResponse(const std::string& jwtResponse)
+DecodedJwt AzureAttestationServiceClient::getDecodedJwtFromJwtResponse(
+  const std::string& jwtResponse)
 {
     std::string jwt = getTokenFromJwtResponse(jwtResponse);
     return jwt::decode(jwt);

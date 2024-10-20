@@ -226,9 +226,10 @@ static void __faasm_write_output_wrapper(wasm_exec_env_t exec_env,
 }
 
 // TOOD: remove me, just to test
-static void __tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv, int32_t* jwtPtrPtr, int32_t* jwtSizePtr)
-{
-}
+static void __tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv,
+                                                int32_t* jwtPtrPtr,
+                                                int32_t* jwtSizePtr)
+{}
 
 static NativeSymbol faasmNs[] = {
     REG_NATIVE_FUNC(__faasm_append_state, "(**i)"),

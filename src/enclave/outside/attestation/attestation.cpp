@@ -28,8 +28,7 @@ static void sha256sum(const uint8_t* data, uint32_t data_size, uint8_t* hash)
 sgx_target_info_t getQuotingEnclaveTargetInfo()
 {
     sgx_target_info_t targetInfo;
-    quote3_error_t qeReturnValue =
-      sgx_qe_get_target_info(&targetInfo);
+    quote3_error_t qeReturnValue = sgx_qe_get_target_info(&targetInfo);
 
     if (qeReturnValue != SGX_QL_SUCCESS) {
         SPDLOG_ERROR("Error getting the quoting enclave's info: 0x{:04X}",
@@ -61,7 +60,6 @@ std::vector<uint8_t> getQuoteFromReport(sgx_report_t enclaveReport)
 
     return quoteBuffer;
 }
-
 
 // To generate an enclave quote we need to do four steps:
 // 1. Query the state of the Quoting Enclave (QE)

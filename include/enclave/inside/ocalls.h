@@ -200,13 +200,15 @@ extern "C"
 
     extern sgx_status_t SGX_CDECL ocallS3GetKeySize(int32_t* returnValue,
                                                     const char* bucketName,
-                                                    const char* keyName);
+                                                    const char* keyName,
+                                                    bool tolerateMissing);
 
     extern sgx_status_t SGX_CDECL ocallS3GetKeyBytes(int32_t* returnValue,
                                                      const char* bucketName,
                                                      const char* keyName,
                                                      uint8_t* buffer,
-                                                     int32_t bufferSize);
+                                                     int32_t bufferSize,
+                                                     bool tolerateMissing);
 
     // ----- Attestation Calls -----
 

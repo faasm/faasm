@@ -31,7 +31,7 @@ class FaasmConfig
     std::string s3Password;
 
     std::string attestationProviderUrl;
-    std::string enclaveIsolationMode;
+    std::string tlessEnabled;
 
     FaasmConfig();
 

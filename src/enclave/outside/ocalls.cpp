@@ -614,13 +614,15 @@ extern "C"
         return 0;
     }
 
-    int32_t ocallS3GetKeySize(const char* bucketName, const char* keyName)
+    int32_t ocallS3GetKeySize(const char* bucketName,
+                              const char* keyName,
+                              bool tolerateMissing)
     {
         // First, get the actual key bytes from s3
         storage::S3Wrapper s3cli;
 
         // This call to s3 may throw an exception
-        auto data = s3cli.getKeyBytes(bucketName, keyName);
+        auto data = s3cli.getKeyBytes(bucketName, keyName, tolerateMissing);
 
         return data.size();
     }
@@ -628,13 +630,14 @@ extern "C"
     int32_t ocallS3GetKeyBytes(const char* bucketName,
                                const char* keyName,
                                uint8_t* buffer,
-                               int32_t bufferSize)
+                               int32_t bufferSize,
+                               bool tolerateMissing)
     {
         // First, get the actual key bytes from s3
         storage::S3Wrapper s3cli;
 
         // This call to s3 may throw an exception
-        auto data = s3cli.getKeyBytes(bucketName, keyName);
+        auto data = s3cli.getKeyBytes(bucketName, keyName, tolerateMissing);
 
         if (data.size() > MAX_OCALL_BUFFER_SIZE) {
             faasm_sgx_status_t returnValue;
@@ -668,8 +671,7 @@ extern "C"
 
     // ----- Attestation Calls -----
 
-    int32_t ocallAttGetQETargetInfo(void* buffer,
-                                    int32_t bufferSize)
+    int32_t ocallAttGetQETargetInfo(void* buffer, int32_t bufferSize)
     {
         sgx_target_info_t targetInfo = sgx::getQuotingEnclaveTargetInfo();
 
@@ -686,7 +688,8 @@ extern "C"
         auto quoteBuffer = sgx::getQuoteFromReport(report);
 
         // Now, validate it with the attestation service in Azure
-        sgx::AzureAttestationServiceClient aaClient(conf::getFaasmConfig().attestationProviderUrl);
+        sgx::AzureAttestationServiceClient aaClient(
+          conf::getFaasmConfig().attestationProviderUrl);
         std::string jwtResponse = aaClient.attestEnclave(quoteBuffer, report);
         std::string jwt = aaClient.getTokenFromJwtResponse(jwtResponse);
 
@@ -694,10 +697,13 @@ extern "C"
 
         // JWTs tend to be rather large, so we always copy them using an ECall
         faasm_sgx_status_t returnValue;
-        auto enclaveId =
-          wasm::getExecutingEnclaveInterface()->getEnclaveId();
-        sgx_status_t sgxReturnValue = ecallCopyDataIn(
-          enclaveId, &returnValue, (uint8_t*) jwt.c_str(), jwt.size(), nullptr, 0);
+        auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
+        sgx_status_t sgxReturnValue = ecallCopyDataIn(enclaveId,
+                                                      &returnValue,
+                                                      (uint8_t*)jwt.c_str(),
+                                                      jwt.size(),
+                                                      nullptr,
+                                                      0);
         sgx::processECallErrors("Error trying to copy data into enclave",
                                 sgxReturnValue,
                                 returnValue);

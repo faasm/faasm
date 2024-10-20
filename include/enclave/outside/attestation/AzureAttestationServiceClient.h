@@ -52,7 +52,8 @@ class AzureAttestationServiceClient
     // policy in the remote service, we receive a JWT in response. Otherwise
     // this method throws an exception.
     std::string attestEnclave(const EnclaveInfo& enclaveInfo);
-    std::string attestEnclave(const std::vector<uint8_t>& quote, sgx_report_t& report);
+    std::string attestEnclave(const std::vector<uint8_t>& quote,
+                              sgx_report_t& report);
 
     std::string getTokenFromJwtResponse(const std::string& jwtResponse);
     DecodedJwt getDecodedJwtFromJwtResponse(const std::string& jwtResponse);

@@ -76,7 +76,7 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     uint32_t mmapMemory(size_t nBytes);
 
-    uint32_t mmapFile(uint32_t fd, size_t length);
+    uint32_t mmapFile(uint32_t wasmFd, size_t length);
 
     void unmapMemory(uint32_t offset, size_t nBytes);
 
@@ -103,6 +103,10 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
 
     // SGX
     std::shared_ptr<sgx_report_t> cachedSgxReport = nullptr;
+
+    bool isTlessEnabled() const { return this->tlessEnabled; }
+
+    void setTlessMode(bool tlessEnabled) { this->tlessEnabled = tlessEnabled; }
 
   private:
     char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
@@ -136,6 +140,8 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     FaasmKeyContext keyContext;
     FaasmPrivateKey privateKey;
     FaasmPublicKey publicKey;
+
+    bool tlessEnabled;
 };
 
 // Data structure to keep track of the module currently loaded in the enclave.

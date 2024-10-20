@@ -49,7 +49,8 @@ EnclaveWasmModule::EnclaveWasmModule()
     }
 
     // Generate public/private key pair
-    ret = sgx_ecc256_create_key_pair(&this->privateKey, &this->publicKey, this->keyContext);
+    ret = sgx_ecc256_create_key_pair(
+      &this->privateKey, &this->publicKey, this->keyContext);
 }
 
 EnclaveWasmModule::~EnclaveWasmModule()
