@@ -13,12 +13,8 @@
 #include <optional>
 
 #ifdef FAASM_SGX_HARDWARE_MODE
-// #include <dlfcn.h>
-// #include <openssl/evp.h>
 #include <sgx_dcap_ql_wrapper.h>
 #include <sgx_ql_lib_common.h>
-// #include <sgx_report.h>
-// #include <sgx_urts.h>
 #endif
 
 // TODO: cannot seem to include the WAMR file with the WASI types, as it seems
