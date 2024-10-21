@@ -69,9 +69,7 @@ static void __tless_get_mrenclave_wrapper(wasm_exec_env_t execEnv,
 
 static int32_t __tless_is_enabled_wrapper(wasm_exec_env_t execEnv)
 {
-    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("tless_is_enabled");
-
-    return 0;
+    return 1;
 }
 
 static NativeSymbol ns[] = {
