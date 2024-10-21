@@ -19,7 +19,7 @@ enclave{
             [in]    const sgx_report_data_t* heldData,
             [out]   sgx_report_t* report);
 
-        public faasm_sgx_status_t ecallInitWamr(void);
+        public faasm_sgx_status_t ecallInitWamr();
 
         public faasm_sgx_status_t ecallReset();
 
@@ -27,7 +27,8 @@ enclave{
             [in, string]                const char* user,
             [in, string]                const char* func,
             [in, size=wasmBytesSize]    void *wasmBytes,
-                                        uint32_t wasmBytesSize
+                                        uint32_t wasmBytesSize,
+                                        bool enableTless
         );
 
         public faasm_sgx_status_t ecallCallFunction(
@@ -248,14 +249,28 @@ enclave{
 
         int32_t ocallS3GetKeySize(
             [in, string]            const char* bucketName,
-            [in, string]            const char* keyName
+            [in, string]            const char* keyName,
+                                    bool tolerateMissing
         );
 
         int32_t ocallS3GetKeyBytes(
             [in, string]            const char* bucketName,
             [in, string]            const char* keyName,
             [out, size=bufferSize]  uint8_t* buffer,
+                                    int32_t bufferSize,
+                                    bool tolerateMissing
+        ) allow(ecallCopyDataIn);
+
+        // ----- Attestation Calls -----
+
+        int32_t ocallAttGetQETargetInfo(
+            [out, size=bufferSize]  uint8_t* buffer,
                                     int32_t bufferSize
+        );
+
+        int32_t ocallAttValidateQuote(
+                                    sgx_report_t report,
+            [out]                   int32_t* responseSIze
         ) allow(ecallCopyDataIn);
     };
 };

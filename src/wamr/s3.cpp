@@ -144,7 +144,8 @@ static int32_t __faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
                                                 const char* bucketName,
                                                 const char* keyName,
                                                 int32_t* keyBuffer,
-                                                int32_t* keyBufferLen)
+                                                int32_t* keyBufferLen,
+                                                bool tolerateMissing)
 {
     // First, get the actual key bytes from s3
     storage::S3Wrapper s3cli;
@@ -189,7 +190,7 @@ static NativeSymbol s3_ns[] = {
     REG_NATIVE_FUNC(__faasm_s3_list_keys, "($**)"),
     REG_NATIVE_FUNC(__faasm_s3_list_keys_with_prefix, "($$**)"),
     REG_NATIVE_FUNC(__faasm_s3_add_key_bytes, "($$*~i)i"),
-    REG_NATIVE_FUNC(__faasm_s3_get_key_bytes, "($$**)i"),
+    REG_NATIVE_FUNC(__faasm_s3_get_key_bytes, "($$**i)i"),
 };
 
 uint32_t getFaasmS3Api(NativeSymbol** nativeSymbols)

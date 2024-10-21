@@ -26,7 +26,8 @@ extern "C"
                                               const char* user,
                                               const char* func,
                                               const void* wasmBytes,
-                                              uint32_t wasmBytesSize);
+                                              uint32_t wasmBytesSize,
+                                              bool enableTless);
 
     extern sgx_status_t ecallDestroyModule(sgx_enclave_id_t enclaveId,
                                            faasm_sgx_status_t* retVal,

@@ -4,7 +4,6 @@
 #include <wasm/WasmCommon.h>
 
 #include <string>
-#include <vector>
 
 namespace wasm {
 
@@ -41,10 +40,25 @@ bool EnclaveWasmModule::initialiseWAMRGlobally()
     return success;
 }
 
-EnclaveWasmModule::EnclaveWasmModule() {}
+EnclaveWasmModule::EnclaveWasmModule()
+{
+    // Initialize enclave's public/private key
+    sgx_status_t ret = sgx_ecc256_open_context(&this->keyContext);
+    if (ret != SGX_SUCCESS) {
+        SPDLOG_ERROR_SGX("Error intializing crypto context for enclave!");
+    }
+
+    // Generate public/private key pair
+    ret = sgx_ecc256_create_key_pair(
+      &this->privateKey, &this->publicKey, this->keyContext);
+}
 
 EnclaveWasmModule::~EnclaveWasmModule()
 {
+    if (this->keyContext != nullptr) {
+        sgx_ecc256_close_context(this->keyContext);
+    }
+
     wasm_runtime_deinstantiate(moduleInstance);
     wasm_runtime_unload(wasmModule);
     // Free the module bytes

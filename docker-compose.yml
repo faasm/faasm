@@ -101,6 +101,7 @@ services:
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - SGX_AESM_ADDR=1
+      - TLESS_ENABLED=${TLESS_ENABLED:-on}
 
   # C/C++ functions
   cpp:
