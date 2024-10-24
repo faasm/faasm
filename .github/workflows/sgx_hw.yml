@@ -112,6 +112,12 @@ jobs:
             --path ${{ env.VM_CODE_DIR }} \
             --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh codegen.tests\"" \
             --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
+      - name: "Print kernel version"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "uname -r" \
       - name: "Run hello function"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
