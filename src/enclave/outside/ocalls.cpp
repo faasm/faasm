@@ -669,17 +669,20 @@ extern "C"
 
     int32_t ocallAttGetQETargetInfo(void* buffer, int32_t bufferSize)
     {
+#ifdef FAASM_SGX_HARDWARE_MODE
         sgx_target_info_t targetInfo = sgx::getQuotingEnclaveTargetInfo();
 
         // Copy into enclave-provided buffer
         assert(bufferSize == sizeof(targetInfo));
         std::memcpy(buffer, &targetInfo, bufferSize);
+#endif
 
         return 0;
     }
 
     int32_t ocallAttValidateQuote(sgx_report_t report, int32_t* jwtResponseSize)
     {
+#ifdef FAASM_SGX_HARDWARE_MODE
         // First, generate quote
         auto quoteBuffer = sgx::getQuoteFromReport(report);
 
@@ -705,6 +708,7 @@ extern "C"
                                 returnValue);
 
         *jwtResponseSize = jwt.size();
+#endif
 
         return 0;
     }
