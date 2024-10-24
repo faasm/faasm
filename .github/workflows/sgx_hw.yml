@@ -103,7 +103,7 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh dev.tools --build Release --sgx Hardware\"" \
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh dev.tools --build Debug --sgx Hardware\"" \
             --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
       - name: "Run codegen"
         run: |

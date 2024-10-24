@@ -42,9 +42,7 @@ class S3ExecTestFixture
     const std::string testBucketName = "faasm-test-s3-exec";
 };
 
-// FIXME 03/10/2024 - Some of the S3 tests seem to hand indefinitely, we
-// skip them for the time being. See faasm/faasm#883
-TEST_CASE_METHOD(S3ExecTestFixture, "Get number of buckets", "[s3][.]")
+TEST_CASE_METHOD(S3ExecTestFixture, "Get number of buckets", "[s3]")
 {
     SECTION("WAMR")
     {
@@ -66,7 +64,7 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Get number of buckets", "[s3][.]")
     REQUIRE(result.returnvalue() == 0);
 }
 
-TEST_CASE_METHOD(S3ExecTestFixture, "List buckets", "[s3][.]")
+TEST_CASE_METHOD(S3ExecTestFixture, "List buckets", "[s3]")
 {
     SECTION("WAMR")
     {
@@ -101,7 +99,7 @@ TEST_CASE_METHOD(S3ExecTestFixture, "List buckets", "[s3][.]")
     REQUIRE(result.returnvalue() == 0);
 }
 
-TEST_CASE_METHOD(S3ExecTestFixture, "Get number of keys", "[s3][.]")
+TEST_CASE_METHOD(S3ExecTestFixture, "Get number of keys", "[s3]")
 {
     SECTION("WAMR")
     {
@@ -127,7 +125,7 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Get number of keys", "[s3][.]")
     REQUIRE(result.returnvalue() == 0);
 }
 
-TEST_CASE_METHOD(S3ExecTestFixture, "List keys", "[s3][.]")
+TEST_CASE_METHOD(S3ExecTestFixture, "List keys", "[s3]")
 {
     SECTION("WAMR")
     {
@@ -164,7 +162,7 @@ TEST_CASE_METHOD(S3ExecTestFixture, "List keys", "[s3][.]")
     REQUIRE(result.returnvalue() == 0);
 }
 
-TEST_CASE_METHOD(S3ExecTestFixture, "Add key bytes", "[s3][.]")
+TEST_CASE_METHOD(S3ExecTestFixture, "Add key bytes", "[s3]")
 {
     SECTION("WAMR")
     {
@@ -191,7 +189,7 @@ TEST_CASE_METHOD(S3ExecTestFixture, "Add key bytes", "[s3][.]")
 
 // 06/09/2024 - FIXME(wamr-bup): this test is giving spurious errors only
 // on Debug mode, so we skip it for now
-TEST_CASE_METHOD(S3ExecTestFixture, "Get key bytes", "[s3][.]")
+TEST_CASE_METHOD(S3ExecTestFixture, "Get key bytes", "[s3]")
 {
     SECTION("WAMR")
     {
