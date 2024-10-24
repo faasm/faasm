@@ -128,6 +128,7 @@ jobs:
             --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh tests --debug\"" \
             --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
       - name: "Delete VM"
-        if: always()
+        # TODO: delete me
+        # if: always()
         run: ./bin/inv_wrapper.sh vm.delete --name ${{ env.VM_NAME }}
         continue-on-error: true
