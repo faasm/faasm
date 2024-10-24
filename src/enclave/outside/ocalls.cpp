@@ -1,5 +1,7 @@
 #include <enclave/common.h>
 #include <enclave/outside/EnclaveInterface.h>
+#include <enclave/outside/attestation/AzureAttestationServiceClient.h>
+#include <enclave/outside/attestation/attestation.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
 #include <faabric/executor/ExecutorContext.h>
@@ -9,6 +11,11 @@
 
 #include <cstring>
 #include <optional>
+
+#ifdef FAASM_SGX_HARDWARE_MODE
+#include <sgx_dcap_ql_wrapper.h>
+#include <sgx_ql_lib_common.h>
+#endif
 
 // TODO: cannot seem to include the WAMR file with the WASI types, as it seems
 // to clash with some SGX definitions
@@ -603,13 +610,15 @@ extern "C"
         return 0;
     }
 
-    int32_t ocallS3GetKeySize(const char* bucketName, const char* keyName)
+    int32_t ocallS3GetKeySize(const char* bucketName,
+                              const char* keyName,
+                              bool tolerateMissing)
     {
         // First, get the actual key bytes from s3
         storage::S3Wrapper s3cli;
 
         // This call to s3 may throw an exception
-        auto data = s3cli.getKeyBytes(bucketName, keyName);
+        auto data = s3cli.getKeyBytes(bucketName, keyName, tolerateMissing);
 
         return data.size();
     }
@@ -617,13 +626,14 @@ extern "C"
     int32_t ocallS3GetKeyBytes(const char* bucketName,
                                const char* keyName,
                                uint8_t* buffer,
-                               int32_t bufferSize)
+                               int32_t bufferSize,
+                               bool tolerateMissing)
     {
         // First, get the actual key bytes from s3
         storage::S3Wrapper s3cli;
 
         // This call to s3 may throw an exception
-        auto data = s3cli.getKeyBytes(bucketName, keyName);
+        auto data = s3cli.getKeyBytes(bucketName, keyName, tolerateMissing);
 
         if (data.size() > MAX_OCALL_BUFFER_SIZE) {
             faasm_sgx_status_t returnValue;
@@ -653,5 +663,53 @@ extern "C"
         std::memcpy(buffer, data.data(), data.size());
 
         return data.size();
+    }
+
+    // ----- Attestation Calls -----
+
+    int32_t ocallAttGetQETargetInfo(void* buffer, int32_t bufferSize)
+    {
+#ifdef FAASM_SGX_HARDWARE_MODE
+        sgx_target_info_t targetInfo = sgx::getQuotingEnclaveTargetInfo();
+
+        // Copy into enclave-provided buffer
+        assert(bufferSize == sizeof(targetInfo));
+        std::memcpy(buffer, &targetInfo, bufferSize);
+#endif
+
+        return 0;
+    }
+
+    int32_t ocallAttValidateQuote(sgx_report_t report, int32_t* jwtResponseSize)
+    {
+#ifdef FAASM_SGX_HARDWARE_MODE
+        // First, generate quote
+        auto quoteBuffer = sgx::getQuoteFromReport(report);
+
+        // Now, validate it with the attestation service in Azure
+        sgx::AzureAttestationServiceClient aaClient(
+          conf::getFaasmConfig().attestationProviderUrl);
+        std::string jwtResponse = aaClient.attestEnclave(quoteBuffer, report);
+        std::string jwt = aaClient.getTokenFromJwtResponse(jwtResponse);
+
+        // TODO: MAA should encrypt something using our public key
+
+        // JWTs tend to be rather large, so we always copy them using an ECall
+        faasm_sgx_status_t returnValue;
+        auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
+        sgx_status_t sgxReturnValue = ecallCopyDataIn(enclaveId,
+                                                      &returnValue,
+                                                      (uint8_t*)jwt.c_str(),
+                                                      jwt.size(),
+                                                      nullptr,
+                                                      0);
+        sgx::processECallErrors("Error trying to copy data into enclave",
+                                sgxReturnValue,
+                                returnValue);
+
+        *jwtResponseSize = jwt.size();
+#endif
+
+        return 0;
     }
 }

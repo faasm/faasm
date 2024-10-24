@@ -1,5 +1,4 @@
 #include <faabric/util/logging.h>
-#include <stdexcept>
 #include <wamr/WAMRWasmModule.h>
 #include <wamr/native.h>
 #include <wasm_export.h>
@@ -54,11 +53,36 @@ static int32_t shm_open_wrapper(wasm_exec_env_t exec_env,
     return 0;
 }
 
+static void __tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv,
+                                                int32_t* jwtPtrPtr,
+                                                int32_t* jwtSizePtr)
+{
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("tless_get_attestation_jwt");
+}
+
+static void __tless_get_mrenclave_wrapper(wasm_exec_env_t execEnv,
+                                          int32_t* buf,
+                                          int32_t bufSize)
+{
+    WAMR_NATIVE_SYMBOL_NOT_IMPLEMENTED("tless_get_mrenclave");
+}
+
+static int32_t __tless_is_enabled_wrapper(wasm_exec_env_t execEnv)
+{
+    return 1;
+}
+
 static NativeSymbol ns[] = {
     REG_NATIVE_FUNC(__cxa_allocate_exception, "(i)i"),
     REG_NATIVE_FUNC(__cxa_throw, "(iii)"),
     REG_NATIVE_FUNC(shm_open, "($ii)i"),
     REG_NATIVE_FUNC(syscall, "(ii)i"),
+    // This three symbols are only used in SGX, but given that the code-gen is
+    // performed by the main WAMR runtime, we define the symbols here to
+    // avoid warnings
+    REG_NATIVE_FUNC(__tless_get_attestation_jwt, "(**)"),
+    REG_NATIVE_FUNC(__tless_get_mrenclave, "(*i)"),
+    REG_NATIVE_FUNC(__tless_is_enabled, "()i"),
 };
 
 uint32_t getFaasmStubs(NativeSymbol** nativeSymbols)

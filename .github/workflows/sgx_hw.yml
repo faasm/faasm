@@ -103,7 +103,7 @@ jobs:
           ./bin/inv_wrapper.sh vm.run-command \
             --name ${{ env.VM_NAME }} \
             --path ${{ env.VM_CODE_DIR }} \
-            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh dev.tools --build Release --sgx Hardware\"" \
+            --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh dev.tools --build Debug --sgx Hardware\"" \
             --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
       - name: "Run codegen"
         run: |
@@ -112,6 +112,12 @@ jobs:
             --path ${{ env.VM_CODE_DIR }} \
             --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh codegen.tests\"" \
             --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
+      - name: "Print kernel version"
+        run: |
+          ./bin/inv_wrapper.sh vm.run-command \
+            --name ${{ env.VM_NAME }} \
+            --path ${{ env.VM_CODE_DIR }} \
+            --cmd "uname -r" \
       - name: "Run hello function"
         run: |
           ./bin/inv_wrapper.sh vm.run-command \
@@ -128,6 +134,7 @@ jobs:
             --cmd "${{ env.FAASMCTL_BIN }} cli.faasm --cmd \"./bin/inv_wrapper.sh tests --debug\"" \
             --env "FAASM_INI_FILE=${{ env.VM_CODE_DIR }}/faasm.ini"
       - name: "Delete VM"
-        if: always()
+        # TODO: delete me
+        # if: always()
         run: ./bin/inv_wrapper.sh vm.delete --name ${{ env.VM_NAME }}
         continue-on-error: true

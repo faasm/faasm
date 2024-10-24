@@ -64,6 +64,7 @@ set(ENCLAVE_TRUSTED_HEADERS
 
 set(ENCLAVE_TRUSTED_SRC
     EnclaveWasmModule.cpp
+    attestation.cpp
     checks.cpp
     ecalls.cpp
     env.cpp

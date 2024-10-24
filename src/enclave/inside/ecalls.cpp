@@ -27,10 +27,10 @@ extern "C"
         }
     }
 
-    faasm_sgx_status_t ecallInitWamr(void)
+    faasm_sgx_status_t ecallInitWamr()
     {
         // Initialise WAMR once for all modules
-        SPDLOG_DEBUG_SGX("Initialising WAMR runtime");
+        SPDLOG_DEBUG_SGX("Initialising SGX-WAMR runtime");
         if (!wasm::EnclaveWasmModule::initialiseWAMRGlobally()) {
             SPDLOG_ERROR_SGX("Error initialising WAMR globally");
             return FAASM_SGX_WAMR_RTE_INIT_FAILED;
@@ -55,9 +55,11 @@ extern "C"
     faasm_sgx_status_t ecallDoBindToFunction(const char* user,
                                              const char* func,
                                              void* wasmBytes,
-                                             uint32_t wasmBytesSize)
+                                             uint32_t wasmBytesSize,
+                                             bool tlessEnabled)
     {
-        SPDLOG_DEBUG_SGX("Binding to %s/%s", user, func);
+        SPDLOG_DEBUG_SGX(
+          "Binding to %s/%s (tless: %i)", user, func, tlessEnabled);
 
         // Check if passed wasm opcode size or wasm opcode ptr is zero
         if (!wasmBytesSize) {
@@ -74,6 +76,8 @@ extern "C"
               "Error binding SGX-WAMR module to %s/%s", user, func);
             return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
         }
+
+        enclaveWasmModule->setTlessMode(tlessEnabled);
 
         return FAASM_SGX_SUCCESS;
     }
