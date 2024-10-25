@@ -2,7 +2,7 @@ from faasmtools.docker import ACR_NAME
 from github import Github
 from invoke import task
 from os import environ
-from os.path import join
+from os.path import exists, join
 from subprocess import run, PIPE, STDOUT
 from tasks.util.env import PROJ_ROOT
 from tasks.util.version import get_version
@@ -63,7 +63,21 @@ def _get_release():
 
 
 def _get_github_instance():
-    token = environ["GITHUB_TOKEN"]
+    if "GITHUB_TOKEN" in environ:
+        token = environ["GITHUB_TOKEN"]
+    else:
+        filename = join(PROJ_ROOT, "dev", "GITHUB_TOKEN")
+
+        if exists(filename):
+            with open(filename, "r") as fh:
+                token = fh.read()
+                token = token.strip()
+        else:
+            print("Must set GITHUB_TOKEN before creating a release")
+            raise RuntimeError(
+                "Must set GITHUB_TOKEN before creating a release"
+            )
+
     g = Github(token)
     return g
 
