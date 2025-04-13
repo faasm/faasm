@@ -62,10 +62,8 @@ std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
     // runtimeData: data provided by the enclave at quote generation time. This
     // field corresponds to the enclave held data variable that we can configure
     // before attestation.
-    // 06/04/2022 - For the moment we don't include the enclave held data in
-    // the request, as there is still not a clear use for it.
     std::string enclaveHeldDataBase64 =
-      cppcodec::base64_url::encode(enclaveInfo.enclaveHeldData.data(), enclaveInfo.enclaveHeldData.size());
+      cppcodec::base64_url::encode(enclaveInfo.getEnclaveHeldData().data(), enclaveInfo.getEnclaveHeldData().size());
     std::string dataType = "Binary";
     inner.SetObject();
     inner.AddMember(
@@ -147,7 +145,7 @@ std::string AzureAttestationServiceClient::attestEnclave(
   const std::vector<uint8_t>& quote,
   sgx_report_t& report)
 {
-    std::vector<uint8_t> heldData(sizeof(sgx_report_data_t));
+    std::vector<uint8_t> heldData(SGX_REPORT_DATA_SIZE);
     std::memcpy(heldData.data(), &report.body.report_data, heldData.size());
 
     EnclaveInfo enclaveInfo(report, quote, heldData);
@@ -191,7 +189,7 @@ std::pair<std::string, std::string> AzureAttestationServiceClient::getTokenFromJ
     doc.Parse(jwtResponse.c_str());
     std::string encryptedJwt = doc["encrypted_token"].GetString();
     std::string serverPubKey = doc["server_pubkey"].GetString();
-    return std::make_pair<std::string, std::string>(encryptedJwt, serverPubKey);
+    return std::pair<std::string, std::string>(encryptedJwt, serverPubKey);
 }
 
 void AzureAttestationServiceClient::validateJkuUri(const DecodedJwt& decodedJwt)
@@ -291,6 +289,7 @@ void AzureAttestationServiceClient::validateJwtSignature(
 }
 */
 
+/* TODO: no need to validate in the untrusted host, REMOVE ME
 DecodedJwt AzureAttestationServiceClient::getDecodedJwtFromJwtResponse(
   const std::string& jwtResponse)
 {
@@ -298,7 +297,6 @@ DecodedJwt AzureAttestationServiceClient::getDecodedJwtFromJwtResponse(
     return jwt::decode(jwt);
 }
 
-/* TODO: no need to validate in the untrusted host, REMOVE ME
 void AzureAttestationServiceClient::validateJwtToken(
   const std::string& jwtToken)
 {

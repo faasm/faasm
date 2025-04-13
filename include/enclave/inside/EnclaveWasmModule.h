@@ -100,6 +100,8 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     // ---- Crypto management ----
 
     FaasmPublicKey getPubKey() { return publicKey; }
+    FaasmPrivateKey getPrivKey() { return privateKey; }
+    FaasmKeyContext getKeyContext() { return keyContext; }
 
     // SGX
     std::shared_ptr<sgx_report_t> cachedSgxReport = nullptr;

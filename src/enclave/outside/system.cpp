@@ -60,25 +60,7 @@ static sgx_enclave_id_t doCreateEnclave()
     sgxReturnValue = ecallInitWamr(enclaveId, &returnValue);
     processECallErrors(
       "Unable to initialise WAMR inside enclave", sgxReturnValue, returnValue);
-
     SPDLOG_DEBUG("Initialised WAMR in SGX enclave {}", enclaveId);
-
-    // TODO: FIXME: probably want to keep attestation to inside the enclave!
-#ifdef FAASM_SGX_HARDWARE_MODE
-    // Attest enclave only in hardware mode
-    conf::FaasmConfig& conf = conf::getFaasmConfig();
-    if (conf.attestationProviderUrl == "off") {
-        SPDLOG_INFO("Enclave attestation disabled in the config");
-    } else {
-        // 06/04/2022 - For the moment, the enclave held data is a dummy
-        // placeholder until we decide if we are going to use it or not.
-        std::vector<uint8_t> enclaveHeldData{
-            0x01, 0x02, 0x03, 0x04, 0x05, 0x06
-        };
-        attestEnclave(enclaveId, enclaveHeldData);
-        SPDLOG_INFO("Attested SGX enclave: {}", enclaveId);
-    }
-#endif
 
     return enclaveId;
 }
