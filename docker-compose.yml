@@ -85,7 +85,7 @@ services:
       - aesmd-socket:/var/run/aesmd
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}:/dev/sgx
     environment:
-      - AZ_ATTESTATION_PROVIDER_URL=https://faasmattprov.eus2.attest.azure.net
+      - ATTESTATION_SERVICE_URL=${FAASM_ATTESTATION_SERVICE_URL:-https://localhost:8443}
       - CAPTURE_STDOUT=${FAASM_CAPTURE_STDOUT:-off}
       - CGROUP_MODE=on
       - DEPLOYMENT_TYPE=${FAASM_DEPLOYMENT_TYPE:-compose}
@@ -101,7 +101,7 @@ services:
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_STATE_HOST=redis-state
       - SGX_AESM_ADDR=1
-      - TLESS_ENABLED=${TLESS_ENABLED:-on}
+      - ACCLESS_ENABLED=${FAASM_ACCLESS_ENABLED:-on}
 
   # C/C++ functions
   cpp:

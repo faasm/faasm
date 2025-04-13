@@ -72,6 +72,7 @@ void FaasmConfig::print()
     SPDLOG_INFO("Chained call timeout: {}", chainedCallTimeout);
     SPDLOG_INFO("Python preload:       {}", pythonPreload);
     SPDLOG_INFO("Wasm VM:              {}", wasmVm);
+    SPDLOG_INFO("Att. service URL:     {}", attestationServiceUrl);
     SPDLOG_INFO("Accless mode:         {}", acclessEnabled);
 
     SPDLOG_INFO("--- STORAGE ---");
