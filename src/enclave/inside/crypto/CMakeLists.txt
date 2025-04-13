@@ -5,6 +5,7 @@ set(ENCLAVE_TRUSTED_CRYPTO_HEADERS
 )
 
 set(ENCLAVE_TRUSTED_CRYPTO_SRC
+    base64.cpp
     encryption.cpp
     hash.cpp
     ${FAASM_SGX_CRYPTO_HEADERS}

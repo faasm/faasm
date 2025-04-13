@@ -1,8 +1,10 @@
 #include <enclave/inside/EnclaveWasmModule.h>
+#include <enclave/inside/crypto/base64.h>
 #include <enclave/inside/native.h>
 
 #include <memory>
 
+#include <sgx_tcrypto.h>
 #include <sgx_report.h>
 #include <sgx_utils.h>
 
@@ -106,25 +108,79 @@ static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv,
 
     // assert(jwtResponseSize == wasmModule->dataXferSize);
 
-    std::string jwe(wasmModule->dataXferPtr, jwtResponseSize);
-    std::string serverPubKey(
-        wasmModule->dataXferPtr + jwtResponseSize, 
+    std::string jweBase64(wasmModule->dataXferPtr, jwtResponseSize);
+    std::string serverPubKeyBase64(
+        wasmModule->dataXferPtr + jwtResponseSize,
         wasmModule->dataXferSize - jwtResponseSize
     );
 
-    // Derive the decryption key from the server pub key, and use it to decrypt
-    // the JWE
-    // use: sgx_ecc256_compute_shared_dhkey
+    // Decode the ephemeral server pub key
+    auto serverPubKeyRaw = base64decode(serverPubKeyBase64);
+    FaasmPublicKey serverPubKey;
+    memcpy(serverPubKey->gx, serverPubKey.data(), 32);
+    memcpy(serverPubKey->gy, serverPubKey.data() + 32, 32);
+
+    // Derive the decryption key from the server pub key
+    sgx_ec256_dh_shared_t jwtDerivedSharedKey;
+    sgx_status_t status = sgx_ecc256_compute_shared_dhkey(
+        &wasmModule->privateKey,
+        &serverPubKey,
+        &jwtDerivedSharedKey,
+        wasmModule->keyContext
+    );
+    if (status != SGX_SUCCESS) {
+        SPDLOG_ERROR_SGX("Error deriving shared key after key exchange");
+        auto exc = std::runtime_error("Error deriving shared key after key exchange");
+        wasmModule->doThrowException(exc);
+    }
+
+    // Decrypt the JWE into a JWT
+    auto jweRaw = base64decode(jweBase64);
+    if (jweRaw.size() < SGX_AESGCM_IV_SIZE + SGX_AESGCM_MAC_SIZE) {
+        SPDLOG_ERROR_SGX("JWE is not large enough (size: %i)", jweRaw.size());
+        auto exc = std::runtime_error("JWE not large enough");
+        wasmModule->doThrowException(exc);
+    }
+
+    const uint8_t* iv = jweRaw.data();
+    const uint8_t* cipherText = jweRaw.data() + SGX_AESGCM_IV_SIZE;
+    size_t cipherTextLen = jweRaw.size() - SGX_AESGCM_IV_SIZE - SGX_AESGCM_MAC_SIZE;
+    const sgx_aes_gcm_128bit_tag_t* tag =
+        reinterpret_cast<const sgx_aes_gcm_128bit_tag_t*>(jweRaw.data() + jweRaw.size() - SGX_AESGCM_MAC_SIZE);
+    // Must truncate the shared key
+    sgx_aes_gcm_128bit_key_t aesKey;
+    memcpy(aesKey, jwtDerivedSharedKey.s, sizeof(sgx_aes_gcm_128bit_key_t));
+
+    // Step 4: Decrypt with SGX
+    std::vector<uint8_t> plainText(ciphertext_len, 0);
+    sgx_status_t st = sgx_rijndael128GCM_decrypt(
+        &aesKey,
+        cipherText,
+        static_cast<uint32_t>(cipherTextLen),
+        plainText.data(),
+        iv,
+        static_cast<uint32_t>(SGX_AESGCM_IV_SIZE),
+        nullptr,
+        0,
+        tag
+    );
+    if (st != SGX_SUCCESS) {
+        SPDLOG_ERROR_SGX("Error decrypting JWE");
+        auto exc = std::runtime_error("Error decrypting JWE");
+        wasmModule->doThrowException(exc);
+    }
+    std::string jwt(plainText.begin(), plainText.end());
+    SPDLOG_DEBUG_SGX("Decrypted JWT with size: %i", jwt.size());
 
     // Copy JWT into heap-allocated WASM buffer
     void* nativePtr = nullptr;
-    auto wasmOffset = wasmModule->wasmModuleMalloc(jwtResponseSize, &nativePtr);
+    auto wasmOffset = wasmModule->wasmModuleMalloc(jwt.size(), &nativePtr);
     if (wasmOffset == 0 || nativePtr == nullptr) {
         SPDLOG_ERROR_SGX("Error allocating memory in WASM module");
         auto exc = std::runtime_error("Error allocating memory in module!");
         wasmModule->doThrowException(exc);
     }
-    std::memcpy(nativePtr, wasmModule->dataXferPtr, jwtResponseSize);
+    std::memcpy(nativePtr, jwt.c_str(), jwt.size());
 
     free(wasmModule->dataXferPtr);
     wasmModule->dataXferPtr = nullptr;
