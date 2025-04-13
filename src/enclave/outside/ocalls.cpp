@@ -1,6 +1,6 @@
 #include <enclave/common.h>
 #include <enclave/outside/EnclaveInterface.h>
-#include <enclave/outside/attestation/AzureAttestationServiceClient.h>
+#include <enclave/outside/attestation/AttestationServiceClient.h>
 #include <enclave/outside/attestation/attestation.h>
 #include <enclave/outside/ecalls.h>
 #include <enclave/outside/system.h>
@@ -687,8 +687,8 @@ extern "C"
         auto quoteBuffer = sgx::getQuoteFromReport(report);
 
         // Now, validate it with the attestation service in Azure
-        sgx::AzureAttestationServiceClient aaClient(
-          conf::getFaasmConfig().attestationProviderUrl);
+        sgx::AttestationServiceClient aaClient(
+          conf::getFaasmConfig().attestationServiceUrl);
         std::string jwtResponse = aaClient.attestEnclave(quoteBuffer, report);
 
         // JWT response contains the actual JWT encrypted (JWT) as well ass
@@ -697,18 +697,19 @@ extern "C"
         auto [jwe, pubKey] = aaClient.getTokenFromJwtResponse(jwtResponse);
 
         // We are careful here: we copy both strings concatenated, but as
-        // a result we return only the size of the first one, making it 
+        // a result we return only the size of the first one, making it
         // possible to deserialize on the other end
         std::string jwtCombined = jwe + pubKey;
 
         faasm_sgx_status_t returnValue;
         auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
-        sgx_status_t sgxReturnValue = ecallCopyDataIn(enclaveId,
-                                                      &returnValue,
-                                                      (uint8_t*)jwtCombined.c_str(),
-                                                      jwtCombined.size(),
-                                                      nullptr,
-                                                      0);
+        sgx_status_t sgxReturnValue =
+          ecallCopyDataIn(enclaveId,
+                          &returnValue,
+                          (uint8_t*)jwtCombined.c_str(),
+                          jwtCombined.size(),
+                          nullptr,
+                          0);
         sgx::processECallErrors("Error trying to copy data into enclave",
                                 sgxReturnValue,
                                 returnValue);

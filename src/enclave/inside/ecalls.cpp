@@ -56,10 +56,10 @@ extern "C"
                                              const char* func,
                                              void* wasmBytes,
                                              uint32_t wasmBytesSize,
-                                             bool tlessEnabled)
+                                             bool acclessEnabled)
     {
         SPDLOG_DEBUG_SGX(
-          "Binding to %s/%s (tless: %i)", user, func, tlessEnabled);
+          "Binding to %s/%s (accless: %i)", user, func, acclessEnabled);
 
         // Check if passed wasm opcode size or wasm opcode ptr is zero
         if (!wasmBytesSize) {
@@ -77,7 +77,7 @@ extern "C"
             return FAASM_SGX_WAMR_MODULE_LOAD_FAILED;
         }
 
-        enclaveWasmModule->setTlessMode(tlessEnabled);
+        enclaveWasmModule->setAcclessMode(acclessEnabled);
 
         return FAASM_SGX_SUCCESS;
     }

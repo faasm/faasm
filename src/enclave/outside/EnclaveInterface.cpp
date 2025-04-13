@@ -57,16 +57,16 @@ void EnclaveInterface::reset(faabric::Message& msg,
 
 void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
 {
-    // Work-out whether to  use TLess or not
-    bool enableTless = conf::getFaasmConfig().tlessEnabled == "on";
+    // Work-out whether to  use Accless or not
+    bool enableAccless = conf::getFaasmConfig().acclessEnabled == "on";
 
     SPDLOG_INFO(
-      "SGX-WAMR binding to {}/{} via message {} (eid: {} - TLess: {})",
+      "SGX-WAMR binding to {}/{} via message {} (eid: {} - Accless: {})",
       msg.user(),
       msg.function(),
       msg.id(),
       enclaveId,
-      enableTless ? "on" : "off");
+      enableAccless ? "on" : "off");
 
     // Set up filesystem
     filesystem.prepareFilesystem();
@@ -85,7 +85,7 @@ void EnclaveInterface::doBindToFunction(faabric::Message& msg, bool cache)
                                                 msg.function().c_str(),
                                                 (void*)wasmBytes.data(),
                                                 (uint32_t)wasmBytes.size(),
-                                                enableTless);
+                                                enableAccless);
     processECallErrors("Unable to enter enclave", status, returnValue);
 
     // Set up the thread stacks

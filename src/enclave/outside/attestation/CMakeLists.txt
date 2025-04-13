@@ -8,7 +8,7 @@ set(SGX_DCAP_LIB /usr/lib/libsgx_dcap_ql.so)
 
 add_library(attestation STATIC
     attestation.cpp
-    AzureAttestationServiceClient.cpp
+    AttestationServiceClient.cpp
     EnclaveInfo.cpp
 )
 

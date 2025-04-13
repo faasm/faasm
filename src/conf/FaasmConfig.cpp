@@ -43,8 +43,8 @@ void FaasmConfig::initialise()
     s3User = getEnvVar("S3_USER", "minio");
     s3Password = getEnvVar("S3_PASSWORD", "minio123");
 
-    attestationProviderUrl = getEnvVar("AZ_ATTESTATION_PROVIDER_URL", "");
-    tlessEnabled = getEnvVar("TLESS_ENABLED", "off");
+    attestationServiceUrl = getEnvVar("ATTESTATION_SERVICE_URL", "");
+    acclessEnabled = getEnvVar("ACCLESS_ENABLED", "off");
 }
 
 int FaasmConfig::getIntParam(const char* name, const char* defaultValue)
@@ -72,7 +72,7 @@ void FaasmConfig::print()
     SPDLOG_INFO("Chained call timeout: {}", chainedCallTimeout);
     SPDLOG_INFO("Python preload:       {}", pythonPreload);
     SPDLOG_INFO("Wasm VM:              {}", wasmVm);
-    SPDLOG_INFO("TLess mode:           {}", tlessEnabled);
+    SPDLOG_INFO("Accless mode:         {}", acclessEnabled);
 
     SPDLOG_INFO("--- STORAGE ---");
     SPDLOG_INFO("Function dir:         {}", functionDir);

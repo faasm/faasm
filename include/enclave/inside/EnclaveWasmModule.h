@@ -106,9 +106,12 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     // SGX
     std::shared_ptr<sgx_report_t> cachedSgxReport = nullptr;
 
-    bool isTlessEnabled() const { return this->tlessEnabled; }
+    bool isAcclessEnabled() const { return this->acclessEnabled; }
 
-    void setTlessMode(bool tlessEnabled) { this->tlessEnabled = tlessEnabled; }
+    void setAcclessMode(bool acclessEnabled)
+    {
+        this->acclessEnabled = acclessEnabled;
+    }
 
   private:
     char errorBuffer[WAMR_ERROR_BUFFER_SIZE];
@@ -143,7 +146,7 @@ class EnclaveWasmModule : public WAMRModuleMixin<EnclaveWasmModule>
     FaasmPrivateKey privateKey;
     FaasmPublicKey publicKey;
 
-    bool tlessEnabled;
+    bool acclessEnabled;
 };
 
 // Data structure to keep track of the module currently loaded in the enclave.

@@ -136,7 +136,7 @@ services:
       - planner
       - minio
     environment:
-      - AZ_ATTESTATION_PROVIDER_URL=https://faasmattprov.eus2.attest.azure.net
+      - ATTESTATION_SERVICE_URL=${FAASM_ATTESTATION_SERVICE_URL}
       - AZDCAP_DEBUG_LOG_LEVEL=info
       - DEPLOYMENT_TYPE=${FAASM_DEPLOYMENT_TYPE:-compose}
       - FAASM_WASM_VM=${FAASM_WASM_VM:-wamr}

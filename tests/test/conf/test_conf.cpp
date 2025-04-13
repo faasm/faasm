@@ -35,8 +35,7 @@ TEST_CASE("Test default faasm config initialisation", "[conf]")
     REQUIRE(conf.s3User == "minio");
     REQUIRE(conf.s3Password == "minio123");
 
-    REQUIRE(conf.attestationProviderUrl ==
-            "https://faasmattprov.eus2.attest.azure.net");
+    REQUIRE(conf.attestationServiceUrl == "");
 }
 
 TEST_CASE("Test overriding faasm config initialisation", "[conf]")
@@ -62,7 +61,7 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
     std::string s3User = setEnvVar("S3_USER", "dummy-user");
     std::string s3Password = setEnvVar("S3_PASSWORD", "dummy-password");
 
-    std::string attestationProviderUrl =
+    std::string attestationServiceUrl =
       setEnvVar("AZ_ATTESTATION_PROVIDER_URL", "dummy-url");
 
     // Create new conf for test
@@ -90,7 +89,7 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
     REQUIRE(conf.s3User == "dummy-user");
     REQUIRE(conf.s3Password == "dummy-password");
 
-    REQUIRE(conf.attestationProviderUrl == "dummy-url");
+    REQUIRE(conf.attestationServiceUrl == "dummy-url");
 
     // Be careful with host type as it must remain consistent for tests
     setEnvVar("HOST_TYPE", originalHostType);
@@ -113,6 +112,6 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
     setEnvVar("S3_USER", s3User);
     setEnvVar("S3_PASSWORD", s3Password);
 
-    setEnvVar("AZ_ATTESTATION_PROVIDER_URL", attestationProviderUrl);
+    setEnvVar("ATTESTATION_SERVICE_URL", attestationServiceUrl);
 }
 }

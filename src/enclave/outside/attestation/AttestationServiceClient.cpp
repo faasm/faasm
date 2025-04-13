@@ -1,4 +1,4 @@
-#include <enclave/outside/attestation/AzureAttestationServiceClient.h>
+#include <enclave/outside/attestation/AttestationServiceClient.h>
 #include <enclave/outside/attestation/EnclaveInfo.h>
 #include <faabric/util/asio.h>
 #include <faabric/util/logging.h>
@@ -20,7 +20,7 @@ using BeastHttpResponse = faabric::util::BeastHttpResponse;
 
 namespace sgx {
 
-std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
+std::string AttestationServiceClient::requestBodyFromEnclaveInfo(
   const EnclaveInfo& enclaveInfo)
 {
     Document doc;
@@ -63,7 +63,8 @@ std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
     // field corresponds to the enclave held data variable that we can configure
     // before attestation.
     std::string enclaveHeldDataBase64 =
-      cppcodec::base64_url::encode(enclaveInfo.getEnclaveHeldData().data(), enclaveInfo.getEnclaveHeldData().size());
+      cppcodec::base64_url::encode(enclaveInfo.getEnclaveHeldData().data(),
+                                   enclaveInfo.getEnclaveHeldData().size());
     std::string dataType = "Binary";
     inner.SetObject();
     inner.AddMember(
@@ -82,15 +83,14 @@ std::string AzureAttestationServiceClient::requestBodyFromEnclaveInfo(
     return std::string(buffer.GetString());
 }
 
-AzureAttestationServiceClient::AzureAttestationServiceClient(
+AttestationServiceClient::AttestationServiceClient(
   const std::string& attestationServiceUrlIn)
   : attestationServiceUrl(attestationServiceUrlIn)
-  , certificateEndpoint(attestationServiceUrlIn + "/certs")
-  , tenantName(attestationServiceUrlIn.substr(std::string("https://").length()))
-  // , cachedJwks(fetchJwks())
+  , verifyReportEndpoint("/verify-sgx-report")
 {}
 
-static BeastHttpResponse doRequest(const std::string& url,
+static BeastHttpResponse doRequest(const std::string& ip,
+                                   const std::string& port,
                                    BeastHttpRequest& request)
 {
     // We need to send the request over HTTPS
@@ -102,13 +102,10 @@ static BeastHttpResponse doRequest(const std::string& url,
     // We don't check the AS' certificates here, but we will validate the
     // signature inside the enclave
     ctx.set_verify_mode(boost::asio::ssl::verify_none);
-    // ctx.set_verify_mode(boost::asio::ssl::verify_peer);
 
-    // TODO: split
-    std::string ip = "10.0.0.4";
-    std::string port = "8443";
     boost::beast::ssl_stream<boost::beast::tcp_stream> stream(ioc, ctx);
-    boost::asio::ip::tcp::endpoint endpoint(asio::ip::make_address(ip), std::stoi(port));
+    boost::asio::ip::tcp::endpoint endpoint(asio::ip::make_address(ip),
+                                            std::stoi(port));
     beast::get_lowest_layer(stream).connect(endpoint);
     stream.handshake(boost::asio::ssl::stream_base::client);
 
@@ -141,7 +138,7 @@ static BeastHttpResponse doRequest(const std::string& url,
     return response;
 }
 
-std::string AzureAttestationServiceClient::attestEnclave(
+std::string AttestationServiceClient::attestEnclave(
   const std::vector<uint8_t>& quote,
   sgx_report_t& report)
 {
@@ -152,7 +149,21 @@ std::string AzureAttestationServiceClient::attestEnclave(
     return attestEnclave(enclaveInfo);
 }
 
-std::string AzureAttestationServiceClient::attestEnclave(
+std::pair<std::string, std::string> splitIpPort(const std::string& input)
+{
+    size_t colonPos = input.find(':');
+    if (colonPos == std::string::npos || colonPos == 0 ||
+        colonPos == input.size() - 1) {
+        SPDLOG_ERROR("Invalid ip:port format for input: {}", input);
+        throw std::invalid_argument("Invalid ip:port format");
+    }
+
+    std::string ip = input.substr(0, colonPos);
+    std::string port = input.substr(colonPos + 1);
+    return { ip, port };
+}
+
+std::string AttestationServiceClient::attestEnclave(
   const EnclaveInfo& enclaveInfo)
 {
     // Prepare HTTP request
@@ -162,13 +173,13 @@ std::string AzureAttestationServiceClient::attestEnclave(
     request.content_length(requestBodyJson.size());
     request.body() = requestBodyJson;
 
-    // TODO: update me
-    std::string host = "https://localhost:8443";
+    std::string host = this->attestationServiceUrl;
     if (host.starts_with("https://")) {
         host = host.substr(std::string("https://").length());
     }
 
-    auto response = doRequest(host, request);
+    auto [ip, port] = splitIpPort(host);
+    auto response = doRequest(ip, port, request);
 
     // Process output
     if (response.result() != beast::http::status::ok) {
@@ -182,7 +193,8 @@ std::string AzureAttestationServiceClient::attestEnclave(
     return response.body();
 }
 
-std::pair<std::string, std::string> AzureAttestationServiceClient::getTokenFromJwtResponse(
+std::pair<std::string, std::string>
+AttestationServiceClient::getTokenFromJwtResponse(
   const std::string& jwtResponse)
 {
     rapidjson::Document doc;
@@ -191,121 +203,4 @@ std::pair<std::string, std::string> AzureAttestationServiceClient::getTokenFromJ
     std::string serverPubKey = doc["server_pubkey"].GetString();
     return std::pair<std::string, std::string>(encryptedJwt, serverPubKey);
 }
-
-void AzureAttestationServiceClient::validateJkuUri(const DecodedJwt& decodedJwt)
-{
-    std::string header = decodedJwt.get_header();
-    Document doc;
-    doc.Parse(header.c_str());
-    std::string jwtJkuUri = doc["jku"].GetString();
-
-    if (jwtJkuUri != certificateEndpoint) {
-        SPDLOG_ERROR("Error parsing JKU field in JWT for enclave attestation "
-                     "(expected: {} - got: {})",
-                     certificateEndpoint,
-                     jwtJkuUri);
-        throw std::runtime_error("Unexpected JKU field in JWT");
-    }
-
-    SPDLOG_DEBUG("Validated JKU origin URI");
-}
-
-/* TODO: i'm thinking we don't need to validate _anything_ in the untrusted host
-JwksSet AzureAttestationServiceClient::fetchJwks()
-{
-    // Retrieve trusted signing keys from the attestation service
-    BeastHttpRequest request(beast::http::verb::get, CERTIFICATES_URI, 11);
-    request.set("tenantName", tenantName);
-
-    std::string host = attestationServiceUrl;
-    if (host.starts_with("https://")) {
-        host = host.substr(std::string("https://").length());
-    }
-
-    auto response = doRequest(host, request);
-
-    // Process output
-    if (response.result() != beast::http::status::ok) {
-        SPDLOG_ERROR("Error querying Azure Attestation Service for the"
-                     " trusted signing keys ({}): {}",
-                     response.result_int(),
-                     response.body());
-        throw std::runtime_error(
-          "Exception querying Azure Attestation Service");
-    }
-
-    return jwt::parse_jwks(response.body());
-}
-
-void AzureAttestationServiceClient::validateJwtSignature(
-  const DecodedJwt& decodedJwt)
-{
-    // Get the Json Web Key (JWK) for the id that signed the token. We first
-    // check against our cached key set, and refresh it only upon failure. Use
-    // the JWK to get the signing certificate.
-    std::string x5c;
-    try {
-        auto jwk = cachedJwks.get_jwk(decodedJwt.get_key_id());
-        x5c = jwk.get_x5c_key_value();
-    } catch (const jwt::error::claim_not_present_exception& e) {
-        SPDLOG_WARN("JWK for JWT's Id not found in cached JWKS. Will refresh"
-                    "the cache once");
-        cachedJwks = fetchJwks();
-        auto jwk = cachedJwks.get_jwk(decodedJwt.get_key_id());
-        x5c = jwk.get_x5c_key_value();
-    }
-    std::string jwtIssuer = decodedJwt.get_issuer();
-
-    // Verify signature
-    if (!x5c.empty() && !jwtIssuer.empty()) {
-        auto verifier =
-          jwt::verify()
-            .allow_algorithm(jwt::algorithm::rs256(
-              jwt::helper::convert_base64_der_to_pem(x5c), "", "", ""))
-            .with_issuer(jwtIssuer)
-            .leeway(60UL);
-
-        // Will throw exception upon unsuccesful verification
-        verifier.verify(decodedJwt);
-    } else {
-        SPDLOG_ERROR("The issuer (issuer: {}) and/or the certificate (x5c: {}) "
-                     "for the JWT are empty",
-                     jwtIssuer,
-                     x5c);
-        throw std::runtime_error("Error verifying JWT signature");
-    }
-    SPDLOG_DEBUG("Validated JWT's signature");
-
-    // Verify issuer matches our attestation provider
-    std::string jwtIss = decodedJwt.get_payload_claim("iss").as_string();
-    if (attestationServiceUrl != jwtIss) {
-        SPDLOG_ERROR("Error verifying the JWT issuer against our records"
-                     " (expected: {} - got: {})",
-                     attestationServiceUrl,
-                     jwtIss);
-        throw std::runtime_error("Error verifying JWT issuer");
-    }
-    SPDLOG_DEBUG("Validated JWT's issuer");
-}
-*/
-
-/* TODO: no need to validate in the untrusted host, REMOVE ME
-DecodedJwt AzureAttestationServiceClient::getDecodedJwtFromJwtResponse(
-  const std::string& jwtResponse)
-{
-    std::string jwt = getTokenFromJwtResponse(jwtResponse);
-    return jwt::decode(jwt);
-}
-
-void AzureAttestationServiceClient::validateJwtToken(
-  const std::string& jwtToken)
-{
-    auto decodedJwt = getDecodedJwtFromJwtResponse(jwtToken);
-
-    validateJkuUri(decodedJwt);
-    validateJwtSignature(decodedJwt);
-
-    SPDLOG_INFO("Validated JWT from attestation service");
-}
-*/
 }
