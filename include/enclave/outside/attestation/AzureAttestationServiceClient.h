@@ -25,7 +25,7 @@ class AzureAttestationServiceClient
     // Set of known trusted signing keys (JSON Web Key Sets, JWKS). We fill the
     // cache when instantiating the client and lazily upon signature
     // verification.
-    JwksSet cachedJwks;
+    // JwksSet cachedJwks;
 
     // Validate that the JKU (JWT Set URL) parameter points to the expected
     // certificate  endpoint.
@@ -33,7 +33,8 @@ class AzureAttestationServiceClient
 
     // Validate the signature of a JWT against the set of known trusted
     // signatures.
-    void validateJwtSignature(const DecodedJwt& decodedJwt);
+    // TODO: probably remove this method
+    // void validateJwtSignature(const DecodedJwt& decodedJwt);
 
   public:
     // Fetch the JSON Web Key Set (JWKS) from the remote attestation service and
@@ -55,11 +56,11 @@ class AzureAttestationServiceClient
     std::string attestEnclave(const std::vector<uint8_t>& quote,
                               sgx_report_t& report);
 
-    std::string getTokenFromJwtResponse(const std::string& jwtResponse);
+    std::pair<std::string, std::string> getTokenFromJwtResponse(const std::string& jwtResponse);
     DecodedJwt getDecodedJwtFromJwtResponse(const std::string& jwtResponse);
 
     // Upon succcesful attestation, the attestation service returns a JWT. This
     // method validates the token's integrity and signature.
-    void validateJwtToken(const std::string& jwtToken);
+    // void validateJwtToken(const std::string& jwtToken);
 };
 }

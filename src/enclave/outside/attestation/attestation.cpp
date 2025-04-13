@@ -113,7 +113,8 @@ void validateQuote(const EnclaveInfo& enclaveInfo,
     std::string jwtResponse = client.attestEnclave(enclaveInfo);
 
     // Validate JWT response token
-    client.validateJwtToken(jwtResponse);
+    // TODO: no validation in the untrusted host
+    // client.validateJwtToken(jwtResponse);
 }
 
 #ifdef FAASM_SGX_HARDWARE_MODE

@@ -21,7 +21,6 @@ namespace sgx {
 //
 // TODO:
 // 1. can we cache the JWT we get here? At least surely the SGX report
-// 2. Need to configure MAA to sign something using the public key we provide
 static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv,
                                               int32_t* jwtPtrPtr,
                                               int32_t* jwtSizePtr)
@@ -105,7 +104,17 @@ static void tless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv,
         return;
     }
 
-    assert(jwtResponseSize == wasmModule->dataXferSize);
+    // assert(jwtResponseSize == wasmModule->dataXferSize);
+
+    std::string jwe(wasmModule->dataXferPtr, jwtResponseSize);
+    std::string serverPubKey(
+        wasmModule->dataXferPtr + jwtResponseSize, 
+        wasmModule->dataXferSize - jwtResponseSize
+    );
+
+    // Derive the decryption key from the server pub key, and use it to decrypt
+    // the JWE
+    // use: sgx_ecc256_compute_shared_dhkey
 
     // Copy JWT into heap-allocated WASM buffer
     void* nativePtr = nullptr;

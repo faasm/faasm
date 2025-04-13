@@ -690,24 +690,30 @@ extern "C"
         sgx::AzureAttestationServiceClient aaClient(
           conf::getFaasmConfig().attestationProviderUrl);
         std::string jwtResponse = aaClient.attestEnclave(quoteBuffer, report);
-        std::string jwt = aaClient.getTokenFromJwtResponse(jwtResponse);
 
-        // TODO: MAA should encrypt something using our public key
+        // JWT response contains the actual JWT encrypted (JWT) as well ass
+        // the public key used in the key derivation algorithm on the server
+        // side
+        auto [jwe, pubKey] = aaClient.getTokenFromJwtResponse(jwtResponse);
 
-        // JWTs tend to be rather large, so we always copy them using an ECall
+        // We are careful here: we copy both strings concatenated, but as
+        // a result we return only the size of the first one, making it 
+        // possible to deserialize on the other end
+        std::string jwtCombined = jwe + pubKey;
+
         faasm_sgx_status_t returnValue;
         auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
         sgx_status_t sgxReturnValue = ecallCopyDataIn(enclaveId,
                                                       &returnValue,
-                                                      (uint8_t*)jwt.c_str(),
-                                                      jwt.size(),
+                                                      (uint8_t*)jwtCombined.c_str(),
+                                                      jwtCombined.size(),
                                                       nullptr,
                                                       0);
         sgx::processECallErrors("Error trying to copy data into enclave",
                                 sgxReturnValue,
                                 returnValue);
 
-        *jwtResponseSize = jwt.size();
+        *jwtResponseSize = jwe.size();
 #endif
 
         return 0;
