@@ -47,6 +47,9 @@ int doRunner(int argc, char* argv[])
                     vmCmd["cmdline"].as<std::string>());
     }
 
+    // Start measuring time for cold-start
+    auto startTs = faabric::util::startTimer();
+
     // Create a Faaslet and set the executor context
     faabric::executor::ExecutorContext::set(nullptr, req, 0);
     faaslet::Faaslet faaslet(msg);
@@ -55,13 +58,18 @@ int doRunner(int argc, char* argv[])
     PROF_START(FunctionExec)
     int returnValue = faaslet.executeTask(0, 0, req);
     PROF_END(FunctionExec)
+    auto coldStartMs = faabric::util::getTimeDiffMillis(startTs);
+    auto execTimeMs = msg.finishtimestamp() - msg.starttimestamp();
+    coldStartMs -= execTimeMs;
 
     faaslet.reset(msg);
     faaslet.shutdown();
 
-    SPDLOG_INFO("Finished running function {}/{} (exit code: {})",
+    SPDLOG_INFO("Finished running func. {}/{} in {}ms (cold: {}ms - ec: {})",
                 user,
                 function,
+                execTimeMs,
+                coldStartMs,
                 returnValue);
     if (!msg.outputdata().empty()) {
         SPDLOG_INFO("Function output: {}", msg.outputdata());

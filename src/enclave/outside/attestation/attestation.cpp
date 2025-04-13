@@ -112,12 +112,4 @@ void validateQuote(const EnclaveInfo& enclaveInfo,
     // Send enclave quote to remote attestation service for validation
     std::string jwtResponse = client.attestEnclave(enclaveInfo);
 }
-
-#ifdef FAASM_SGX_HARDWARE_MODE
-void attestEnclave(int enclaveId, std::vector<uint8_t> enclaveHeldData)
-{
-    EnclaveInfo enclaveInfo = generateQuote(enclaveId, enclaveHeldData);
-    validateQuote(enclaveInfo, conf::getFaasmConfig().attestationServiceUrl);
-}
-#endif
 }
