@@ -23,7 +23,7 @@ env:
   FAABRIC_VERSION: 0.20.0
   FAASM_INI_FILE: ./faasm.ini
   FAASM_VERSION: 0.29.0
-  FAASMCTL_VERSION: 0.46.2
+  FAASMCTL_VERSION: 0.49.0
 
 jobs:
   checks:
