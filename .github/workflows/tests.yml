@@ -30,7 +30,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cli:0.29.0
+      image: ghcr.io/faasm/cli:0.29.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
@@ -114,7 +114,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-cpp-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cpp-sysroot:0.6.0
+      image: ghcr.io/faasm/cpp-sysroot:0.6.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
@@ -156,7 +156,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-py-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: faasm.azurecr.io/cpython:0.4.0
+      image: ghcr.io/faasm/cpython:0.4.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
@@ -302,9 +302,9 @@ jobs:
       - name: "Start a worker-less (SGX) Faasm cluster to run unit tests"
         run: |
           # First remove unnecessary images
-          docker rmi -f faasm.azurecr.io/cli:${{ env.FAASM_VERSION }}
-          docker rmi -f faasm.azurecr.io/upload:${{ env.FAASM_VERSION }}
-          docker rmi -f faasm.azurecr.io/worker:${{ env.FAASM_VERSION }}
+          docker rmi -f ghcr.io/faasm/cli:${{ env.FAASM_VERSION }}
+          docker rmi -f ghcr.io/faasm/upload:${{ env.FAASM_VERSION }}
+          docker rmi -f ghcr.io/faasm/worker:${{ env.FAASM_VERSION }}
           faasmctl deploy.compose --mount-source . --workers=0
         env:
           FAASM_WASM_VM: sgx-sim

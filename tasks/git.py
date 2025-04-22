@@ -1,4 +1,4 @@
-from faasmtools.docker import ACR_NAME
+from faasmtools.docker import CR_NAME
 from github import Github
 from invoke import task
 from os import environ
@@ -173,7 +173,7 @@ def bump_dep(ctx, faasmctl=None, python=False, cpp=False, faabric=False):
     if python:
         old_ver, new_ver = get_version("python")
         strings_to_check = [
-            r"{}\/cpython:".format(ACR_NAME),
+            r"{}\/cpython:".format(CR_NAME),
             "PYTHON_VERSION=",
         ]
         for f in VERSIONED_FILES["python"]:
@@ -187,7 +187,7 @@ def bump_dep(ctx, faasmctl=None, python=False, cpp=False, faabric=False):
     if cpp:
         old_ver, new_ver = get_version("cpp")
         strings_to_check = [
-            r"{}\/cpp-sysroot:".format(ACR_NAME),
+            r"{}\/cpp-sysroot:".format(CR_NAME),
             "CPP_VERSION=",
         ]
         for f in VERSIONED_FILES["python"]:
@@ -201,7 +201,7 @@ def bump_dep(ctx, faasmctl=None, python=False, cpp=False, faabric=False):
     if faabric:
         old_ver, new_ver = get_version("faabric")
         strings_to_check = [
-            r"{}\/planner:".format(ACR_NAME),
+            r"{}\/planner:".format(CR_NAME),
             "FAABRIC_VERSION=",
             "FAABRIC_VERSION: ",
         ]

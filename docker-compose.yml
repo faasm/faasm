@@ -1,9 +1,9 @@
 services:
   redis-state:
-    image: faasm.azurecr.io/redis:${FAASM_VERSION}
+    image: ghcr.io/faasm/redis:${FAASM_VERSION}
 
   redis-queue:
-    image: faasm.azurecr.io/redis:${FAASM_VERSION}
+    image: ghcr.io/faasm/redis:${FAASM_VERSION}
 
   planner:
     image: ${FAABRIC_PLANNER_IMAGE}
@@ -22,7 +22,7 @@ services:
       - PLANNER_PORT=${PLANNER_DOCKER_PORT}
 
   minio:
-    image: faasm.azurecr.io/minio:${FAASM_VERSION}
+    image: ghcr.io/faasm/minio:${FAASM_VERSION}
     ports:
       - "${MINIO_HOST_PORT}:${MINIO_DOCKER_PORT}"
     environment:
@@ -37,7 +37,7 @@ services:
       retries: 3
 
   upload:
-    image: faasm.azurecr.io/upload:${FAASM_VERSION}
+    image: ghcr.io/faasm/upload:${FAASM_VERSION}
     ports:
       - "${UPLOAD_HOST_PORT}:${UPLOAD_DOCKER_PORT}"
     expose:
@@ -160,7 +160,7 @@ services:
   # There is no need to re-create the image every time, as it does not depend
   # on Faasm's code
   aesmd:
-    image: faasm.azurecr.io/sgx-aesmd:0.9.5
+    image: ghcr.io/faasm/sgx-aesmd:0.9.5
     devices:
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}/enclave
       - ${SGX_DEVICE_MOUNT_DIR:-./dev/faasm-local/sgx}/provision
