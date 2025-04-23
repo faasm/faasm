@@ -196,9 +196,11 @@ TEST_CASE_METHOD(CodegenTestFixture,
     REQUIRE(hashAAfter == actualHashA);
 }
 
+// 23/04/2025 - Shared-object codegen disabled until python support is
+// resurrected.
 TEST_CASE_METHOD(CodegenTestFixture,
                  "Test shared object codegen hashing",
-                 "[codegen]")
+                 "[codegen][.]")
 {
     std::string objFile =
       std::string("/tmp/obj") + std::string(localSharedObjFile) + ".o";

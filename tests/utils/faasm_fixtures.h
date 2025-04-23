@@ -184,9 +184,11 @@ class FunctionLoaderTestFixture : public S3TestFixture
         faasmConf.wasmVm = oldWasmVm;
 
         // Use a shared object we know exists
+        /*
         localSharedObjFile =
           faasmConf.runtimeFilesDir + "/lib/python3.8/lib-dynload/syslog.so";
         sharedObjWasm = faabric::util::readFileToBytes(localSharedObjFile);
+        */
 
         // Dummy directories for functions and object files
         faasmConf.functionDir = "/tmp/func";
