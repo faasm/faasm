@@ -62,7 +62,7 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
     std::string s3Password = setEnvVar("S3_PASSWORD", "dummy-password");
 
     std::string attestationServiceUrl =
-      setEnvVar("AZ_ATTESTATION_PROVIDER_URL", "dummy-url");
+      setEnvVar("AZ_ATTESTATION_PROVIDER_URL", "");
 
     // Create new conf for test
     FaasmConfig conf;
@@ -89,7 +89,7 @@ TEST_CASE("Test overriding faasm config initialisation", "[conf]")
     REQUIRE(conf.s3User == "dummy-user");
     REQUIRE(conf.s3Password == "dummy-password");
 
-    REQUIRE(conf.attestationServiceUrl == "dummy-url");
+    REQUIRE(conf.attestationServiceUrl == "");
 
     // Be careful with host type as it must remain consistent for tests
     setEnvVar("HOST_TYPE", originalHostType);
