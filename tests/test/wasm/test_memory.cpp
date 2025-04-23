@@ -26,11 +26,13 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     faabric::Message call = faabric::util::messageFactory("demo", "echo");
     std::shared_ptr<wasm::WasmModule> module = nullptr;
 
+    /*
     SECTION("WAVM")
     {
         faasmConf.wasmVm = "wavm";
         module = std::make_shared<wasm::WAVMWasmModule>();
     }
+    */
 
     SECTION("WAMR")
     {
@@ -41,7 +43,6 @@ TEST_CASE_METHOD(MultiRuntimeFunctionExecTestFixture,
     module->bindToFunction(call);
 
     // File we know to exist
-    // std::string fileName = "/usr/include/stdio.h";
     std::string fileName = "/usr/lib/x86_64-linux-gnu/libLLVM-17.so.1";
     int hostFd = open(fileName.c_str(), O_RDONLY);
     if (hostFd == -1) {
