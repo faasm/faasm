@@ -184,7 +184,8 @@ class FunctionLoaderTestFixture : public S3TestFixture
         faasmConf.wasmVm = oldWasmVm;
 
         // Use a shared object we know exists
-        /*
+        /* 23/04/2025 - Shared-object codegen disabled until python support
+         * is resurrected.
         localSharedObjFile =
           faasmConf.runtimeFilesDir + "/lib/python3.8/lib-dynload/syslog.so";
         sharedObjWasm = faabric::util::readFileToBytes(localSharedObjFile);
