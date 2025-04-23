@@ -106,8 +106,6 @@ static void accless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv,
         return;
     }
 
-    // assert(jwtResponseSize == wasmModule->dataXferSize);
-
     size_t pubKeySize = wasmModule->dataXferSize - jwtResponseSize;
     std::string jweBase64(wasmModule->dataXferPtr,
                           wasmModule->dataXferPtr + jwtResponseSize);
@@ -163,7 +161,6 @@ static void accless_get_attestation_jwt_wrapper(wasm_exec_env_t execEnv,
     sgx_aes_gcm_128bit_key_t aesKey;
     memcpy(aesKey, jwtDerivedSharedKey.s, sizeof(sgx_aes_gcm_128bit_key_t));
 
-    // Step 4: Decrypt with SGX
     std::vector<uint8_t> plainText(cipherTextLen, 0);
     status =
       sgx_rijndael128GCM_decrypt(&aesKey,

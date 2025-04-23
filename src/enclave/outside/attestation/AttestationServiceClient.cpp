@@ -10,9 +10,6 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-#define ATTESTATION_URI "/attest/SgxEnclave?api-version=2020-10-01"
-#define CERTIFICATES_URI "/certs"
-
 using namespace rapidjson;
 using header = beast::http::field;
 using BeastHttpRequest = faabric::util::BeastHttpRequest;
@@ -20,6 +17,8 @@ using BeastHttpResponse = faabric::util::BeastHttpResponse;
 
 namespace sgx {
 
+// Even though we don't use Azure's Attestation service anymore, we use the
+// same JWT format in case we ever want to revert back to using MAA
 std::string AttestationServiceClient::requestBodyFromEnclaveInfo(
   const EnclaveInfo& enclaveInfo)
 {
