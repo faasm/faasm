@@ -1,6 +1,6 @@
 from faasmtools.build import FAASM_RUNTIME_ENV_DICT, get_dict_as_cmake_vars
 from invoke import task
-from os import makedirs
+from os import listdir, makedirs
 from os.path import exists, getmtime, join
 from subprocess import run
 from sys import exit
@@ -45,9 +45,9 @@ def get_build_dir(build_type, sgx_mode):
 
     if sgx_mode != FAASM_SGX_MODE_DISABLED:
         if sgx_mode == FAASM_SGX_MODE_SIM:
-            build_dir += "/sgx-sim"
+            build_dir += "-sgx-sim"
         elif sgx_mode == FAASM_SGX_MODE_HARDWARE:
-            build_dir += "/sgx-hw"
+            build_dir += "-sgx-hw"
         else:
             print(f"ERROR: unrecognised sgx mode: {sgx_mode}")
             exit(1)
@@ -59,27 +59,15 @@ def get_current_target_build_dir():
     """
     Infer the correct build dir based on the last modified directory.
     """
-    debug_dir = join(FAASM_BUILD_DIR, "debug")
-    release_dir = join(FAASM_BUILD_DIR, "release")
+    # List all `/build/faasm/debug-*` or `/build/faasm/release-*` directories
+    build_dirs = [
+        join(FAASM_BUILD_DIR, entry)
+        for entry in listdir(FAASM_BUILD_DIR)
+        if entry.startswith("debug") or entry.startswith("release")
+    ]
 
-    if not exists(release_dir):
-        if exists(debug_dir):
-            return debug_dir
-
-        print(f"ERROR: neither {release_dir} nor {debug_dir} exist!")
-        exit(1)
-
-    if not exists(debug_dir):
-        if exists(release_dir):
-            return release_dir
-
-        print(f"ERROR: neither {release_dir} nor {debug_dir} exist!")
-        exit(1)
-
-    if getmtime(debug_dir) > getmtime(release_dir):
-        return debug_dir
-
-    return release_dir
+    # Pick the one that was modified the latest
+    return max(build_dirs, key=getmtime)
 
 
 def soft_link_bin_dir(build_dir):
