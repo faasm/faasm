@@ -2,10 +2,12 @@ ARG FAASM_VERSION
 FROM ghcr.io/faasm/base:${FAASM_VERSION}
 
 # Build the upload and codegen targets
-RUN cd /build/faasm \
-    && cmake --build . --target upload \
-    && cmake --build . --target codegen_shared_obj \
-    && cmake --build . --target codegen_func
+RUN cd /usr/local/code/faasm \
+    && ./bin/create_venv.sh \
+    && source venv/bin/activate \
+    && inv dev.cc codegen_shared_obj \
+    && inv dev.cc codegen_func \
+    && inv dev.cc upload
 
 # Install hoststats
 RUN pip3 install hoststats==0.1.0
