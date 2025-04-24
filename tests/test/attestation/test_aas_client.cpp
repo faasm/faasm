@@ -58,7 +58,7 @@ TEST_CASE_METHOD(AASClientTestFixture,
 
 TEST_CASE_METHOD(AASClientTestFixture,
                  "Test validating JWT from Azure Attestation Service",
-                 "[attestation]")
+                 "[attestation][.]")
 {
     std::string jwtResponse;
     // bool expectedSuccess;
