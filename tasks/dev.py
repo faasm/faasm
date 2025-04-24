@@ -1,12 +1,15 @@
 from faasmtools.build import FAASM_RUNTIME_ENV_DICT, get_dict_as_cmake_vars
 from invoke import task
 from os import makedirs
-from os.path import exists, join
+from os.path import exists, getmtime, join
 from subprocess import run
+from sys import exit
 from tasks.util.env import (
     FAASM_BUILD_DIR,
     FAASM_INSTALL_DIR,
     FAASM_SGX_MODE_DISABLED,
+    FAASM_SGX_MODE_HARDWARE,
+    FAASM_SGX_MODE_SIM,
     LLVM_MAJOR_VERSION,
     PROJ_ROOT,
 )
@@ -27,6 +30,70 @@ DEV_TARGETS = [
 SANITISER_NONE = "None"
 
 
+def check_build_type(build):
+    build_types = ["Debug", "Release"]
+    if build not in build_types:
+        print(
+            f"ERROR: unrecognised build type: {build}. must be one in: {build_types}"
+        )
+        exit(1)
+
+
+def get_build_dir(build_type, sgx_mode):
+    build_type = build_type.lower()
+    build_dir = f"{FAASM_BUILD_DIR}/{build_type}"
+
+    if sgx_mode != FAASM_SGX_MODE_DISABLED:
+        if sgx_mode == FAASM_SGX_MODE_SIM:
+            build_dir += "/sgx-sim"
+        elif sgx_mode == FAASM_SGX_MODE_HARDWARE:
+            build_dir += "/sgx-hw"
+        else:
+            print(f"ERROR: unrecognised sgx mode: {sgx_mode}")
+            exit(1)
+
+    return build_dir
+
+
+def get_current_target_build_dir():
+    """
+    Infer the correct build dir based on the last modified directory.
+    """
+    debug_dir = join(FAASM_BUILD_DIR, "debug")
+    release_dir = join(FAASM_BUILD_DIR, "release")
+
+    if not exists(release_dir):
+        if exists(debug_dir):
+            return debug_dir
+
+        print(f"ERROR: neither {release_dir} nor {debug_dir} exist!")
+        exit(1)
+
+    if not exists(debug_dir):
+        if exists(release_dir):
+            return release_dir
+
+        print(f"ERROR: neither {release_dir} nor {debug_dir} exist!")
+        exit(1)
+
+    if getmtime(debug_dir) > getmtime(release_dir):
+        return debug_dir
+
+    return release_dir
+
+
+def soft_link_bin_dir(build_dir):
+    """
+    Irrespective of the build type, it is convenient to have the Faasm binaries
+    in `/build/faasm/bin`. This makes it possible to hot-patch a binary using
+    `faasmctl restart -s <service>` even if we change the build type or SGX
+    mode. Thus, after any build, we soft-link `/build/faasm/bin` to whatever
+    is the last `bin` directory we have written to. This also prevents
+    accidentally using binaries compiled in different modes.
+    """
+    run(f"ln -sf {build_dir}/bin {FAASM_BUILD_DIR}", shell=True, check=True)
+
+
 @task
 def cmake(
     ctx,
@@ -43,11 +110,19 @@ def cmake(
     """
     Configures the CMake build
     """
-    if clean and exists(FAASM_BUILD_DIR):
-        run("rm -rf {}/*".format(FAASM_BUILD_DIR), shell=True, check=True)
+    check_build_type(build)
+    build_dir = get_build_dir(build, sgx)
 
-    if not exists(FAASM_BUILD_DIR):
-        makedirs(FAASM_BUILD_DIR)
+    if clean and exists(build_dir):
+        run("rm -rf {}/*".format(build_dir), shell=True, check=True)
+        run(
+            f"rm -rf {FAASM_BUILD_DIR}/bin".format(build_dir),
+            shell=True,
+            check=True,
+        )
+
+    if not exists(build_dir):
+        makedirs(build_dir)
 
     if not exists(FAASM_INSTALL_DIR):
         makedirs(FAASM_INSTALL_DIR)
@@ -78,7 +153,9 @@ def cmake(
     cmd_str = " ".join(cmd)
     print(cmd_str)
 
-    run(cmd_str, shell=True, check=True, cwd=FAASM_BUILD_DIR)
+    run(cmd_str, shell=True, check=True, cwd=build_dir)
+
+    soft_link_bin_dir(build_dir)
 
 
 @task
@@ -98,6 +175,8 @@ def tools(
     if sgx != FAASM_SGX_MODE_DISABLED and sanitiser != SANITISER_NONE:
         raise RuntimeError("SGX and sanitised builds are incompatible!")
 
+    build_dir = get_build_dir(build, sgx)
+
     cmake(
         ctx,
         clean=clean,
@@ -116,10 +195,12 @@ def tools(
     print(cmake_cmd)
     run(
         cmake_cmd,
-        cwd=FAASM_BUILD_DIR,
+        cwd=build_dir,
         shell=True,
         check=True,
     )
+
+    soft_link_bin_dir(build_dir)
 
 
 @task
@@ -127,6 +208,8 @@ def cc(ctx, target, clean=False, parallel=0):
     """
     Compiles the given CMake target
     """
+    build_dir = get_current_target_build_dir()
+
     if clean:
         cmake(ctx, clean=True)
 
@@ -141,7 +224,7 @@ def cc(ctx, target, clean=False, parallel=0):
 
     run(
         cmake_cmd,
-        cwd=FAASM_BUILD_DIR,
+        cwd=build_dir,
         shell=True,
         check=True,
     )
@@ -167,7 +250,7 @@ def coverage_report(ctx, file_in, file_out):
     llvm_cmd = [
         "llvm-cov-{} show".format(LLVM_MAJOR_VERSION),
         "--ignore-filename-regex=/usr/local/code/faasm/tests/*",
-        join(FAASM_BUILD_DIR, "bin", "tests"),
+        join(FAASM_BUILD_DIR, "debug", "bin", "tests"),
         "-instr-profile={}".format(tmp_file),
         "> {}".format(file_out),
     ]
