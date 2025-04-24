@@ -22,7 +22,7 @@ env:
   CONAN_CACHE_MOUNT_SOURCE: .conan
   FAABRIC_VERSION: 0.20.0
   FAASM_INI_FILE: ./faasm.ini
-  FAASM_VERSION: 0.29.0
+  FAASM_VERSION: 0.30.0
   FAASMCTL_VERSION: 0.49.0
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/faasm/cli:0.29.0
+      image: ghcr.io/faasm/cli:0.30.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4

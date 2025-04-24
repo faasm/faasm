@@ -35,7 +35,7 @@ jobs:
     env:
       CLUSTER_NAME_BASE: gha-cluster
       FAASM_INI_FILE: ./faasm.ini
-      FAASM_VERSION: 0.29.0
+      FAASM_VERSION: 0.30.0
       FAASM_WASM_VM: ${{ matrix.wasm_vm }}
     steps:
       - name: "Check out the experiment-base code"

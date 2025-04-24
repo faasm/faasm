@@ -42,7 +42,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 60
     env:
-      FAASM_VERSION: 0.29.0
+      FAASM_VERSION: 0.30.0
       FAASMCTL_BIN: /home/faasm/.local/bin/faasmctl
       FAASMCTL_VERSION: 0.49.0
       VM_CODE_DIR: /home/faasm/git/faasm/faasm

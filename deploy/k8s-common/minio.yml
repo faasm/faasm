@@ -20,7 +20,7 @@ spec:
             - control
   containers:
     - name: minio-main
-      image: ghcr.io/faasm/minio:0.29.0
+      image: ghcr.io/faasm/minio:0.30.0
       env:
         - name: MINIO_ROOT_USER
           value: "minio"
