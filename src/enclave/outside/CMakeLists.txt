@@ -134,6 +134,7 @@ add_custom_command(TARGET enclave_untrusted
     PRE_BUILD COMMAND gcc
     ${ENCLAVE_UNTRUSTED_C_FLAGS}
     -I${SGX_SDK_PATH}/include
+    -I${WAMR_ROOT_DIR}/core/iwasm/include
     -c ${ENCLAVE_EDL_FILENAME}_u.c
     -o ${ENCLAVE_EDL_FILENAME}_u.o
 )

@@ -1,17 +1,11 @@
-// Annoyingly we have to redefine these here
-#define FAASM_SGX 1
-#define FAASM_SGX_WAMR_WASI_LIBC 1
-
 enclave{
     include "/usr/local/code/faasm/include/enclave/error.h"
-    include "/build/faasm/_deps/wamr_ext-src/core/iwasm/include/wasm_export.h"
+    include "wasm_export.h"
     include "sgx_report.h"
 
     from "sgx_tstdc.edl" import *;
     from "sgx_pthread.edl" import *;
-#if(FAASM_SGX_WAMR_WASI_LIBC)
     from "sgx_wamr.edl" import *;
-#endif
 
     trusted{
         public faasm_sgx_status_t ecallCreateReport(

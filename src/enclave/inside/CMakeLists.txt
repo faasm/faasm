@@ -159,6 +159,7 @@ add_custom_command(TARGET enclave_trusted
     ${ENCLAVE_TRUSTED_C_FLAGS}
     -I${SGX_SDK_PATH}/include
     -I${SGX_SDK_PATH}/include/tlibc
+    -I${WAMR_ROOT_DIR}/core/iwasm/include
     -c ${ENCLAVE_EDL_FILENAME}_t.c
     -o ${ENCLAVE_EDL_FILENAME}_t.o
 )
