@@ -20,8 +20,16 @@ Faasm defines a custom host interface that extends [WASI](https://wasi.dev/) to
 include function inputs and outputs, chaining functions, managing state,
 accessing the distributed filesystem, dynamic linking, pthreads, OpenMP and MPI.
 
-Our paper from Usenix ATC '20 on Faasm can be found
-[here](https://www.usenix.org/conference/atc20/presentation/shillaker).
+In our [paper from USENIX ATC 20](
+https://www.usenix.org/conference/atc20/presentation/shillaker) we present
+the initial Faasm design and evaluate it in the context of stateful serverless
+functions.
+
+In our [paper from USENIX NSDI'25, GRANNY](
+https://www.usenix.org/conference/nsdi25/presentation/segarra), we present the
+design of the OpenMP and MPI runtimes, as well as new dynamic resource
+management policies, all implemented in the [faabric](
+https://github.com/faasm/faabric) library.
 
 Please see the [full documentation](https://faasm.readthedocs.io/en/latest/) for
 more details on the code and architecture.
@@ -63,6 +71,7 @@ docs](https://faasm.readthedocs.io/en/latest/source/getting_started.html)
 ## Acknowledgements
 
 This project has received funding from the European Union's Horizon 2020
-research and innovation programme under grant agreement No 825184 (CloudButton),
-the UK Engineering and Physical Sciences Research Council (EPSRC) award 1973141,
-and a gift from Intel Corporation under the TFaaS project.
+research and innovation programme under grant agreements No 825184 (CloudButton),
+No 101086248 (CloudStars), and No 101092646 (CloudSKin), the UK Engineering and
+Physical Sciences Research Council (EPSRC) award 1973141, and a gift from Intel
+Corporation under the TFaaS project.
