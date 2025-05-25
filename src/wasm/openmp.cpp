@@ -144,6 +144,8 @@ void doOpenMPFork(int32_t loc,
         getExecutingModule()->doThrowException(exc);
     }
 
+    SPDLOG_WARN("Elastic scale hint: {}", parentReq->elasticscalehint());
+
     // Set up the chained calls with thread semantics
     std::shared_ptr<faabric::BatchExecuteRequest> req =
       faabric::util::batchExecFactory(

@@ -1,4 +1,5 @@
 #include <conf/FaasmConfig.h>
+#include <faabric/batch-scheduler/BatchScheduler.h>
 #include <faabric/executor/ExecutorContext.h>
 #include <faabric/planner/PlannerClient.h>
 #include <faabric/util/ExecGraph.h>
@@ -96,7 +97,13 @@ int makeChainedCall(const std::string& functionName,
       req->messages(0));
 
     auto& plannerCli = faabric::planner::getPlannerClient();
-    plannerCli.callFunctions(req);
+    auto decision = plannerCli.callFunctions(req);
+
+    if (decision == NOT_ENOUGH_SLOTS_DECISION) {
+        SPDLOG_ERROR("Error chaining call: not enough slots");
+        return -1;
+    }
+
     if (originalCall->recordexecgraph()) {
         faabric::util::logChainedFunction(*originalCall, msg);
     }
