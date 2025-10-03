@@ -9,9 +9,6 @@ RUN cd /usr/local/code/faasm \
     && inv dev.cc codegen_func \
     && inv dev.cc upload
 
-# Install hoststats
-RUN pip3 install hoststats==0.1.0
-
 # Set up entrypoint
 COPY bin/entrypoint_codegen.sh /entrypoint_codegen.sh
 COPY bin/entrypoint_upload.sh /entrypoint.sh
