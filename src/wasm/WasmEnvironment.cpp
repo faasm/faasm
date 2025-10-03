@@ -1,5 +1,6 @@
 #include "WasmEnvironment.h"
 
+#include <cstdint>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
