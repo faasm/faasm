@@ -2,7 +2,7 @@
 FROM ghcr.io/faasm/cpython:0.4.0 AS python
 
 # Note - we don't often rebuild cpp-root so this dep may be behind
-FROM ghcr.io/faasm/cpp-root:0.22.0
+FROM ghcr.io/faasm/cpp-root:0.31.0
 ARG FAASM_VERSION
 
 # Flag to say we're in a container

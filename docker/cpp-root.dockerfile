@@ -1,4 +1,4 @@
-FROM ghcr.io/faasm/faabric-base:0.15.0
+FROM ghcr.io/faasm/faabric-base:0.21.0
 
 # Install Faasm-specific APT dependencies
 RUN apt update \
