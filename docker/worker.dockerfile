@@ -26,8 +26,8 @@ COPY bin/entrypoint_worker.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Create user with dummy uid required by Python
-RUN groupadd -g 1000 faasm
-RUN useradd -u 1000 -g 1000 faasm
+RUN groupadd -g 1001 faasm
+RUN useradd -u 1001 -g 1001 faasm
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD "/build/faasm/bin/pool_runner"
