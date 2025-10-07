@@ -3,6 +3,8 @@ from github import Github
 from invoke import task
 from os import environ
 from os.path import exists, join
+from re import escape
+from shlex import quote
 from subprocess import run, PIPE, STDOUT
 from tasks.util.env import PROJ_ROOT
 from tasks.util.version import get_version
@@ -173,43 +175,46 @@ def bump_dep(ctx, faasmctl=None, python=False, cpp=False, faabric=False):
     if python:
         old_ver, new_ver = get_version("python")
         strings_to_check = [
-            r"{}\/cpython:".format(CR_NAME),
+            join(CR_NAME, "cpython:"),
             "PYTHON_VERSION=",
         ]
         for f in VERSIONED_FILES["python"]:
             for string in strings_to_check:
-                sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
-                    string, old_ver, string, new_ver, f
-                )
+                # Pattern must be escaped for sed.
+                pattern = escape(f"{string}{old_ver}")
+                replacement = f"{string}{new_ver}"
+                sed_cmd = f"sed -i 's|{pattern}|{replacement}|g' {quote(f)}"
                 print(sed_cmd)
                 run(sed_cmd, shell=True, check=True)
 
     if cpp:
         old_ver, new_ver = get_version("cpp")
         strings_to_check = [
-            r"{}\/cpp-sysroot:".format(CR_NAME),
+            join(CR_NAME, "cpp-sysroot:"),
             "CPP_VERSION=",
         ]
-        for f in VERSIONED_FILES["python"]:
+        for f in VERSIONED_FILES["cpp"]:
             for string in strings_to_check:
-                sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
-                    string, old_ver, string, new_ver, f
-                )
+                # Pattern must be escaped for sed.
+                pattern = escape(f"{string}{old_ver}")
+                replacement = f"{string}{new_ver}"
+                sed_cmd = f"sed -i 's|{pattern}|{replacement}|g' {quote(f)}"
                 print(sed_cmd)
                 run(sed_cmd, shell=True, check=True)
 
     if faabric:
         old_ver, new_ver = get_version("faabric")
         strings_to_check = [
-            r"{}\/planner:".format(CR_NAME),
+            join(CR_NAME, "planner:"),
             "FAABRIC_VERSION=",
             "FAABRIC_VERSION: ",
         ]
         for f in VERSIONED_FILES["faabric"]:
             for string in strings_to_check:
-                sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
-                    string, old_ver, string, new_ver, f
-                )
+                # Pattern must be escaped for sed.
+                pattern = escape(f"{string}{old_ver}")
+                replacement = f"{string}{new_ver}"
+                sed_cmd = f"sed -i 's|{pattern}|{replacement}|g' {quote(f)}"
                 print(sed_cmd)
                 run(sed_cmd, shell=True, check=True)
 
@@ -219,9 +224,10 @@ def bump_dep(ctx, faasmctl=None, python=False, cpp=False, faabric=False):
         strings_to_check = ["faasmctl==", "FAASMCTL_VERSION: "]
         for f in VERSIONED_FILES["faasmctl"]:
             for string in strings_to_check:
-                sed_cmd = "sed -i 's/{}{}/{}{}/g' {}".format(
-                    string, old_ver, string, new_ver, f
-                )
+                # Pattern must be escaped for sed.
+                pattern = escape(f"{string}{old_ver}")
+                replacement = f"{string}{new_ver}"
+                sed_cmd = f"sed -i 's|{pattern}|{replacement}|g' {quote(f)}"
                 print(sed_cmd)
                 run(sed_cmd, shell=True, check=True)
 

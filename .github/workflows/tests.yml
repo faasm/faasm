@@ -20,7 +20,7 @@ concurrency:
 env:
   COMPOSE_VERSION: 2.29.2
   CONAN_CACHE_MOUNT_SOURCE: .conan
-  FAABRIC_VERSION: 0.20.0
+  FAABRIC_VERSION: 0.21.0
   FAASM_INI_FILE: ./faasm.ini
   FAASM_VERSION: 0.31.0
   FAASMCTL_VERSION: 0.49.0
@@ -114,7 +114,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-cpp-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/faasm/cpp-sysroot:0.6.0
+      image: ghcr.io/faasm/cpp-sysroot:0.7.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
