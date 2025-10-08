@@ -6,6 +6,7 @@ from subprocess import run
 from sys import exit
 from tasks.util.env import (
     FAASM_BUILD_DIR,
+    FAASM_CONAN_CACHE,
     FAASM_INSTALL_DIR,
     FAASM_SGX_MODE_DISABLED,
     FAASM_SGX_MODE_HARDWARE,
@@ -83,6 +84,32 @@ def soft_link_bin_dir(build_dir):
 
 
 @task
+def conan(ctx, clean=False, build="Debug"):
+    """
+    Configure dependencies using Conan
+    """
+    conan_lockfile = f"{PROJ_ROOT}/conan-{build.lower()}.lock"
+    conan_cache = f"{FAASM_CONAN_CACHE}/{build.lower()}"
+    conan_profile = join(PROJ_ROOT, "conanprofile.txt")
+
+    if clean:
+        run(f"rm -f {conan_lockfile}", shell=True, check=True)
+        run(f"rm -rf {conan_cache}", shell=True, check=True)
+
+    # Generate a conan lock file if it does not exist. This file should be
+    # comitted for version control.
+    if not exists(conan_lockfile):
+        run("conan remote list", shell=True, check=True)
+        conan_cmd = f"conan lock create {PROJ_ROOT} -pr:h={conan_profile} -pr:b={conan_profile} -s build_type={build} --lockfile-out={conan_lockfile}"
+        print(conan_cmd)
+        run(conan_cmd, shell=True, check=True)
+
+    conan_install_cmd = f"conan install {PROJ_ROOT} -pr:h={conan_profile} -pr:b={conan_profile} -s build_type={build} -of {conan_cache} --build=missing --lockfile={conan_lockfile}"
+    print(conan_install_cmd)
+    run(conan_install_cmd, shell=True, check=True)
+
+
+@task
 def cmake(
     ctx,
     clean=False,
@@ -115,9 +142,16 @@ def cmake(
     if not exists(FAASM_INSTALL_DIR):
         makedirs(FAASM_INSTALL_DIR)
 
+    conan_cache = f"{FAASM_CONAN_CACHE}/{build.lower()}"
+    if not exists(conan_cache):
+        print(f"ERROR: expected conan cache in {conan_cache}")
+        print("ERROR: make sure to run 'inv dev.conan' first")
+        raise RuntimeError(f"Expected conan cache in {conan_cache}")
+
     cmd = [
         "cmake",
         "-GNinja",
+        f"-DCMAKE_TOOLCHAIN_FILE={conan_cache}/conan_toolchain.cmake",
         "-DCMAKE_BUILD_TYPE={}".format(build),
         "-DCMAKE_CXX_COMPILER=/usr/bin/clang++-{}".format(LLVM_MAJOR_VERSION),
         "-DCMAKE_C_COMPILER=/usr/bin/clang-{}".format(LLVM_MAJOR_VERSION),
@@ -164,6 +198,8 @@ def tools(
         raise RuntimeError("SGX and sanitised builds are incompatible!")
 
     build_dir = get_build_dir(build, sgx)
+
+    conan(ctx, clean=clean, build=build)
 
     cmake(
         ctx,

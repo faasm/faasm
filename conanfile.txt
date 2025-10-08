@@ -1,0 +1,18 @@
+[requires]
+catch2/2.13.9
+# These three dependencies are only needed to perform remote attestation
+# of SGX enclaves using Microsoft Azure's Attestation Service
+cppcodec/0.2
+jwt-cpp/0.7.0
+picojson/cci.20210117
+# 26/04/2023 - Temporarily add RapidJSON as a CMake dependency, as
+# it was removed from faabric. Eventually consolidate to just using one
+# JSON (de-)serialising library
+rapidjson/cci.20211112@#65b4e5feb6f1edfc8cbac0f669acaf17
+
+[generators]
+CMakeToolchain
+CMakeDeps
+
+[options]
+cpprestsdk:with_websockets=False
