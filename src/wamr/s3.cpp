@@ -24,7 +24,7 @@ static void __faasm_s3_list_buckets_wrapper(wasm_exec_env_t execEnv,
     auto bucketList = s3cli.listBuckets();
 
     auto* module = getExecutingWAMRModule();
-    for (int i = 0; i < bucketList.size(); i++) {
+    for (size_t i = 0; i < bucketList.size(); i++) {
         // First, populate the len buffer
         auto bucketSize = bucketList.at(i).size();
         bucketsBufferLen[i] = bucketSize;
@@ -81,7 +81,7 @@ void doListKeys(wasm_exec_env_t execEnv,
     auto keyList = s3cli.listKeys(bucketName, prefix);
 
     auto* module = getExecutingWAMRModule();
-    for (int i = 0; i < keyList.size(); i++) {
+    for (size_t i = 0; i < keyList.size(); i++) {
         // First, populate the len buffer
         auto keySize = keyList.at(i).size();
         keysBufferLen[i] = keySize;

@@ -279,7 +279,7 @@ void WAMRWasmModule::createThreadsExecEnv(WASMExecEnv* parentExecEnv)
 // a consequence, each must be destroyed with the corresponding API
 void WAMRWasmModule::destroyThreadsExecEnv(bool destroyMainExecEnv)
 {
-    for (int i = 1; i < execEnvs.size(); i++) {
+    for (size_t i = 1; i < execEnvs.size(); i++) {
         if (execEnvs.at(i) != nullptr) {
             wasm_runtime_destroy_spawned_exec_env(execEnvs.at(i));
             execEnvs.at(i) = nullptr;
@@ -337,7 +337,7 @@ AOTFuncType* getFuncTypeFromFuncPtr(WASMModuleCommon* wasmModule,
       reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     // FIXME: this pointer is unaligned, triggering UB
     AOTTableInstance* tableInstance = aotModuleInstance->tables[0];
-    if (tableInstance == nullptr || wasmFuncPtr >= tableInstance->cur_size) {
+    if (tableInstance == nullptr || (uint32_t) wasmFuncPtr >= tableInstance->cur_size) {
         SPDLOG_ERROR("Error getting WAMR function signature from ptr: {}",
                      wasmFuncPtr);
         throw std::runtime_error("Error getting WAMR function signature");
@@ -390,7 +390,7 @@ int32_t WAMRWasmModule::executeOMPThread(int threadPoolIdx,
     argv[1] = { (uint32_t)ompLevel->nSharedVarOffsets };
 
     // The rest of the arguments are the ones corresponding to OpenMP
-    for (int i = 0; i < ompLevel->nSharedVarOffsets; i++) {
+    for (size_t i = 0; i < ompLevel->nSharedVarOffsets; i++) {
         argv.at(i + 2) = ompLevel->sharedVarOffsets[i];
     }
 

@@ -1,5 +1,16 @@
 [requires]
+# These dependencies are copied from faabric. In Conan 2 there is no easy way
+# to re-use the dependencies of a child project.
+abseil/20220623.0
+boost/1.84.0
 catch2/2.13.9
+flatbuffers/23.5.26
+hiredis/1.0.2
+openssl/3.6.0
+protobuf/3.20.0
+readerwriterqueue/1.0.6
+spdlog/1.10.0
+zlib/1.2.12
 # These three dependencies are only needed to perform remote attestation
 # of SGX enclaves using Microsoft Azure's Attestation Service
 cppcodec/0.2
@@ -8,11 +19,11 @@ picojson/cci.20210117
 # 26/04/2023 - Temporarily add RapidJSON as a CMake dependency, as
 # it was removed from faabric. Eventually consolidate to just using one
 # JSON (de-)serialising library
-rapidjson/cci.20211112@#65b4e5feb6f1edfc8cbac0f669acaf17
+rapidjson/cci.20211112
 
 [generators]
 CMakeToolchain
 CMakeDeps
 
 [options]
-cpprestsdk:with_websockets=False
+cpprestsdk/*:with_websockets=False

@@ -60,7 +60,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
 
     SPDLOG_TRACE("WAMR codegen generated compilation data");
 
-    AOTCompOption option = { false };
+    AOTCompOption option = { 0 };
     option.opt_level = 3;
     option.size_level = 3;
     option.output_format = AOT_FORMAT_FILE;

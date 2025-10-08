@@ -1,6 +1,7 @@
 # Faasm
 bench/
 build/
+conan-cache/
 dev/
 perf/
 work/

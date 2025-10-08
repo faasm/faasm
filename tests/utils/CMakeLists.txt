@@ -7,7 +7,7 @@ faasm_private_lib(test_utils
 target_include_directories(test_utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(test_utils PUBLIC
-    faasm::codegen
+    faasm::wasm_codegen
     faasm::enclave
     faasm::runner_lib
     faasm::faaslet_lib

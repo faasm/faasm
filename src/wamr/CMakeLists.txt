@@ -51,15 +51,17 @@ faasm_private_lib(wamrlib "${WAMR_RUNTIME_LIB_SOURCE}")
 
 # Disable WAMR warnings
 target_compile_options(wamrlib PRIVATE
+    -Wno-double-promotion
     -Wno-macro-redefined
+    -Wno-sign-compare
     -Wno-typedef-redefinition
     -Wno-unused-but-set-variable
     -Wno-unused-command-line-argument
     # We comment out some problematic LLVM code in WAMR. Commenting out triggers
     # compilation warnings that we suppress
     -Wno-ambiguous-reversed-operator
-    -Wno-unused-function
     -Wno-deprecated-enum-enum-conversion
+    -Wno-unused-function
 )
 
 # -----------------------------
@@ -99,6 +101,15 @@ faasm_private_lib(wamrmodule
     stubs.cpp
     timing.cpp
 )
+
+# Disable WAMR warnings
+target_compile_options(wamrmodule PRIVATE
+    -Wno-double-promotion
+    -Wno-macro-redefined
+    -Wno-missing-field-initializers
+    -Wno-sign-compare
+)
+
 target_link_libraries(wamrmodule PUBLIC
     faasm::wasm
     faasm::wamrlib

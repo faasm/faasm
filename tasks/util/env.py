@@ -22,7 +22,7 @@ FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")
 WASM_DIR = join(FAASM_LOCAL_DIR, "wasm")
 
 FAASM_BUILD_DIR = _get_dir("FAASM_BUILD_DIR", "/build/faasm")
-FAASM_CONAN_CACHE = _get_dir("FAASM_BUILD_DIR", "/build/conan-cache")
+FAASM_CONAN_CACHE = "/build/conan-cache"
 FAASM_INSTALL_DIR = _get_dir("FAASM_INSTALL_DIR", "/usr/local")
 
 FAASM_CONFIG_FILE = join(PROJ_ROOT, "faasm.ini")

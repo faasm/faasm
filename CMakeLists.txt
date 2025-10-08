@@ -86,12 +86,12 @@ set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_GENERATED_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include)
 set(FAASM_NATIVE_INSTALL "/usr/local/faasm/native")
 
+# ----------------------------------------
 # Faabric
+# ----------------------------------------
+
 set(FAABRIC_TARGET_CPU ${FAASM_TARGET_CPU} CACHE BOOL "" FORCE)
 add_subdirectory(faabric)
-list(PREPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR}/faabric)
-list(PREPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR}/faabric)
-include(${CMAKE_CURRENT_BINARY_DIR}/faabric/conan_paths.cmake)
 
 # ----------------------------------------
 # SGX configuration
