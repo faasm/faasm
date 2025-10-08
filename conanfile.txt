@@ -1,13 +1,13 @@
 [requires]
 # These dependencies are copied from faabric. In Conan 2 there is no easy way
 # to re-use the dependencies of a child project.
-abseil/20220623.0
+abseil/20250127.0
 boost/1.84.0
 catch2/2.13.9
 flatbuffers/23.5.26
 hiredis/1.0.2
 openssl/3.6.0
-protobuf/3.20.0
+protobuf/6.30.1
 readerwriterqueue/1.0.6
 spdlog/1.10.0
 zlib/1.2.12
