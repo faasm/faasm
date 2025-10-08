@@ -20,7 +20,7 @@ spec:
             - control
   containers:
     - name: upload
-      image: ghcr.io/faasm/upload:0.31.0
+      image: ghcr.io/faasm/upload:0.32.0
       ports:
         - containerPort: 8002
         - containerPort: 5000
