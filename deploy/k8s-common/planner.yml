@@ -20,7 +20,7 @@ spec:
             - control
   containers:
     - name: planner
-      image: ghcr.io/faasm/planner:0.21.0
+      image: ghcr.io/faasm/planner:0.22.0
       ports:
         - containerPort: 8081
       env:
