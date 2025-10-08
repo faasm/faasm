@@ -1,0 +1,21 @@
+diff --git a/external/openmp/Makefile b/external/openmp/Makefile
+index 1c789daa..2ef7f37b 100644
+--- a/external/openmp/Makefile
++++ b/external/openmp/Makefile
+@@ -41,6 +41,8 @@ endif
+ ENC_CXXFLAGS = $(patsubst -fpie, -fpic, $(ENCLAVE_CXXFLAGS))
+ OMP_CONFIG += -DCMAKE_CXX_FLAGS="$(ENC_CXXFLAGS)"
+ OMP_CONFIG += -DSGX_PROGRAM_SEARCH_PATH="$(EXT_BINUTILS_DIR)"
++OMP_CONFIG += -DCMAKE_POLICY_VERSION_MINIMUM=3.5
++OMP_CONFIG += -DCMAKE_TRY_COMPILE_PLATFORM_VARIABLES=CMAKE_POLICY_VERSION_MINIMUM
+ 
+ CHECK_SOURCE :=
+ ifeq ("$(wildcard $(OMP_DIR)/final)", "")
+@@ -69,6 +71,7 @@ $(LIBOMP): $(CHECK_SOURCE)
+ ifeq ("$(wildcard $(OMP_DIR)/final/runtime/src/sgx_stub.h)", "")
+ 	cd openmp_code && git apply ../0001-Enable-OpenMP-in-SGX.patch && cd ..
+ endif
++	cd openmp_code/final && sed -i -E 's/cmake_minimum_required\(VERSION[[:space:]]+2\.[0-9]+\)/cmake_minimum_required(VERSION 3.5)/' runtime/cmake/LibompCheckLinkerFlag.cmake && cd ../..
+ 	$(MKDIR) openmp_code/final/build && cd openmp_code/final/build && cmake $(OMP_CONFIG) .. && $(MAKE)
+ 
+ 

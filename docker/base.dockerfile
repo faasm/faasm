@@ -36,9 +36,9 @@ RUN mkdir -p /usr/local/faasm/runtime_root/etc \
 # Out of tree clean build of the basic targets
 RUN cd /usr/local/code/faasm \
     && ./bin/create_venv.sh \
-    && source venv/bin/activate
-    #     && inv dev.tools \
-    #         --clean \
-    #         --disable-spinlock \
-    #         --build Release \
-    #         --sgx Disabled
+    && source venv/bin/activate \
+    && inv dev.tools \
+        --clean \
+        --disable-spinlock \
+        --build Release \
+        --sgx Disabled

@@ -1,0 +1,13 @@
+diff --git a/external/cbor/Makefile b/external/cbor/Makefile
+index cc958939..a0556c34 100644
+--- a/external/cbor/Makefile
++++ b/external/cbor/Makefile
+@@ -62,6 +62,8 @@ CBOR_CONFIG = -DCMAKE_BUILD_TYPE=Release
+ #ifdef DEBUG
+ #	CBOR_CONFIG = -DCMAKE_BUILD_TYPE=Debug
+ #endif
++CBOR_CONFIG += -DCMAKE_POLICY_VERSION_MINIMUM=3.5
++CBOR_CONFIG += -DCMAKE_TRY_COMPILE_PLATFORM_VARIABLES=CMAKE_POLICY_VERSION_MINIMUM
+ 
+ SGX_CBOR_CONFIG = $(CBOR_CONFIG) -DSGX_PROGRAM_SEARCH_PATH="$(EXT_BINUTILS_DIR)"
+ 
