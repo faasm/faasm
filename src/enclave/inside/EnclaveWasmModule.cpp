@@ -256,7 +256,7 @@ void EnclaveWasmModule::prepareArgcArgv(uint32_t argcIn, char** argvIn)
     argv.resize(argc);
     argvBufferSize = 0;
 
-    for (int i = 0; i < argc; i++) {
+    for (uint32_t i = 0; i < argc; i++) {
         // Add one to account for newline
         argvBufferSize += strlen(argvIn[i]) + 1;
         argv.at(i) = std::string(argvIn[i]);

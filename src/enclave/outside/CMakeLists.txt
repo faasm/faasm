@@ -8,6 +8,7 @@ target_compile_options(wamrlib_untrusted PRIVATE
     -fPIC
     -ffunction-sections
     -fdata-sections
+    -Wno-sign-compare
     -Wno-unused-variable
 )
 
@@ -84,9 +85,9 @@ if (FAASM_SGX_MODE STREQUAL "Simulation")
     set(SGX_UAE_SERVICE_LIB ${SGX_SDK_LIB_PATH}/libsgx_uae_service_sim.so)
     set(SGX_CAPABLE_LIB ${SGX_SDK_LIB_PATH}/libsgx_capable.so)
 elseif (FAASM_SGX_MODE STREQUAL "Hardware")
-    set(SGX_UNTRUSTED_RUNTIME_LIB /usr/lib/libsgx_urts.so)
-    set(SGX_UAE_SERVICE_LIB /usr/lib/libsgx_uae_service.so)
-    set(SGX_CAPABLE_LIB /usr/lib/libsgx_capable.so)
+    set(SGX_UNTRUSTED_RUNTIME_LIB sgx_urts)
+    set(SGX_UAE_SERVICE_LIB sgx_uae_service)
+    set(SGX_CAPABLE_LIB sgx_capable)
 else()
     message(FATAL_ERROR "Building SGX code with mode: ${FAASM_SGX_MODE}")
 endif()

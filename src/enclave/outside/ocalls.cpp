@@ -497,8 +497,8 @@ extern "C"
         storage::S3Wrapper s3cli;
         auto bucketList = s3cli.listBuckets();
 
-        size_t totalSize = 0;
-        for (int i = 0; i < bucketList.size(); i++) {
+        int totalSize = 0;
+        for (size_t i = 0; i < bucketList.size(); i++) {
             if (totalSize > bufferSize) {
                 SPDLOG_ERROR(
                   "Exceeded maximum buffer size copying S3 buckets!");
@@ -569,7 +569,7 @@ extern "C"
 
         // Serialise keys into buffer to transfer via ECall
         size_t writtenOffset = 0;
-        for (int i = 0; i < keysList.size(); i++) {
+        for (size_t i = 0; i < keysList.size(); i++) {
             int thisKeySize = keysList.at(i).size();
 
             std::memcpy(auxLensBuffer.data() + i * sizeof(int32_t),
@@ -649,7 +649,7 @@ extern "C"
         }
 
         // Check that we have enough space in the bufer
-        if (data.size() > bufferSize) {
+        if (data.size() > (size_t) bufferSize) {
             SPDLOG_ERROR(
               "S3 key is larger than provisioned buffer: {} > {} (key: {}/{})",
               data.size(),

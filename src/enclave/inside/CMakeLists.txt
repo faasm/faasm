@@ -17,12 +17,15 @@ target_compile_options(wamrlib_trusted PRIVATE
     -fdata-sections
     -Wall
     # These are needed to supress warnings when building WAMR
+    -Wno-double-promotion
+    -Wno-incompatible-pointer-types
     -Wno-macro-redefined
+    -Wno-pedantic
     -Wno-pointer-sign
+    -Wno-sign-compare
+    -Wno-typedef-redefinition
     -Wno-unused-command-line-argument
     -Wno-unused-parameter
-    -Wno-typedef-redefinition
-    -Wno-pedantic
     -nostdinc
     -fvisibility=hidden
 )

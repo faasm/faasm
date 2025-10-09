@@ -15,6 +15,7 @@ faasm_private_lib(enclave_trusted_crypto "${ENCLAVE_TRUSTED_CRYPTO_SRC}")
 
 target_compile_options(enclave_trusted_crypto PRIVATE
     ${ENCLAVE_TRUSTED_C_FLAGS}
+    -Wno-implicit-exception-spec-mistmatch
 )
 
 target_include_directories(enclave_trusted_crypto PRIVATE
