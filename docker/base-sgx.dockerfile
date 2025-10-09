@@ -1,90 +1,65 @@
-ARG FAASM_VERSION
 FROM ghcr.io/faasm/base:${FAASM_VERSION}
 
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt install  -y \
-    debhelper \
-    libboost-thread-dev \
-    libprotobuf-c-dev \
-    lsb-release \
-    ocaml \
-    ocamlbuild \
-    protobuf-c-compiler \
-    python-is-python3
+# Install everything we can from APT repos
+RUN apt update && apt install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        wget \
+        gnupg \
+        lsb-release \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key \
+        -o /etc/apt/keyrings/intel-sgx-keyring.asc \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/intel-sgx-keyring.asc] \
+         https://download.01.org/intel-sgx/sgx_repo/ubuntu $(lsb_release -cs) main" \
+         > /etc/apt/sources.list.d/intel-sgx.list \
+    && apt update \
+    # PSW runtime
+    && apt install -y --no-install-recommends \
+        libsgx-enclave-common \
+        libsgx-urts \
+        libsgx-launch \
+        libsgx-epid \
+        libsgx-quote-ex \
+        sgx-aesm-service \
+        libsgx-aesm-launch-plugin \
+        libsgx-aesm-epid-plugin \
+        libsgx-aesm-quote-ex-plugin \
+    # DCAP runtime and dev headers
+    && apt install -y --no-install-recommends \
+        libsgx-dcap-ql \
+        libsgx-dcap-default-qpl \
+        libsgx-dcap-quote-verify \
+        libsgx-enclave-common-dev \
+        libsgx-dcap-ql-dev \
+        libsgx-dcap-default-qpl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# We must install protobuf manually, as a static library and PIC. Otherwise,
-# attestation will fail at runtime with a hard to debug segmentation fault when
-# dlopen-ing some sgx-related libraries. The problem arises when these libraries
-# link with protobuf as a shared library, as reported in protobuf#206
-RUN git clone -b v6.31.1 \
-        https://github.com/protocolbuffers/protobuf.git \
-        /tmp/protobuf \
-    && mkdir -p /tmp/protobuf/build \
-    && cd /tmp/protobuf/build \
-    && cmake \
-        -Dprotobuf_BUILD_SHARED_LIBS=OFF \
-        -Dprotobuf_BUILD_TESTS=OFF \
-        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-        .. \
-    && make \
-    && make install
+# Instal SGX SDK version from Intel's repository (no APT package)
+ARG SGX_SDK_VER=2.26.100.0
+ARG SGX_SDK_BIN=sgx_linux_x64_sdk_${SGX_SDK_VER}.bin
+ARG SGX_SDK_URL=https://download.01.org/intel-sgx/latest/linux-latest/distro/ubuntu24.04-server/${SGX_SDK_BIN}
 
-# Build and install SGX SDK and PSW
-ARG SGX_SDK_VERSION=2.26
-# 09/03/2022 - As part of the preparation step, we download pre-built binaries
-# from Intel's official repositories. There does not seem to be a clear way
-# to specify which version to download. We pin to code version 2.18.101.1. It
-# may happen that, at some point, the image build fails because the preparation
-# script points to out-of-date links. In that case we will have to clone from a
-# more recent tag.
-RUN git clone -b sgx_${SGX_SDK_VERSION} https://github.com/intel/linux-sgx.git \
-    && cd /linux-sgx \
-    && make preparation \
-    # Apply two patches to make the build work corresponding to intel/linux-sgx
-    # issue 914
-    && git apply /usr/local/code/faasm/src/enclave/inside/sgx_sdk.patch
-    # Apply two patches to set the CMake minimum version
-    && git apply /usr/local/code/faasm/src/enclave/inside/sgx_sdk_openmp_cmake_minver.patch
-    && git apply /usr/local/code/faasm/src/enclave/inside/sgx_sdk_cbor_cmake_minver.patch
-    # Build SDK and install package
-    && make sdk_install_pkg \
-    && mkdir -p /opt/intel \
-    && cd /opt/intel \
-    && sh -c "echo yes | /linux-sgx/linux/installer/bin/sgx_linux_x64_sdk_${SGX_SDK_VERSION}.100.0.bin" \
-    && cd /linux-sgx \
-    && make psw_install_pkg \
-    && cd /opt/intel \
-    && sh -c "echo yes | /linux-sgx/linux/installer/bin/sgx_linux_x64_psw_${SGX_SDK_VERSION}.100.0.bin --no-start-aesm" \
-    # In hardware builds we don't want to link against any library in the SDK, thus
-    # we copy this library to detect sgx into `/usr/lib`. See this related issue:
-    # https://github.com/intel/linux-sgx/issues/47
-    && cp /opt/intel/sgxsdk/lib64/libsgx_capable.so /usr/lib
+RUN wget -qO /tmp/${SGX_SDK_BIN} "${SGX_SDK_URL}" \
+    && chmod +x /tmp/${SGX_SDK_BIN} \
+    && /tmp/${SGX_SDK_BIN} --prefix /opt/intel \
+    # Apply patch to fix the compilation with clang of libraries that consume
+    # the SGX SDK.
+    && patch -p0 -N --silent < /usr/local/code/faasm/src/enclave/inside/sgxsdk_2.26_libcxx_config.patch \
+    # Copy some libraries from the SDK to /usr/lib such that they can be used
+    # in HW mode without interfering with the SDK. See: intel/linux-sgx#47
+    && cp /opt/intel/sgxsdk/lib64/libsgx_uae_service.so /usr/lib/ \
+    && cp /opt/intel/sgxsdk/lib64/libsgx_capable.so /usr/lib/ \
+    && rm -f /tmp/${SGX_SDK_BIN}
 
-# Install SGX DCAP
-# ARG DCAP_VERSION=1.23
-# RUN git clone -b DCAP_${DCAP_VERSION} \
-    #         https://github.com/intel/SGXDataCenterAttestationPrimitives.git \
-    #         /opt/intel/sgxdcap \
-    #     && . /opt/intel/sgxsdk/environment \
-    #     # Annoyingly, it seems that the QuoteGeneration build relies on some 3rd
-#     # party libraries installed when building the QuoteValidation library
-#     && cd /opt/intel/sgxdcap \
-    #     && git submodule update --init \
-    #     &&  cd /opt/intel/sgxdcap/QuoteGeneration \
-    #     && ./download_prebuilt.sh \
-    #     && make \
-    #     # Install manually the libraries under `/usr/lib` for a lack of a `make install`
-#     # recipe
-#     && cp /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_dcap_ql.so* \
-    #         /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_pce_logic.so \
-    #         /opt/intel/sgxdcap/QuoteGeneration/build/linux/libsgx_qe3_logic.so \
-    #         /usr/lib/
-#
-# # Build Faasm with SGX enabled
-# ARG FAASM_SGX_MODE
-# RUN cd /usr/local/code/faasm \
-    #     && source venv/bin/activate \
-    #     && inv dev.tools \
-    #         --clean \
-    #         --build Release \
-    #         --sgx ${FAASM_SGX_MODE}
+# Build Faasm with SGX enabled
+ARG FAASM_SGX_MODE
+RUN cd /usr/local/code/faasm \
+    && source venv/bin/activate \
+    && git fetch origin \
+    && git checkout conan2 \
+    && git pull origin conan2 \
+    && inv dev.tools \
+        --clean \
+        --build Release \
+        --sgx ${FAASM_SGX_MODE}
