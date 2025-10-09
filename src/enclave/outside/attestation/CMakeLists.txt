@@ -24,7 +24,7 @@ target_link_libraries(attestation
     cppcodec::cppcodec
     jwt-cpp::jwt-cpp
     picojson::picojson
-    RapidJSON::RapidJSON
+    rapidjson
 )
 
 # Quote generation is only supported in hardware mode. Therefore, we only link

@@ -13,7 +13,7 @@ find_package(Catch2 REQUIRED)
 find_package(cppcodec REQUIRED)
 find_package(jwt-cpp REQUIRED)
 find_package(picojson REQUIRED)
-find_package(RapidJSON REQUIRED)
+find_package(RapidJSON CONFIG REQUIRED)
 
 # Tightly-coupled dependencies
 set(FETCHCONTENT_QUIET OFF)
