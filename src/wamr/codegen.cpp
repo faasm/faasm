@@ -68,6 +68,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
     // seg-fault unexpectedly, so modify with care
     option.bounds_checks = 0;
     option.enable_bulk_memory = true;
+    option.enable_bulk_memory_opt = true;
     // We need this for threads
     option.enable_thread_mgr = true;
     option.enable_ref_types = true;
