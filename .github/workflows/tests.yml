@@ -285,6 +285,8 @@ jobs:
       # ----- Prepare C++ deps cache (via Conan) -----
       - name: "Conan cache"
         uses: faasm/conan-cache-action@main
+        with:
+          build-type: Debug
           from: faasm
 
       # ----- Prepare WASM cache -----
