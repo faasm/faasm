@@ -1,0 +1,15 @@
+[settings]
+os=Linux
+arch=x86_64
+compiler=clang
+compiler.version=17
+compiler.libcxx=libstdc++11
+compiler.cppstd=20
+build_type=RelWithDebInfo
+
+[conf]
+tools.build:compiler_executables={"c": "/usr/bin/clang-17", "cpp": "/usr/bin/clang++-17"}
+tools.build:cxxflags=["-fsanitize=thread","-fno-omit-frame-pointer","-g"]
+tools.build:cflags=["-fsanitize=thread","-fno-omit-frame-pointer","-g"]
+tools.build:sharedlinkflags=["-fsanitize=thread"]
+tools.build:exelinkflags=["-fsanitize=thread"]

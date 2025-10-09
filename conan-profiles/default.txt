@@ -8,5 +8,4 @@ compiler.cppstd=20
 build_type=Release
 
 [conf]
-# Tell Conan which compiler binaries to run
 tools.build:compiler_executables={"c": "/usr/bin/clang-17", "cpp": "/usr/bin/clang++-17"}

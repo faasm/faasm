@@ -337,7 +337,8 @@ AOTFuncType* getFuncTypeFromFuncPtr(WASMModuleCommon* wasmModule,
       reinterpret_cast<AOTModuleInstance*>(moduleInstance);
     // FIXME: this pointer is unaligned, triggering UB
     AOTTableInstance* tableInstance = aotModuleInstance->tables[0];
-    if (tableInstance == nullptr || (uint32_t) wasmFuncPtr >= tableInstance->cur_size) {
+    if (tableInstance == nullptr ||
+        (uint32_t)wasmFuncPtr >= tableInstance->cur_size) {
         SPDLOG_ERROR("Error getting WAMR function signature from ptr: {}",
                      wasmFuncPtr);
         throw std::runtime_error("Error getting WAMR function signature");

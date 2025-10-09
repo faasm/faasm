@@ -364,7 +364,8 @@ static int32_t faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
     if (mustUseAuxECall) {
         assert(copiedBytes == 0);
 
-        if (module->dataXferPtr == nullptr || module->dataXferSize != (size_t) keySize) {
+        if (module->dataXferPtr == nullptr ||
+            module->dataXferSize != (size_t)keySize) {
             SPDLOG_ERROR_SGX("Copying large buffer in OCall, but have not"
                              " populated auxiliary heap pointer!");
             return 1;

@@ -649,7 +649,7 @@ extern "C"
         }
 
         // Check that we have enough space in the bufer
-        if (data.size() > (size_t) bufferSize) {
+        if (data.size() > (size_t)bufferSize) {
             SPDLOG_ERROR(
               "S3 key is larger than provisioned buffer: {} > {} (key: {}/{})",
               data.size(),

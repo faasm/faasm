@@ -7,6 +7,7 @@ from sys import exit
 from tasks.util.env import (
     FAASM_BUILD_DIR,
     FAASM_CONAN_CACHE,
+    FAASM_CONAN_PROFILES,
     FAASM_INSTALL_DIR,
     FAASM_SGX_MODE_DISABLED,
     FAASM_SGX_MODE_HARDWARE,
@@ -84,13 +85,18 @@ def soft_link_bin_dir(build_dir):
 
 
 @task
-def conan(ctx, clean=False, build="Debug"):
+def conan(ctx, clean=False, build="Debug", sanitiser="None"):
     """
     Configure dependencies using Conan
     """
     conan_lockfile = f"{PROJ_ROOT}/conan-{build.lower()}.lock"
     conan_cache = f"{FAASM_CONAN_CACHE}/{build.lower()}"
-    conan_profile = join(PROJ_ROOT, "conanprofile.txt")
+    if sanitiser == "Thread":
+        conan_profile = join(FAASM_CONAN_PROFILES, "tsan.txt")
+    elif sanitiser == "Address":
+        conan_profile = join(FAASM_CONAN_PROFILES, "asan.txt")
+    else:
+        conan_profile = join(FAASM_CONAN_PROFILES, "default.txt")
 
     if clean:
         run(f"rm -f {conan_lockfile}", shell=True, check=True)
@@ -100,11 +106,22 @@ def conan(ctx, clean=False, build="Debug"):
     # comitted for version control.
     if not exists(conan_lockfile):
         run("conan remote list", shell=True, check=True)
-        conan_cmd = f"conan lock create {PROJ_ROOT} -pr:h={conan_profile} -pr:b={conan_profile} -s build_type={build} --lockfile-out={conan_lockfile}"
+        conan_cmd = (
+            f"conan lock create {PROJ_ROOT} -pr:h={conan_profile} "
+            f"-pr:b={conan_profile} -s build_type={build} "
+            f"--lockfile-out={conan_lockfile}"
+        )
         print(conan_cmd)
         run(conan_cmd, shell=True, check=True)
 
-    conan_install_cmd = f"conan install {PROJ_ROOT} -pr:h={conan_profile} -pr:b={conan_profile} -s build_type={build} -of {conan_cache} --build=missing --lockfile={conan_lockfile}"
+    # Ensure a clean build by re-building all Conan packages
+    build_type = "*" if clean else "missing"
+
+    conan_install_cmd = (
+        f"conan install {PROJ_ROOT} -pr:h={conan_profile} "
+        f"-pr:b={conan_profile} -s build_type={build} -of {conan_cache} "
+        f"--build={build_type} --lockfile={conan_lockfile}"
+    )
     print(conan_install_cmd)
     run(conan_install_cmd, shell=True, check=True)
 

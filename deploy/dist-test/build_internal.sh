@@ -10,6 +10,7 @@ pushd ${PROJ_ROOT} > /dev/null
 source ./bin/workon.sh
 
 # Build everything required for the distributed tests
+inv dev.conan --build=Debug
 inv dev.cmake --build=Debug
 inv dev.cc codegen_func
 inv dev.cc codegen_shared_obj
