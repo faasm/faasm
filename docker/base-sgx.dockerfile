@@ -1,3 +1,4 @@
+ARG FAASM_VERSION
 FROM ghcr.io/faasm/base:${FAASM_VERSION}
 
 # Install everything we can from APT repos
