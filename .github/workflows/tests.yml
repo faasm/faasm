@@ -19,11 +19,11 @@ concurrency:
 # Top-level env. vars shared by most jobs
 env:
   COMPOSE_VERSION: 2.29.2
-  CONAN_CACHE_MOUNT_SOURCE: .conan2
+  CONAN_CACHE_MOUNT_SOURCE: ~/.conan2
   FAABRIC_VERSION: 0.22.0
   FAASM_INI_FILE: ./faasm.ini
   FAASM_VERSION: 0.32.0
-  FAASMCTL_VERSION: 0.49.0
+  FAASMCTL_VERSION: 0.51.0
 
 jobs:
   checks:
@@ -203,43 +203,37 @@ jobs:
       matrix:
         build-type: [Debug, Release]
     steps:
+      - name: "Check-out code"
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
       # First, check if the conan cache is already there, if so we can skip
       # the rest of this job
-      - name: "Conan cache (look-up only)"
+      - name: "Conan cache"
         id: conan-cache-lookup
         uses: faasm/conan-cache-action@main
         with:
           build-type: ${{ matrix.build-type }}
           from: faasm
-          lookup-only: 'true'
+
       # The following steps populate the conan cache
-      - name: "Image cache (must run before checkout!)"
-        if: ${{ steps.conan-cache-lookup.outputs.cache-hit != 'true' }}
+      - name: "Image cache"
+        if: ${{ steps.conan-cache-faasm.outputs.cache-hit != 'true' }}
         uses: faasm/image-cache-action@main
         with:
           faasm-version: ${{ env.FAASM_VERSION }}
           faabric-version: ${{ env.FAABRIC_VERSION }}
           read-only: 'true'
-      - name: "Check-out code"
-        if: ${{ steps.conan-cache-lookup.outputs.cache-hit != 'true' }}
-        uses: actions/checkout@v4
-        with:
-          submodules: true
       - name: "Install faasmctl"
-        if: ${{ steps.conan-cache-lookup.outputs.cache-hit != 'true' }}
+        if: ${{ steps.conan-cache-faasm.outputs.cache-hit != 'true' }}
         run: pip3 install faasmctl==${{ env.FAASMCTL_VERSION }}
-      - name: "Conan cache"
-        if: ${{ steps.conan-cache-lookup.outputs.cache-hit != 'true' }}
-        uses: faasm/conan-cache-action@main
-        with:
-          build-type: ${{ matrix.build-type }}
-          from: faasm
       - name: "Start a worker-less Faasm cluster to run unit tests"
-        if: ${{ steps.conan-cache-lookup.outputs.cache-hit != 'true' }}
+        if: ${{ steps.conan-cache-faasm.outputs.cache-hit != 'true' }}
         run: faasmctl deploy.compose --mount-source . --workers=0
       - name: "Build Conan dependencies to be shared by all runs"
-        if: ${{ steps.conan-cache-lookup.outputs.cache-hit != 'true' }}
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.conan --build ${{ matrix.build-type }} --clean"
+        if: ${{ steps.conan-cache-faasm.outputs.cache-hit != 'true' }}
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.conan --build ${{ matrix.build-type }}"
 
   tests:
     needs: [cpp-funcs, py-funcs, conan-cache, wasm-funcs-cache]
@@ -367,18 +361,19 @@ jobs:
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh python.clear-runtime-pyc"
 
       # ----- Build the tests -----
-      # Tests build (Debug required for tests)
-      - name: "Re-run Conan with sanitiser set"
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.conan --clean --build Debug --sanitiser ${{ matrix.sanitiser }}"
+      # We only need to run dev.conan with the --clean flag when building for
+      # the different sanitisers, as sanitised builds like TSAN or ASAN
+      # require all dependencies to also be (re-)built with the right
+      # sanitiser flags.
       - name: "Re-run CMake with sanitiser set"
         if: ${{ (matrix.sanitiser != 'Coverage') && (matrix.sanitiser != 'Sgx') }}
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --disable-spinlock --build Debug --sanitiser ${{ matrix.sanitiser }}"
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.conan --clean dev.cmake --clean --disable-spinlock --build Debug --sanitiser ${{ matrix.sanitiser }}"
       - name: "Re-run CMake with coverage"
         if: ${{ matrix.sanitiser == 'Coverage' }}
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --disable-spinlock --build Debug --coverage"
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.conan dev.cmake --clean --disable-spinlock --build Debug --coverage"
       - name: "Re-run CMake with SGX"
         if: ${{ matrix.sanitiser == 'Sgx' }}
-        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cmake --clean --disable-spinlock --build Debug --sgx Simulation"
+        run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.conan dev.cmake --clean --disable-spinlock --build Debug --sgx Simulation"
       - name: "Build only the tests target"
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.cc tests"
       # Until we bump to LLVM >= 18.1.0, TSAN comes with bug with ASLR
