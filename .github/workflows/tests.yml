@@ -224,7 +224,7 @@ jobs:
 
       # The following steps populate the conan cache
       - name: "Image cache"
-        if: ${{ steps.conan-cache-faasm.outputs.cache-hit != 'true' }}
+        if: ${{ steps.conan-cache-lookup.outputs.cache-hit-faasm != 'true' }}
         uses: faasm/image-cache-action@main
         with:
           faasm-version: ${{ env.FAASM_VERSION }}
@@ -232,26 +232,20 @@ jobs:
           read-only: 'true'
       # Check-out the code again, as the image-cache action wipes everything
       - name: "Check-out code"
-        if: ${{ steps.conan-cache-faasm.outputs.cache-hit != 'true' }}
+        if: ${{ steps.conan-cache-lookup.outputs.cache-hit-faasm != 'true' }}
         uses: actions/checkout@v4
         with:
           clean: true
           submodules: true
       - name: "Install faasmctl"
-        if: ${{ steps.conan-cache-faasm.outputs.cache-hit != 'true' }}
+        if: ${{ steps.conan-cache-lookup.outputs.cache-hit-faasm != 'true' }}
         run: pip3 install faasmctl==${{ env.FAASMCTL_VERSION }}
       - name: "Start a worker-less Faasm cluster to run unit tests"
-        if: ${{ steps.conan-cache-faasm.outputs.cache-hit != 'true' }}
+        if: ${{ steps.conan-cache-lookup.outputs.cache-hit-faasm != 'true' }}
         run: faasmctl deploy.compose --mount-source . --workers=0
       - name: "Build Conan dependencies to be shared by all runs"
-        if: ${{ steps.conan-cache-faasm.outputs.cache-hit != 'true' }}
+        if: ${{ steps.conan-cache-lookup.outputs.cache-hit-faasm != 'true' }}
         run: faasmctl cli.faasm --cmd "./bin/inv_wrapper.sh dev.conan --build ${{ matrix.build-type }}"
-      - name: "Test"
-        run: |
-          ls -lart ./dev/faasm/
-          ls -lart ./dev/faasm/conan2 || true
-          ls -lart ~
-          ls -lart ~/.conan2 || true
 
   tests:
     needs: [cpp-funcs, py-funcs, conan-cache, wasm-funcs-cache]
@@ -444,6 +438,7 @@ jobs:
         with:
           build-type: Debug
           from: faasm
+          mount-path: ${{ env.FAASMCTL_CONAN_CACHE_MOUNT_SOURCE }}
       - name: "Install faasmctl"
         run: pip3 install faasmctl==${{ env.FAASMCTL_VERSION }}
       # Cache contains architecture-specific machine code
@@ -511,6 +506,7 @@ jobs:
         with:
           build-type: "release"
           from: faasm
+          mount-path: ${{ env.FAASMCTL_CONAN_CACHE_MOUNT_SOURCE }}
 
       - name: "Run e2e tests"
         run: ./tests/e2e/run.sh
