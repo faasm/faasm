@@ -19,6 +19,10 @@ concurrency:
 # Top-level env. vars shared by most jobs
 env:
   COMPOSE_VERSION: 2.29.2
+  # This path must match the mount-path where the conan-cache-action restores
+  # all the pre-built conan binaries and libraries. In addition, this env.
+  # variable is picked-up by faasmctl to mount this pre-built dependencies
+  # into the Faasm cluster.
   CONAN_CACHE_MOUNT_SOURCE: ~/.conan2
   FAABRIC_VERSION: 0.22.0
   FAASM_INI_FILE: ./faasm.ini
@@ -225,6 +229,13 @@ jobs:
           faasm-version: ${{ env.FAASM_VERSION }}
           faabric-version: ${{ env.FAABRIC_VERSION }}
           read-only: 'true'
+      # Check-out the code again, as the image-cache action wipes everything
+      - name: "Check-out code"
+        if: ${{ steps.conan-cache-faasm.outputs.cache-hit != 'true' }}
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          submodules: true
       - name: "Install faasmctl"
         if: ${{ steps.conan-cache-faasm.outputs.cache-hit != 'true' }}
         run: pip3 install faasmctl==${{ env.FAASMCTL_VERSION }}
