@@ -20,7 +20,7 @@ spec:
             - control
   containers:
     - name: master
-      image: ghcr.io/faasm/redis:0.32.0
+      image: ghcr.io/faasm/redis:0.33.0
       ports:
         - containerPort: 6379
 
@@ -46,7 +46,7 @@ spec:
             - control
   containers:
     - name: master
-      image: ghcr.io/faasm/redis:0.32.0
+      image: ghcr.io/faasm/redis:0.33.0
       ports:
         - containerPort: 6379
 
