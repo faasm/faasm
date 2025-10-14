@@ -57,9 +57,6 @@ RUN wget -qO /tmp/${SGX_SDK_BIN} "${SGX_SDK_URL}" \
 ARG FAASM_SGX_MODE
 RUN cd /usr/local/code/faasm \
     && source venv/bin/activate \
-    && git fetch origin \
-    && git checkout conan2 \
-    && git pull origin conan2 \
     && inv dev.tools \
         --clean \
         --build Release \
