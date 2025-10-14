@@ -1,5 +1,5 @@
 ARG FAASM_VERSION
-FROM ghcr.io/faasm/base:${FAASM_VERSION} AS collector
+FROM ghcr.io/faasm/base:${FAASM_VERSION:-} AS collector
 
 # Build the upload and codegen targets
 RUN cd /usr/local/code/faasm \
