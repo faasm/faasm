@@ -118,7 +118,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-cpp-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/faasm/cpp-sysroot:0.7.0
+      image: ghcr.io/faasm/cpp-sysroot:0.8.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
@@ -160,7 +160,7 @@ jobs:
     if: ${{ needs.wasm-funcs-cache.outputs.needs-py-wasm == 'true' }}
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/faasm/cpython:0.4.0
+      image: ghcr.io/faasm/cpython:0.5.0
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v4
