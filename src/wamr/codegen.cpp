@@ -72,6 +72,7 @@ std::vector<uint8_t> wamrCodegen(std::vector<uint8_t>& wasmBytesIn, bool isSgx)
     // We need this for threads
     option.enable_thread_mgr = true;
     option.enable_ref_types = true;
+    option.enable_gc = true;
     option.is_jit_mode = false;
     option.enable_simd = true;
 
