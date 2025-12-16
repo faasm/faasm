@@ -6,6 +6,8 @@
 
 #include <wasm_export.h>
 
+#include <fstream>
+
 namespace wasm {
 static int32_t __faasm_s3_get_num_buckets_wrapper(wasm_exec_env_t execEnv)
 {
@@ -182,6 +184,51 @@ static int32_t __faasm_s3_get_key_bytes_wrapper(wasm_exec_env_t execEnv,
     return 0;
 }
 
+static int32_t __faasm_s3_download_key_wrapper(wasm_exec_env_t execEnv,
+											   const char* bucketName,
+											   const char* keyName,
+											   const char* outPath,
+											   bool tolerateMissing)
+{
+    // First, get the actual key bytes from s3
+    storage::S3Wrapper s3cli;
+    std::vector<uint8_t> data;
+    auto* module = getExecutingWAMRModule();
+
+    try {
+        data = s3cli.getKeyBytes(bucketName, keyName);
+    } catch (std::exception& e) {
+        module->doThrowException(e);
+    }
+
+    if (data.empty()) {
+        return 0;
+    }
+
+	// Second, write key contents to specified file in the runtime root.
+    const auto& conf = conf::getFaasmConfig();
+	std::filesystem::path path(conf.runtimeFilesDir);
+	path.append(outPath);
+	SPDLOG_DEBUG("Writting key {}/{} to file {}", bucketName, keyName, outPath);
+    std::ofstream out(path, std::ios::binary);
+    if (!out) {
+		SPDLOG_ERROR("Failed to open path (base: {})", conf.runtimeFilesDir);
+		auto exc = std::runtime_error("Failed to open outpath");
+		module->doThrowException(exc);
+	}
+
+    out.write(reinterpret_cast<const char*>(data.data()),
+              static_cast<std::streamsize>(data.size()));
+
+    if (!out) {
+		SPDLOG_ERROR("Failed to write to file");
+		auto exc = std::runtime_error("Failed to write file");
+		module->doThrowException(exc);
+	}
+
+    return 0;
+}
+
 static NativeSymbol s3_ns[] = {
     REG_NATIVE_FUNC(__faasm_s3_get_num_buckets, "()i"),
     REG_NATIVE_FUNC(__faasm_s3_list_buckets, "(**)"),
@@ -191,6 +238,7 @@ static NativeSymbol s3_ns[] = {
     REG_NATIVE_FUNC(__faasm_s3_list_keys_with_prefix, "($$**)"),
     REG_NATIVE_FUNC(__faasm_s3_add_key_bytes, "($$*~i)i"),
     REG_NATIVE_FUNC(__faasm_s3_get_key_bytes, "($$**i)i"),
+    REG_NATIVE_FUNC(__faasm_s3_download_key, "($$$i)i"),
 };
 
 uint32_t getFaasmS3Api(NativeSymbol** nativeSymbols)

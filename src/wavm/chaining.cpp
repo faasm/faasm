@@ -74,7 +74,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     const std::vector<uint8_t> inputData =
       getBytesFromWasm(inputDataPtr, inputDataLen);
 
-    uint32_t ret = makeChainedCall(funcName, 0, nullptr, inputData);
+    uint32_t ret = makeChainedCall(funcName, 0, "", nullptr, inputData);
     return ret;
 }
 
@@ -93,7 +93,7 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     const std::vector<uint8_t> inputData =
       getBytesFromWasm(inputDataPtr, inputDataLen);
 
-    return makeChainedCall(call->function(), wasmFuncPtr, nullptr, inputData);
+    return makeChainedCall(call->function(), wasmFuncPtr, "", nullptr, inputData);
 }
 
 WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -112,6 +112,6 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(env,
     const std::vector<uint8_t> inputData =
       getBytesFromWasm(inputDataPtr, inputDataLen);
 
-    return makeChainedCall(call->function(), 0, pyFuncName.c_str(), inputData);
+    return makeChainedCall(call->function(), 0, "", pyFuncName.c_str(), inputData);
 }
 }

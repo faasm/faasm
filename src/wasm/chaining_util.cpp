@@ -38,6 +38,7 @@ int awaitChainedCall(unsigned int messageId)
 
 int makeChainedCall(const std::string& functionName,
                     int wasmFuncPtr,
+                    const std::string& cmdline,
                     const char* pyFuncName,
                     const std::vector<uint8_t>& inputData)
 {
@@ -61,7 +62,11 @@ int makeChainedCall(const std::string& functionName,
     msg.set_funcptr(wasmFuncPtr);
 
     // Propagate the command line if needed
-    msg.set_cmdline(originalCall->cmdline());
+    if (!cmdline.empty()) {
+        msg.set_cmdline(cmdline);
+    } else {
+        msg.set_cmdline(originalCall->cmdline());
+    }
 
     // Python properties
     msg.set_pythonuser(originalCall->pythonuser());

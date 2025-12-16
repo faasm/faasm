@@ -110,12 +110,13 @@ static int32_t __faasm_await_call_output_wrapper(wasm_exec_env_t execEnv,
  */
 static int32_t __faasm_chain_name_wrapper(wasm_exec_env_t execEnv,
                                           const char* name,
+                                          const char* cmdline,
                                           const uint8_t* input,
                                           uint32_t inputSize)
 {
     std::vector<uint8_t> _input(input, input + inputSize);
     SPDLOG_DEBUG("S - chain_name - {}", std::string(name));
-    return wasm::makeChainedCall(std::string(name), 0, nullptr, _input);
+    return wasm::makeChainedCall(std::string(name), 0, std::string(cmdline), nullptr, _input);
 }
 
 /**
@@ -130,7 +131,7 @@ static int32_t __faasm_chain_ptr_wrapper(wasm_exec_env_t exec_env,
 
     faabric::Message& call = ExecutorContext::get()->getMsg();
     std::vector<uint8_t> inputData(BYTES(inBuff), BYTES(inBuff) + inLen);
-    return makeChainedCall(call.function(), wasmFuncPtr, nullptr, inputData);
+    return makeChainedCall(call.function(), wasmFuncPtr, "", nullptr, inputData);
 }
 
 /*
@@ -229,7 +230,7 @@ static NativeSymbol faasmNs[] = {
     REG_NATIVE_FUNC(__faasm_append_state, "(**i)"),
     REG_NATIVE_FUNC(__faasm_await_call, "(i)i"),
     REG_NATIVE_FUNC(__faasm_await_call_output, "(i**)i"),
-    REG_NATIVE_FUNC(__faasm_chain_name, "($$i)i"),
+    REG_NATIVE_FUNC(__faasm_chain_name, "($$$i)i"),
     REG_NATIVE_FUNC(__faasm_chain_ptr, "(i$i)i"),
     REG_NATIVE_FUNC(__faasm_host_interface_test, "(i)"),
     REG_NATIVE_FUNC(__faasm_migrate_point, "(ii)"),

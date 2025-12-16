@@ -14,6 +14,7 @@ faabric::Message awaitChainedCallOutput(unsigned int messageId);
 
 int makeChainedCall(const std::string& functionName,
                     int wasmFuncPtr,
+                    const std::string& cmdline,
                     const char* pyFunc,
                     const std::vector<uint8_t>& inputData);
 }
