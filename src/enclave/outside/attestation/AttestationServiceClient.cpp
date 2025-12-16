@@ -17,8 +17,6 @@ using BeastHttpResponse = faabric::util::BeastHttpResponse;
 
 namespace sgx {
 
-// Even though we don't use Azure's Attestation service anymore, we use the
-// same JWT format in case we ever want to revert back to using MAA
 std::string AttestationServiceClient::requestBodyFromEnclaveInfo(
   const EnclaveInfo& enclaveInfo)
 {
@@ -40,6 +38,21 @@ std::string AttestationServiceClient::requestBodyFromEnclaveInfo(
                     Value(draftPolicyForAttestation.c_str(),
                           draftPolicyForAttestation.size()),
                     allocator);
+
+    // nodeData: metadata about the calling function in order to run CP-ABE
+    // key generation. It is safe to set this from the untrusted host because
+    // the actual keys will be encrypted with the enclave held public key,
+    // bound to the attestation report, and a wrong metadata will just trigger
+    // a failed decryption.
+    std::string nodeData;
+    auto workflowId = enclaveInfo.getWorkflowId();
+    auto nodeId = enclaveInfo.getNodeId();
+    inner.SetObject();
+    inner.AddMember(
+      "workflowId", Value(workflowId.c_str(), workflowId.size()), allocator);
+    inner.AddMember(
+      "nodeId", Value(nodeId.c_str(), nodeId.size()), allocator);
+    outer.AddMember("nodeData", inner, allocator);
 
     // initTimeData: initialisation data provided when enclave is created
     // (unset)
@@ -139,12 +152,14 @@ static BeastHttpResponse doRequest(const std::string& ip,
 
 std::string AttestationServiceClient::attestEnclave(
   const std::vector<uint8_t>& quote,
-  sgx_report_t& report)
+  sgx_report_t& report,
+  const std::string& workflowId,
+  const std::string& nodeId)
 {
     std::vector<uint8_t> heldData(SGX_REPORT_DATA_SIZE);
     std::memcpy(heldData.data(), &report.body.report_data, heldData.size());
 
-    EnclaveInfo enclaveInfo(report, quote, heldData);
+    EnclaveInfo enclaveInfo(workflowId, nodeId, report, quote, heldData);
     return attestEnclave(enclaveInfo);
 }
 
@@ -182,7 +197,7 @@ std::string AttestationServiceClient::attestEnclave(
 
     // Process output
     if (response.result() != beast::http::status::ok) {
-        SPDLOG_ERROR("Error querying Azure to validate SGX quote ({}): {}",
+        SPDLOG_ERROR("Error querying attestation service to validate SGX quote ({}): {}",
                      response.result_int(),
                      response.body());
         throw std::runtime_error("Error validaing enclave quote");

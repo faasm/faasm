@@ -242,7 +242,7 @@ static void accless_get_mrenclave_wrapper(wasm_exec_env_t execEnv,
                 sizeof(sgx_measurement_t));
 }
 
-// This function returns 0 is TLess is enabled
+// This function returns 0 if Accless is enabled
 static int32_t accless_is_enabled_wrapper(wasm_exec_env_t execEnv)
 {
     auto* wasmModule = wasm::getExecutingEnclaveWasmModule(execEnv);

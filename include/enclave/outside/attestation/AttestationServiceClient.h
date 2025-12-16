@@ -25,13 +25,19 @@ class AttestationServiceClient
 
     AttestationServiceClient(const std::string& attestationServiceUrlIn);
 
-    // This method sends the enclave quote to the remote attestation service.
-    // If the report passes the attestation checks according to the attestation
-    // policy in the remote service, we receive a JWT in response. Otherwise
-    // this method throws an exception.
+    /* This method sends the enclave quote to the remote attestation service.
+     * If the report passes the attestation checks according to the attestation
+     * policy in the remote service, we receive a JWT in response. Otherwise
+     * this method throws an exception.
+     *
+     * The extended signature takes the raw parameters, and converts them to
+     * an EnclaveInfo structure.
+     */
     std::string attestEnclave(const EnclaveInfo& enclaveInfo);
     std::string attestEnclave(const std::vector<uint8_t>& quote,
-                              sgx_report_t& report);
+                              sgx_report_t& report,
+                              const std::string& workflowId,
+                              const std::string& nodeId);
 
     std::pair<std::string, std::string> getTokenFromJwtResponse(
       const std::string& jwtResponse);

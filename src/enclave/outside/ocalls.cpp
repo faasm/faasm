@@ -683,15 +683,22 @@ extern "C"
     int32_t ocallAttValidateQuote(sgx_report_t report, int32_t* jwtResponseSize)
     {
 #ifdef FAASM_SGX_HARDWARE_MODE
+        auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
+
         // First, generate quote
         auto quoteBuffer = sgx::getQuoteFromReport(report);
 
-        // Now, validate it with the attestation service in Azure
+        // Metadata necessary to link the quote with attribute-based encryption
+        // key generation.
+        std::string workflowId = wasm::getExecutingEnclaveInterface()->getBoundUser();
+        std::string nodeId = wasm::getExecutingEnclaveInterface()->getBoundFunction() + "_" + std::to_string(enclave_id);
+
+        // Now, validate it with the attestation service
         sgx::AttestationServiceClient aaClient(
           conf::getFaasmConfig().attestationServiceUrl);
         std::string jwtResponse = aaClient.attestEnclave(quoteBuffer, report);
 
-        // JWT response contains the actual JWT encrypted (JWT) as well ass
+        // JWT response contains the actual JWT encrypted (JWT) as well as
         // the public key used in the key derivation algorithm on the server
         // side
         auto [jwe, pubKey] = aaClient.getTokenFromJwtResponse(jwtResponse);
@@ -702,7 +709,6 @@ extern "C"
         std::string jwtCombined = jwe + pubKey;
 
         faasm_sgx_status_t returnValue;
-        auto enclaveId = wasm::getExecutingEnclaveInterface()->getEnclaveId();
         sgx_status_t sgxReturnValue =
           ecallCopyDataIn(enclaveId,
                           &returnValue,

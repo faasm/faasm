@@ -10,6 +10,7 @@
 // Implementation of the ECalls API
 extern "C"
 {
+    // FIXME: this does not seem to be used?
     faasm_sgx_status_t ecallCreateReport(const sgx_target_info_t* qeTarget,
                                          const sgx_report_data_t* heldData,
                                          sgx_report_t* report)

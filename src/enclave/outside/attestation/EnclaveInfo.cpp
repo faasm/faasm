@@ -9,10 +9,14 @@
 
 namespace sgx {
 
-EnclaveInfo::EnclaveInfo(const sgx_report_t& enclaveReport,
+EnclaveInfo::EnclaveInfo(const std::string& workflowId,
+                         const std::string& nodeId,
+                         const sgx_report_t& enclaveReport,
                          const std::vector<uint8_t>& quoteBuffer,
                          const std::vector<uint8_t>& enclaveHeldDataIn)
-  : quote(quoteBuffer)
+  : workflowId(workflowId)
+  , nodeId(nodeId)
+  , quote(quoteBuffer)
   , enclaveHeldData(enclaveHeldDataIn)
 {
     // Hard-code enclave type to 2 for SGX enclaves
