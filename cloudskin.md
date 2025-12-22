@@ -26,6 +26,11 @@ python train.py
 
 # Build similarity kernel.
 cargo build --target=wasm32-wasip1 --release
+
+# We need to disable some automatic ref-types introduced in LLVM 19+.
+wasm-opt -O \
+    -o ./target/wasm32-wasip1/debug/similarity_test.wasm
+    ./target/wasm32-wasip1/debug/similarity_test_opt.wasm
 ```
 
 then we need the Granny shim:
@@ -41,7 +46,7 @@ Now we can upload the WASM modules:
 
 ```bash
 # Image similarity.
-faasmctl upload.wasm cloudskin imagesim --wasm-file ~/git/ZikBurns/ExampleImageSimilarity/code/target/wasm32-wasip1/debug/similarity_test.wasm
+faasmctl upload.wasm cloudskin imagesim --wasm-file ~/git/ZikBurns/ExampleImageSimilarity/code/target/wasm32-wasip1/debug/similarity_test_opt.wasm
 
 # Granny shim.
 faasmctl upload.wasm cloudskin elastic_imagesim --wasm-file ./dev/faasm-local/wasm/omp/elastic_imagesim/function.wasm
